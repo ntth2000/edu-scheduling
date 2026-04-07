@@ -1,11 +1,7 @@
-package com.eduschedule.entity;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
+package com.eduschedule.entity.enums;
 
 public enum TeacherType {
-    @JsonProperty("BO_MON")
-    GVBM,
-
-    @JsonProperty("CHU_NHIEM") // Ví dụ tương tự
-    GVCN
+    BO_MON,
+    CHU_NHIEM,
+    KHAC
 }

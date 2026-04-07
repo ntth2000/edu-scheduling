@@ -1,0 +1,14 @@
+/design
+/skills
+/plan
+
+#CLAUDE
+./claude
+AGENTS.md
+CLAUDE.md
+GUIDE.md
+
+.DS_Store
+*.DS_Store
+Thumbs.db
+.env
