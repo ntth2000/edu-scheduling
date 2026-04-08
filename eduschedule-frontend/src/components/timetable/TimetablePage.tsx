@@ -9,16 +9,14 @@ import {
   DAYS,
   PERIODS,
 } from "@/lib/timetable-data";
-import { mockTeachers } from "@/lib/mock-data";
 import { TimetableGrid } from "./TimetableGrid";
 import { TimetableSidePanel } from "./TimetableSidePanel";
 import { GradeView } from "./GradeView";
-import { TimetableCell } from "./TimetableCell";
 import { CellPopover } from "./CellPopover";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 
-export function TimetablePage() {
+export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
   const [viewMode, setViewMode] = useState<ViewMode>("class");
   const [selectedGrade, setSelectedGrade] = useState(4);
   const [selectedClassId, setSelectedClassId] = useState("4A");
@@ -41,12 +39,14 @@ export function TimetablePage() {
   }, [slots]);
 
   const handleAddSlot = (newSlot: Omit<Slot, "id" | "isConflict">) => {
+    if (readOnly) return;
     const id = `slot-${Date.now()}`;
     setSlots((prev) => [...prev, { ...newSlot, id, isConflict: false }]);
     toast.success(`Đã xếp ${newSlot.subjectName} vào TKB`);
   };
 
   const handleDeleteSlot = (slotId: string) => {
+    if (readOnly) return;
     const slot = slots.find((s) => s.id === slotId);
     setSlots((prev) => prev.filter((s) => s.id !== slotId));
     if (slot) toast.success(`Đã xóa ${slot.subjectName} khỏi TKB`);
@@ -66,9 +66,9 @@ export function TimetablePage() {
           <h2 className="text-2xl font-extrabold text-md-on-surface tracking-tight font-heading">
             Thời khóa biểu
           </h2>
-          <p className="text-slate-500 text-sm mt-1">
+          {!readOnly && <p className="text-slate-500 text-sm mt-1">
             Xem và quản lý thời khoá biểu theo lớp, giáo viên hoặc khối.
-          </p>
+          </p>}
           {/* Tabs */}
           <div className="flex gap-6 mt-4">
             {[
@@ -79,11 +79,10 @@ export function TimetablePage() {
               <button
                 key={tab.value}
                 onClick={() => setViewMode(tab.value)}
-                className={`text-sm pb-1 transition-colors ${
-                  viewMode === tab.value
+                className={`text-sm pb-1 transition-colors ${viewMode === tab.value
                     ? "text-blue-700 font-semibold border-b-2 border-blue-600"
                     : "text-slate-500 hover:text-blue-700"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -176,9 +175,10 @@ export function TimetablePage() {
                 slots={slots}
                 onAddSlot={handleAddSlot}
                 onDeleteSlot={handleDeleteSlot}
+                readOnly={readOnly}
               />
             </div>
-            <TimetableSidePanel mode="class" classId={selectedClassId} slots={slots} />
+            {!readOnly && <TimetableSidePanel mode="class" classId={selectedClassId} slots={slots} />}
           </div>
         )}
 
@@ -192,7 +192,7 @@ export function TimetablePage() {
                 onDeleteSlot={handleDeleteSlot}
               />
             </div>
-            <TimetableSidePanel mode="teacher" teacherId={selectedTeacherId} slots={slots} />
+            {!readOnly && <TimetableSidePanel mode="teacher" teacherId={selectedTeacherId} slots={slots} />}
           </div>
         )}
 
@@ -268,7 +268,7 @@ function TeacherTimetableGrid({
                   period={period}
                   classId={slot.classId}
                   allSlots={slots}
-                  onAddSlot={() => {}}
+                  onAddSlot={() => { }}
                   onDeleteSlot={onDeleteSlot}
                 >
                   <div className="bg-white border-l-[3px] border-md-primary min-h-[80px] p-3 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow rounded-sm">

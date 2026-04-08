@@ -2,7 +2,6 @@
 
 import { type HomeroomAssignment as HomeroomData } from "@/lib/assignment-data";
 import { type TeacherResponse } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -19,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil } from "lucide-react";
+import { TypographyH4 } from "@/components/ui/typography";
 
 interface Props {
   assignments: HomeroomData[];
@@ -31,26 +30,19 @@ export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Prop
   const grades = [1, 2, 3, 4, 5];
 
   return (
-    <div className="bg-md-surface-container-lowest rounded-[2rem] shadow-sm border border-md-outline-variant/10 overflow-hidden">
-      <div className="px-8 py-6 flex items-center justify-between bg-linear-to-r from-md-surface-container-low to-transparent">
-        <h2 className="text-xl font-bold flex items-center gap-3 font-heading">
-          <span className="w-2 h-6 bg-md-primary rounded-full" />
-          Danh sách Lớp học theo Khối
-        </h2>
-        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-md-outline-variant/20 shadow-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Năm học</span>
-          <span className="text-sm font-bold text-md-primary">2024 - 2025</span>
-        </div>
+    <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+      <div className="px-6 py-4 flex items-center justify-between bg-md-surface-container-low/30">
+        <TypographyH4 title="Danh sách lớp học theo khối" />
+        <Badge variant="secondary">Năm học 2024 – 2025</Badge>
       </div>
 
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
-            <TableRow className="bg-md-surface-container-low/30">
-              <TableHead className="px-8">Tên lớp</TableHead>
-              <TableHead className="px-8 text-center">Khối</TableHead>
-              <TableHead className="px-8">Giáo viên Chủ nhiệm</TableHead>
-              <TableHead className="px-8" />
+          <TableHeader className="bg-md-surface-container-low/30">
+            <TableRow>
+              <TableHead className="px-4">Tên lớp</TableHead>
+              <TableHead className="px-4 text-center">Khối</TableHead>
+              <TableHead className="px-4">Giáo viên chủ nhiệm</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -70,6 +62,12 @@ export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Prop
           </TableBody>
         </Table>
       </div>
+
+      <div className="px-6 py-3 bg-md-surface-container-low/10 border-t border-md-outline-variant/10">
+        <p className="text-[11px] text-slate-400 font-medium">
+          Đang hiển thị {assignments.length} lớp học
+        </p>
+      </div>
     </div>
   );
 }
@@ -87,34 +85,34 @@ function GradeGroup({
 }) {
   return (
     <>
-      <TableRow className="bg-blue-50/30 hover:bg-blue-50/30">
-        <TableCell colSpan={4} className="px-8 py-3">
-          <span className="text-xs font-bold text-blue-700 uppercase tracking-tighter">
+      <TableRow className="bg-md-surface-container-low/20 hover:bg-md-surface-container-low/20">
+        <TableCell colSpan={3} className="px-4 py-2">
+          <Badge variant="secondary" className="text-xs font-bold">
             Khối {grade}
-          </span>
+          </Badge>
         </TableCell>
       </TableRow>
 
       {classes.map((cls) => (
         <TableRow key={cls.classId} className="group">
-          <TableCell className="px-8 font-bold text-slate-800">
+          <TableCell className="px-4 font-medium text-md-on-surface">
             Lớp {cls.className}
           </TableCell>
-          <TableCell className="px-8 text-center">
+          <TableCell className="px-4 text-center">
             <Badge variant="secondary">{cls.grade}</Badge>
           </TableCell>
-          <TableCell className="px-8">
+          <TableCell className="px-4">
             <Select
               value={cls.teacherId !== null ? String(cls.teacherId) : "none"}
-              onValueChange={(val) =>
-                onAssign(cls.classId, val === "none" ? null : Number(val))
-              }
+              onValueChange={(val) => onAssign(cls.classId, val === "none" ? null : Number(val))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="max-w-64">
                 <SelectValue placeholder="Chưa phân công" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Chưa phân công</SelectItem>
+                <SelectItem value="none">
+                  <span className="italic text-slate-400">Chưa phân công</span>
+                </SelectItem>
                 {gvcnTeachers.map((t) => (
                   <SelectItem key={t.id} value={String(t.id)}>
                     {t.fullName}
@@ -122,15 +120,6 @@ function GradeGroup({
                 ))}
               </SelectContent>
             </Select>
-          </TableCell>
-          <TableCell className="px-8 text-right">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-md-primary transition-all"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
           </TableCell>
         </TableRow>
       ))}

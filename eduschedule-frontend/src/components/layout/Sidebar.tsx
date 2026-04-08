@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -36,6 +36,13 @@ const navItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/timetable");
+    router.refresh();
+  };
 
   return (
     <Sidebar>
@@ -90,7 +97,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="py-5 px-4 text-slate-600 hover:bg-red-50 hover:text-red-600">
-              <button className="flex w-full items-center gap-3">
+              <button className="flex w-full items-center gap-3" onClick={handleLogout}>
                 <LogOut className="h-5 w-5" />
                 <span className="font-medium text-sm">Đăng xuất</span>
               </button>

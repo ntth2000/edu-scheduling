@@ -22,6 +22,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { TypographyH4 } from "@/components/ui/typography";
 
 interface Props {
   assignments: SubjectTeacherAssignment[];
@@ -32,39 +34,36 @@ interface Props {
 
 export function SubjectAssignment({ assignments, availableSubjects, onRemoveSubject, onAddSubject }: Props) {
   return (
-    <div className="bg-md-surface-container-lowest rounded-[2rem] shadow-sm border border-md-outline-variant/10 overflow-hidden">
-      <div className="px-8 py-6 flex items-center justify-between bg-linear-to-r from-md-surface-container-low to-transparent">
-        <h2 className="text-xl font-bold flex items-center gap-3 font-heading">
-          <span className="w-2 h-6 bg-md-primary rounded-full" />
-          Danh sách Giáo viên Bộ môn
-        </h2>
+    <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+      <div className="px-6 py-4 bg-md-surface-container-low/30">
+        <TypographyH4 title="Danh sách giáo viên bộ môn" />
       </div>
 
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
-            <TableRow className="bg-md-surface-container-low/30">
-              <TableHead className="px-8">Giáo viên</TableHead>
-              <TableHead className="px-8">Mã GV</TableHead>
-              <TableHead className="px-8">Môn học phụ trách</TableHead>
-              <TableHead className="px-8 text-right">Số tiết/tuần</TableHead>
+          <TableHeader className="bg-md-surface-container-low/30">
+            <TableRow>
+              <TableHead className="px-4">Giáo viên</TableHead>
+              <TableHead className="px-4">Mã GV</TableHead>
+              <TableHead className="px-4">Môn học phụ trách</TableHead>
+              <TableHead className="px-4 text-right">Số tiết/tuần</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {assignments.map((teacher) => (
-              <TableRow key={teacher.teacherId} className="group">
-                <TableCell className="px-8">
+              <TableRow key={teacher.teacherId}>
+                <TableCell className="px-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 border border-md-outline-variant/20 shadow-sm flex items-center justify-center">
-                      <User className="h-5 w-5 text-blue-600" />
+                    <div className="w-9 h-9 rounded-full bg-md-primary/10 flex items-center justify-center shrink-0">
+                      <User className="h-4 w-4 text-md-primary" />
                     </div>
-                    <div className="font-bold text-slate-800">{teacher.teacherName}</div>
+                    <span className="font-medium text-sm text-md-on-surface">{teacher.teacherName}</span>
                   </div>
                 </TableCell>
-                <TableCell className="px-8 font-mono text-sm font-semibold text-slate-500 uppercase">
+                <TableCell className="px-4 font-mono text-xs font-semibold text-blue-700 uppercase">
                   {teacher.teacherCode}
                 </TableCell>
-                <TableCell className="px-8">
+                <TableCell className="px-4">
                   <SubjectTags
                     teacherId={teacher.teacherId}
                     subjects={teacher.assignedSubjects}
@@ -73,13 +72,19 @@ export function SubjectAssignment({ assignments, availableSubjects, onRemoveSubj
                     onAdd={onAddSubject}
                   />
                 </TableCell>
-                <TableCell className="px-8 text-right font-bold text-slate-800">
+                <TableCell className="px-4 text-right font-semibold text-sm text-md-on-surface">
                   {teacher.periodsPerWeek}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="px-6 py-3 bg-md-surface-container-low/10 border-t border-md-outline-variant/10">
+        <p className="text-[11px] text-slate-400 font-medium">
+          Đang hiển thị {assignments.length} giáo viên bộ môn
+        </p>
       </div>
     </div>
   );
@@ -102,7 +107,7 @@ function SubjectTags({
   const unassigned = availableSubjects.filter((s) => !subjects.includes(s));
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 items-center">
       {subjects.map((subject) => {
         const colors = subjectColors[subject] ?? defaultSubjectColor;
         return (
@@ -115,7 +120,7 @@ function SubjectTags({
               variant="ghost"
               size="icon"
               onClick={() => onRemove(teacherId, subject)}
-              className={`h-4 w-4 p-0 ${colors.hover} hover:bg-transparent`}
+              className={`h-4 w-4 p-0 hover:bg-transparent ${colors.hover}`}
             >
               <X className="h-3 w-3" />
             </Button>
@@ -125,24 +130,27 @@ function SubjectTags({
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="secondary" size="icon" className="h-6 w-6 rounded-lg">
+          <Button variant="outline" size="icon" className="h-6 w-6 rounded-md">
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </PopoverTrigger>
         {unassigned.length > 0 && (
           <PopoverContent align="start" className="w-44 p-1">
-            {unassigned.map((subject) => (
-              <Button
-                key={subject}
-                variant="ghost"
-                className="w-full justify-start text-sm font-normal"
-                onClick={() => {
-                  onAdd(teacherId, subject);
-                  setOpen(false);
-                }}
-              >
-                {subject}
-              </Button>
+            {unassigned.map((subject, i) => (
+              <>
+                {i > 0 && <Separator key={`sep-${subject}`} />}
+                <Button
+                  key={subject}
+                  variant="ghost"
+                  className="w-full justify-start text-sm font-normal"
+                  onClick={() => {
+                    onAdd(teacherId, subject);
+                    setOpen(false);
+                  }}
+                >
+                  {subject}
+                </Button>
+              </>
             ))}
           </PopoverContent>
         )}

@@ -1,4 +1,5 @@
-import type { Teacher, Subject, SchoolClass, TeacherType } from "./mock-data";
+import type { Teacher, Subject, SchoolClass } from "./mock-data";
+import { type TeacherType } from "./enums";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -7,7 +8,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 export interface TeacherResponse {
   id: number;
   fullName: string;
-  type: "CHU_NHIEM" | "BO_MON" | "KHAC";
+  type: TeacherType;
   maxPeriodsPerWeek: number;
   isActive: boolean;
   subjects: SubjectResponse[];
@@ -80,6 +81,7 @@ export function mapClass(c: ClassResponse): SchoolClass {
     name: c.name,
     studentCount: 0,
     homeroomTeacher: c.homeroomTeacherName ?? null,
+    homeroomTeacherId: c.homeroomTeacherId ?? null,
     assignmentStatus: c.homeroomTeacherId ? "complete" : "incomplete",
   };
 }
@@ -101,7 +103,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export interface TeacherRequest {
   fullName: string;
-  type: "CHU_NHIEM" | "BO_MON" | "KHAC";
+  type: TeacherType;
   maxPeriodsPerWeek: number;
   subjectIds: number[];
 }

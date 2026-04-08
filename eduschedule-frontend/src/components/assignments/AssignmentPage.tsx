@@ -8,17 +8,10 @@ import {
 } from "@/lib/assignment-data";
 import { HomeroomAssignment as HomeroomAssignmentView } from "./HomeroomAssignment";
 import { SubjectAssignment } from "./SubjectAssignment";
-import { Sparkles, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   teacherApi,
   subjectApi,
@@ -47,7 +40,6 @@ export function AssignmentPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Derived data for child components
   const homeroomData: HomeroomAssignment[] = classes.map((c) => ({
     classId: c.id,
     classCode: `${c.name}_2024`,
@@ -57,7 +49,6 @@ export function AssignmentPage() {
   }));
 
   const subjectData: SubjectTeacherAssignment[] = teachers
-    .filter((t) => t.type === "BoMon")
     .map((t) => ({
       teacherId: t.id,
       teacherCode: `GV${String(t.id).padStart(3, "0")}`,
@@ -66,7 +57,7 @@ export function AssignmentPage() {
       periodsPerWeek: t.currentPeriodsPerWeek ?? 0,
     }));
 
-  const gvcnTeachers = teachers.filter((t) => t.type === "GVCN");
+  const gvcnTeachers = teachers.filter((t) => t.type === "CHU_NHIEM");
   const boMonSubjects = subjects.map((s) => s.name);
 
   const handleHomeroomAssign = async (classId: number, teacherId: number | null) => {
@@ -137,141 +128,123 @@ export function AssignmentPage() {
 
   const assignedCount = homeroomData.filter((a) => a.teacherId !== null).length;
   const totalCount = homeroomData.length;
+  const progressPct = totalCount > 0 ? Math.round((assignedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="p-8 space-y-8 flex-1">
-      {/* Page Title + Mode Selector */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-md-on-surface tracking-tight font-heading">
-            Phân công giảng dạy
-          </h2>
-          <p className="text-slate-500 text-sm mt-1">
-            Quản lý và điều phối giáo viên chủ nhiệm & giáo viên bộ môn theo học kỳ.
-          </p>
-        </div>
+    <div className="space-y-6">
+      {loading ? (
+        <LoadingSkeleton />
+      ) : (
+        <Tabs value={mode} onValueChange={(val) => setMode(val as AssignmentMode)}>
+          <div className="grid grid-cols-12 gap-6 items-start">
+            {/* Main Area */}
+            <div className="col-span-12 lg:col-span-12 space-y-4">
+              <TabsList>
+                <TabsTrigger value="homeroom">Phân công Chủ nhiệm</TabsTrigger>
+                <TabsTrigger value="subject">Phân công Bộ môn</TabsTrigger>
+              </TabsList>
 
-        <div className="min-w-60">
-          <Field>
-            <FieldLabel>Chế độ phân công</FieldLabel>
-            <Select value={mode} onValueChange={(val) => setMode(val as AssignmentMode)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="homeroom">Phân công Chủ nhiệm</SelectItem>
-                <SelectItem value="subject">Phân công Bộ môn</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+              <TabsContent value="homeroom">
+                <HomeroomAssignmentView
+                  assignments={homeroomData}
+                  gvcnTeachers={gvcnTeachers}
+                  onAssign={handleHomeroomAssign}
+                />
+              </TabsContent>
+              <TabsContent value="subject">
+                <SubjectAssignment
+                  assignments={subjectData}
+                  availableSubjects={boMonSubjects}
+                  onRemoveSubject={handleRemoveSubject}
+                  onAddSubject={handleAddSubject}
+                />
+              </TabsContent>
+
+              <div className="flex justify-between items-center px-1">
+                <p className="text-sm text-slate-500 italic">Tự động lưu sau khi thay đổi</p>
+                <Button onClick={handleConfirm}>Xác nhận phân công</Button>
+              </div>
+            </div>
+
+            {/* <div className="col-span-12 lg:col-span-3 space-y-4">
+              <div className="bg-md-primary p-6 rounded-xl text-white shadow-md">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-4">
+                  Tình trạng phân công
+                </p>
+                <p className="text-3xl font-black mb-1">{assignedCount}/{totalCount}</p>
+                <p className="text-[10px] text-white/60 font-bold uppercase mb-3">Lớp đã gán</p>
+                <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white/80 rounded-full transition-all"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <Separator className="my-4 bg-white/10" />
+                <p className="text-xs text-white/60 leading-relaxed">
+                  Tiến độ hoàn thành học kỳ I năm học 2024-2025
+                </p>
+              </div>
+
+              <div className="bg-md-surface-container-lowest rounded-xl shadow-sm border border-md-outline-variant/20 p-6 flex flex-col items-center text-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-md-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 text-md-primary" />
+                </div>
+                <div>
+                  <TypographyH4 title="Tự động phân công?" />
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Sử dụng thuật toán thông minh để tối ưu hóa phân công dựa trên chuyên môn.
+                  </p>
+                </div>
+                <Button variant="secondary" className="w-full text-xs">
+                  Dùng thử ngay
+                </Button>
+              </div>
+
+              <div className="bg-md-surface-container-lowest rounded-xl shadow-sm border border-md-outline-variant/20 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Info className="h-4 w-4 text-slate-400" />
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Hướng dẫn</p>
+                </div>
+                <Separator className="mb-3" />
+                <ul className="space-y-2 text-xs text-slate-500">
+                  <li className="flex gap-2">
+                    <span className="text-md-primary">•</span>
+                    Chọn giáo viên từ danh sách thả xuống trực tiếp trên bảng.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-md-primary">•</span>
+                    Nhấn xác nhận để áp dụng tất cả thay đổi cho hệ thống.
+                  </li>
+                </ul>
+              </div>
+            </div> */}
+          </div>
+        </Tabs>
+      )}
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="grid grid-cols-12 gap-6">
+      <div className="col-span-12 lg:col-span-9 space-y-4">
+        <Skeleton className="h-9 w-72" />
+        <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 bg-md-surface-container-low/30">
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
         </div>
       </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-slate-400 text-sm">Đang tải dữ liệu...</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-12 gap-6 items-start">
-          {/* Main Table Area */}
-          <div className="col-span-12 lg:col-span-9 space-y-6">
-            {mode === "homeroom" ? (
-              <HomeroomAssignmentView
-                assignments={homeroomData}
-                gvcnTeachers={gvcnTeachers}
-                onAssign={handleHomeroomAssign}
-              />
-            ) : (
-              <SubjectAssignment
-                assignments={subjectData}
-                availableSubjects={boMonSubjects}
-                onRemoveSubject={handleRemoveSubject}
-                onAddSubject={handleAddSubject}
-              />
-            )}
-
-            {/* Footer Actions */}
-            <div className="px-8 py-6 bg-md-surface-container-low/20 border-t border-md-outline-variant/10 flex justify-between items-center rounded-b-[2rem]">
-              <p className="text-sm text-slate-500 font-medium italic">
-                Tự động lưu sau khi thay đổi
-              </p>
-              <Button onClick={handleConfirm} size="lg">
-                Xác nhận phân công
-              </Button>
-            </div>
-          </div>
-
-          {/* Right Column */}
-          <div className="col-span-12 lg:col-span-3 space-y-6">
-            {/* Stats Card */}
-            <div className="bg-linear-to-br from-blue-700 to-blue-800 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-500/20 relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-blue-100 text-[10px] font-bold uppercase tracking-widest mb-4">
-                  Tình trạng Phân công
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between items-end mb-1">
-                      <p className="text-3xl font-black">{assignedCount}/{totalCount}</p>
-                      <p className="text-[10px] text-blue-200 font-bold uppercase">Lớp đã gán</p>
-                    </div>
-                    <div className="w-full h-1.5 bg-blue-900/40 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-400 transition-all"
-                        style={{ width: `${totalCount > 0 ? (assignedCount / totalCount) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t border-white/10">
-                    <p className="text-xs text-blue-200 font-medium leading-relaxed">
-                      Tiến độ hoàn thành học kỳ I năm học 2024-2025
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
-            </div>
-
-            {/* AI Help Card */}
-            <div className="p-6 rounded-[2rem] bg-white border border-md-outline-variant/20 shadow-sm flex flex-col items-center text-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
-                <Sparkles className="h-7 w-7 text-md-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-800 uppercase tracking-tight">
-                  Tự động Phân công?
-                </p>
-                <p className="text-xs text-slate-500 mt-2 leading-relaxed px-2">
-                  Sử dụng thuật toán thông minh để tối ưu hóa phân công dựa trên chuyên môn.
-                </p>
-              </div>
-              <Button variant="secondary" className="w-full text-xs">
-                Dùng thử ngay
-              </Button>
-            </div>
-
-            {/* Tips */}
-            <div className="p-6 rounded-[2rem] border border-dashed border-md-outline-variant/40 bg-slate-50/50">
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="h-4 w-4 text-slate-400" />
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Hướng dẫn
-                </p>
-              </div>
-              <ul className="space-y-3 text-xs text-slate-500 font-medium">
-                <li className="flex gap-2">
-                  <span className="text-md-primary">•</span>
-                  Chọn giáo viên từ danh sách thả xuống trực tiếp trên bảng.
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-md-primary">•</span>
-                  Nhấn xác nhận để áp dụng tất cả thay đổi cho hệ thống.
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="col-span-12 lg:col-span-3 space-y-4">
+        <Skeleton className="h-44 w-full rounded-xl" />
+        <Skeleton className="h-44 w-full rounded-xl" />
+      </div>
     </div>
   );
 }

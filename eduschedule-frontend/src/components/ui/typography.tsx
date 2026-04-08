@@ -1,8 +1,11 @@
-export function TypographyH2({ title }: { title: string }) {
+export function TypographyH2({ title, subtitle }: { title: string; subtitle?: string }) {
     return (
-        <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-            {title}
-        </h2>
+        <div>
+            <h2 className="text-3xl font-extrabold text-md-on-surface tracking-tight font-heading">
+                {title}
+            </h2>
+            {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+        </div>
     )
 }
 

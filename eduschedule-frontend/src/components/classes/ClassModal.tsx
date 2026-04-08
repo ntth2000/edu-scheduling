@@ -19,13 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { SchoolClass } from "@/lib/mock-data";
+import { teacherApi, type TeacherResponse } from "@/lib/api";
 import { Save } from "lucide-react";
 
 interface ClassModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   schoolClass: SchoolClass | null;
-  onSave: (data: Partial<SchoolClass>) => void;
+  onSave: (data: Partial<SchoolClass> & { homeroomTeacherId?: number | null }) => void;
 }
 
 export function ClassModal({ open, onOpenChange, schoolClass, onSave }: ClassModalProps) {
@@ -33,6 +34,14 @@ export function ClassModal({ open, onOpenChange, schoolClass, onSave }: ClassMod
   const [grade, setGrade] = useState(1);
   const [name, setName] = useState("");
   const [studentCount, setStudentCount] = useState(30);
+  const [homeroomTeacherId, setHomeroomTeacherId] = useState<number | null>(null);
+  const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
+
+  useEffect(() => {
+    if (open && schoolClass) {
+      teacherApi.getAll().then(setTeachers).catch(() => {});
+    }
+  }, [open, schoolClass]);
 
   useEffect(() => {
     if (schoolClass) {
@@ -40,17 +49,19 @@ export function ClassModal({ open, onOpenChange, schoolClass, onSave }: ClassMod
       setGrade(schoolClass.grade);
       setName(schoolClass.name);
       setStudentCount(schoolClass.studentCount);
+      setHomeroomTeacherId(schoolClass.homeroomTeacherId ?? null);
     } else {
       setCode("");
       setGrade(1);
       setName("");
       setStudentCount(30);
+      setHomeroomTeacherId(null);
     }
   }, [schoolClass, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSave({ code, grade, name, studentCount });
+    onSave({ code, grade, name, studentCount, homeroomTeacherId });
   };
 
   return (
@@ -62,16 +73,6 @@ export function ClassModal({ open, onOpenChange, schoolClass, onSave }: ClassMod
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Field>
-            <FieldLabel>Mã lớp <span className="text-red-600">*</span></FieldLabel>
-            <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              required
-              placeholder="Ví dụ: 4D_2024"
-            />
-          </Field>
-
           <Field>
             <FieldLabel>Khối <span className="text-red-600">*</span></FieldLabel>
             <Select value={String(grade)} onValueChange={(val) => setGrade(Number(val))}>
@@ -96,19 +97,27 @@ export function ClassModal({ open, onOpenChange, schoolClass, onSave }: ClassMod
             />
           </Field>
 
-          <Field>
-            <FieldLabel>Số học sinh</FieldLabel>
-            <div className="relative">
-              <Input
-                type="number"
-                value={studentCount}
-                onChange={(e) => setStudentCount(Number(e.target.value))}
-                min={1}
-                className="pr-16 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none appearance-none"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase">HS</span>
-            </div>
-          </Field>
+          {schoolClass && (
+            <Field>
+              <FieldLabel>Giáo viên chủ nhiệm</FieldLabel>
+              <Select
+                value={homeroomTeacherId != null ? String(homeroomTeacherId) : "none"}
+                onValueChange={(val) => setHomeroomTeacherId(val === "none" ? null : Number(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn giáo viên chủ nhiệm" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Chưa phân công</SelectItem>
+                  {teachers.filter((t) => t.type === "CHU_NHIEM").map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
 
           <DialogFooter className="gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

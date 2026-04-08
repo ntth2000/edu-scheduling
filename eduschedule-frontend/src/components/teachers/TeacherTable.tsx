@@ -41,6 +41,8 @@ import {
   mapTeacher,
   type SubjectResponse,
 } from "@/lib/api";
+import { CustomPagination } from "../shared/CustomPagination";
+import { usePagination } from "@/hooks/usePagination";
 
 export function TeacherTable() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -49,6 +51,7 @@ export function TeacherTable() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [teacherToToggle, setTeacherToToggle] = useState<Teacher | null>(null);
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(teachers);
 
   useEffect(() => {
     setLoading(true);
@@ -156,6 +159,39 @@ export function TeacherTable() {
 
   return (
     <>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-md-primary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-md-primary/70 mb-1">
+              Tổng số GV
+            </p>
+            <h4 className="text-3xl font-extrabold text-md-primary font-heading">
+              {teachers.length}
+            </h4>
+          </div>
+        </div>
+        <div className="bg-md-secondary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-md-secondary/70 mb-1">
+              GV Chủ nhiệm
+            </p>
+            <h4 className="text-3xl font-extrabold text-md-secondary font-heading">
+              {teachers.filter((t) => t.type === "CHU_NHIEM").length}
+            </h4>
+          </div>
+        </div>
+        <div className="bg-md-tertiary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-md-tertiary/70 mb-1">
+              Ban Giám Hiệu / Khác
+            </p>
+            <h4 className="text-3xl font-extrabold text-md-tertiary font-heading">
+              {teachers.filter((t) => t.type === "KHAC").length}
+            </h4>
+          </div>
+        </div>
+      </div>
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <TypographyH4 title="Danh sách giáo viên" />
@@ -188,7 +224,7 @@ export function TeacherTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teachers.map((teacher) => {
+              {currentData.map((teacher) => {
                 const ratio = teacher.currentPeriods / teacher.maxPeriods;
                 const periodColor =
                   ratio > 1
@@ -271,40 +307,14 @@ export function TeacherTable() {
           </Table>
         </div>
         <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
-          <p>Hiển thị 1-{teachers.length} trong số {teachers.length} giáo viên</p>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-md-primary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-md-primary/70 mb-1">
-              Tổng số GV
-            </p>
-            <h4 className="text-3xl font-extrabold text-md-primary font-heading">
-              {teachers.length}
-            </h4>
-          </div>
-        </div>
-        <div className="bg-md-secondary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-md-secondary/70 mb-1">
-              GV Chủ nhiệm
-            </p>
-            <h4 className="text-3xl font-extrabold text-md-secondary font-heading">
-              {teachers.filter((t) => t.type === "CHU_NHIEM").length}
-            </h4>
-          </div>
-        </div>
-        <div className="bg-md-tertiary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-md-tertiary/70 mb-1">
-              Ban Giám Hiệu / Khác
-            </p>
-            <h4 className="text-3xl font-extrabold text-md-tertiary font-heading">
-              {teachers.filter((t) => t.type === "KHAC").length}
-            </h4>
+          <p>Hiển thị {currentData.length} trong số {teachers.length} giáo viên</p>
+          <div>
+            <CustomPagination
+              totalItems={teachers.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
       </div>

@@ -6,11 +6,17 @@ import { Plus, AlertTriangle } from "lucide-react";
 interface TimetableCellProps {
   slot: Slot | undefined;
   onClick: () => void;
+  readOnly?: boolean;
 }
 
-export function TimetableCell({ slot, onClick }: TimetableCellProps) {
+export function TimetableCell({ slot, onClick, readOnly = false }: TimetableCellProps) {
   // Empty cell
   if (!slot) {
+    if (readOnly) {
+      return (
+        <div className="bg-md-surface-container min-h-[80px] rounded-sm" />
+      );
+    }
     return (
       <div
         onClick={onClick}

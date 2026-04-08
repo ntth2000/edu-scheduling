@@ -1,19 +1,11 @@
 import { ClassTable } from "@/components/classes/ClassTable";
-import { Plus } from "lucide-react";
+import { TypographyH2 } from "@/components/ui/typography";
 
 export default function ClassesPage() {
   return (
-    <>
-      <div className="p-8 flex-1 flex flex-col gap-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-3xl font-extrabold text-md-on-surface tracking-tight font-heading">
-              Quản lý Lớp học
-            </h2>
-          </div>
-        </div>
-        <ClassTable />
-      </div>
-    </>
+    <div className="p-8 flex-1 flex flex-col gap-8">
+      <TypographyH2 title="Quản lý Lớp học" subtitle="Quản lý danh sách lớp học và phân công giáo viên chủ nhiệm." />
+      <ClassTable />
+    </div>
   );
 }

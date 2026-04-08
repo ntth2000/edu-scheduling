@@ -9,9 +9,10 @@ interface TimetableGridProps {
   slots: Slot[];
   onAddSlot: (slot: Omit<Slot, "id" | "isConflict">) => void;
   onDeleteSlot: (slotId: string) => void;
+  readOnly?: boolean;
 }
 
-export function TimetableGrid({ classId, slots, onAddSlot, onDeleteSlot }: TimetableGridProps) {
+export function TimetableGrid({ classId, slots, onAddSlot, onDeleteSlot, readOnly = false }: TimetableGridProps) {
   const classSlots = slots.filter((s) => s.classId === classId);
 
   const getSlot = (day: number, period: number) =>
@@ -56,9 +57,10 @@ export function TimetableGrid({ classId, slots, onAddSlot, onDeleteSlot }: Timet
                   allSlots={slots}
                   onAddSlot={onAddSlot}
                   onDeleteSlot={onDeleteSlot}
+                  readOnly={readOnly}
                 >
                   <div>
-                    <TimetableCell slot={slot} onClick={() => {}} />
+                    <TimetableCell slot={slot} onClick={() => {}} readOnly={readOnly} />
                   </div>
                 </CellPopover>
               );

@@ -25,6 +25,7 @@ interface CellPopoverProps {
   allSlots: Slot[];
   onAddSlot: (slot: Omit<Slot, "id" | "isConflict">) => void;
   onDeleteSlot: (slotId: string) => void;
+  readOnly?: boolean;
 }
 
 export function CellPopover({
@@ -36,6 +37,7 @@ export function CellPopover({
   allSlots,
   onAddSlot,
   onDeleteSlot,
+  readOnly = false,
 }: CellPopoverProps) {
   const [open, setOpen] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
@@ -109,25 +111,31 @@ export function CellPopover({
             </div>
           )}
 
-          <div className="flex gap-2 border-t border-md-outline-variant/20 pt-3">
-            <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs">
-              <Pencil className="w-3 h-3" /> Đổi
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 gap-1 text-xs text-md-error hover:bg-md-error-container"
-              onClick={() => {
-                onDeleteSlot(slot.id);
-                setOpen(false);
-              }}
-            >
-              <Trash2 className="w-3 h-3" /> Xóa
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex gap-2 border-t border-md-outline-variant/20 pt-3">
+              <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs">
+                <Pencil className="w-3 h-3" /> Đổi
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 gap-1 text-xs text-md-error hover:bg-md-error-container"
+                onClick={() => {
+                  onDeleteSlot(slot.id);
+                  setOpen(false);
+                }}
+              >
+                <Trash2 className="w-3 h-3" /> Xóa
+              </Button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     );
+  }
+
+  if (readOnly) {
+    return <>{children}</>;
   }
 
   // Popover for EMPTY cell
