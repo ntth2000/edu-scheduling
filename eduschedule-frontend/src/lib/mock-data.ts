@@ -1,4 +1,6 @@
-export type TeacherType = "CHU_NHIEM" | "BO_MON" | "KHAC";
+import { type TeacherType, type TeacherStatus, type AssignmentStatus } from "./enums";
+
+export type { TeacherType };
 
 export interface Teacher {
   id: number;
@@ -9,7 +11,7 @@ export interface Teacher {
   subjects: string[];
   maxPeriods: number;
   currentPeriods: number;
-  status: "active" | "inactive";
+  status: TeacherStatus;
 }
 
 export interface Subject {
@@ -26,7 +28,8 @@ export interface SchoolClass {
   name: string;
   studentCount: number;
   homeroomTeacher: string | null;
-  assignmentStatus: "complete" | "incomplete";
+  homeroomTeacherId: number | null;
+  assignmentStatus: AssignmentStatus;
 }
 
 export const mockTeachers: Teacher[] = [
@@ -80,7 +83,7 @@ export const mockSubjects: Subject[] = [
 ];
 
 export const mockClasses: SchoolClass[] = [
-  { id: 1, code: "4A_2024", grade: 4, name: "4A", studentCount: 35, homeroomTeacher: "Vũ Hường", assignmentStatus: "complete" },
-  { id: 2, code: "4B_2024", grade: 4, name: "4B", studentCount: 32, homeroomTeacher: "Nguyễn Huyền", assignmentStatus: "complete" },
-  { id: 3, code: "4C_2024", grade: 4, name: "4C", studentCount: 34, homeroomTeacher: "Hiếu", assignmentStatus: "incomplete" },
+  { id: 1, code: "4A_2024", grade: 4, name: "4A", studentCount: 35, homeroomTeacher: "Vũ Hường", homeroomTeacherId: 1, assignmentStatus: "complete" },
+  { id: 2, code: "4B_2024", grade: 4, name: "4B", studentCount: 32, homeroomTeacher: "Nguyễn Huyền", homeroomTeacherId: 2, assignmentStatus: "complete" },
+  { id: 3, code: "4C_2024", grade: 4, name: "4C", studentCount: 34, homeroomTeacher: "Hiếu", homeroomTeacherId: null, assignmentStatus: "incomplete" },
 ];
