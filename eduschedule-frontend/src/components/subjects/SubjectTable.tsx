@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { type Subject } from "@/lib/mock-data";
+import { useEffect, useRef, useState } from "react";
+import { type Subject } from "@/lib/types";
 import { SubjectModal } from "./SubjectModal";
-import { Pencil, Trash2, Download, Plus } from "lucide-react";
+import { Pencil, Trash2, Download, Plus, FileUp } from "lucide-react";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { subjectApi, mapSubject } from "@/lib/api";
+import { CustomPagination } from "../shared/CustomPagination";
+import { usePagination } from "@/hooks/usePagination";
 
 export function SubjectTable() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -34,6 +37,68 @@ export function SubjectTable() {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(subjects);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = () => {
+    const headers = ["Tên môn học (*)", "Viết tắt (*)", "Tiết/tuần Khối 1 (*)", "Tiết/tuần Khối 2 (*)", "Tiết/tuần Khối 3 (*)", "Tiết/tuần Khối 4 (*)", "Tiết/tuần Khối 5 (*)"];
+    const sample = ["Toán", "Toán", 4, 5, 5, 5, 5];
+    const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+    ws["!cols"] = headers.map((_, i) => ({ wch: i === 0 ? 30 : 20 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Môn học");
+    XLSX.writeFile(wb, "mau_mon_hoc.xlsx");
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = "";
+    if (!file) return;
+
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as (string | number)[][];
+    const dataRows = rows.slice(1).filter((r) => r[0]);
+
+    if (dataRows.length === 0) {
+      toast.error("File không có dữ liệu");
+      return;
+    }
+
+    // Validate all rows before importing anything
+    const errors: string[] = [];
+    const bodies = dataRows.map((row, i) => {
+      const name = String(row[0] ?? "").trim();
+      const shortName = String(row[1] ?? "").trim();
+      if (!name) errors.push(`Dòng ${i + 2}: Tên môn học không được để trống`);
+      if (!shortName) errors.push(`Dòng ${i + 2}: Viết tắt không được để trống`);
+      return {
+        name,
+        shortName,
+        periodsGrade1: parseInt(String(row[2] ?? "0"), 10) || 0,
+        periodsGrade2: parseInt(String(row[3] ?? "0"), 10) || 0,
+        periodsGrade3: parseInt(String(row[4] ?? "0"), 10) || 0,
+        periodsGrade4: parseInt(String(row[5] ?? "0"), 10) || 0,
+        periodsGrade5: parseInt(String(row[6] ?? "0"), 10) || 0,
+      };
+    });
+
+    if (errors.length > 0) {
+      toast.error(errors.join("\n"), { duration: 6000 });
+      return;
+    }
+
+    try {
+      const created = await Promise.all(bodies.map((body) => subjectApi.create(body)));
+      setSubjects((prev) => [...prev, ...created.map(mapSubject)]);
+      toast.success(`Đã nhập ${created.length} môn học thành công`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Nhập dữ liệu thất bại";
+      toast.error(message);
+    }
+  };
 
   useEffect(() => {
     subjectApi.getAll()
@@ -101,10 +166,15 @@ export function SubjectTable() {
               <Plus className="h-3.5 w-3.5" />
               Thêm mới
             </Button>
-            <Button size="sm" variant="ghost">
-              <Download className="h-3.5 w-3.5" />
-              Xuất Excel
+            <Button size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+              <FileUp className="h-3.5 w-3.5" />
+              Nhập Excel
             </Button>
+            <Button size="sm" variant="ghost" onClick={downloadTemplate}>
+              <Download className="h-3.5 w-3.5" />
+              Tải mẫu
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
           </div>
         </div>
 
@@ -112,14 +182,19 @@ export function SubjectTable() {
           <Table>
             <TableHeader className="bg-md-surface-container-low/30">
               <TableRow>
-                <TableHead className="px-4">Tên môn học</TableHead>
-                <TableHead className="px-4 text-center">Viết tắt</TableHead>
-                <TableHead className="px-4 text-center">Số tiết theo khối</TableHead>
-                <TableHead className="text-right px-4">Thao tác</TableHead>
+                <TableHead className="px-4" rowSpan={2}>Tên môn học</TableHead>
+                <TableHead className="px-4 text-center" rowSpan={2}>Viết tắt</TableHead>
+                <TableHead className="px-4 text-center border-b-0" colSpan={5}>Số tiết theo khối</TableHead>
+                <TableHead className="text-right px-4" rowSpan={2}>Thao tác</TableHead>
+              </TableRow>
+              <TableRow>
+                {[1, 2, 3, 4, 5].map((g) => (
+                  <TableHead key={g} className="px-4 text-center text-xs">Khối {g}</TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subjects.map((subject) => (
+              {currentData.map((subject) => (
                 <TableRow key={subject.id}>
                   <TableCell className="px-4 font-medium text-md-on-surface">
                     {subject.name}
@@ -127,16 +202,11 @@ export function SubjectTable() {
                   <TableCell className="px-4 text-center">
                     <Badge variant="secondary">{subject.shortName}</Badge>
                   </TableCell>
-                  <TableCell className="px-4">
-                    <div className="flex justify-center gap-3">
-                      {subject.periodsByGrade.map((p, i) => (
-                        <div key={i} className="text-center">
-                          <div className="text-[9px] text-slate-400 font-bold">K{i + 1}</div>
-                          <div className="text-sm font-bold text-md-on-surface">{p}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
+                  {subject.periodsByGrade.map((p: number, i: number) => (
+                    <TableCell key={i} className="px-4 text-center text-sm font-semibold text-md-on-surface">
+                      {p}
+                    </TableCell>
+                  ))}
                   <TableCell className="text-right px-4">
                     <Button
                       variant="ghost"
@@ -165,7 +235,15 @@ export function SubjectTable() {
         </div>
 
         <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
-          <p>Hiển thị 1-{subjects.length} trong số {subjects.length} môn học</p>
+          <p>Hiển thị {currentData.length} trong số {subjects.length} môn học</p>
+          <div>
+            <CustomPagination
+              totalItems={subjects.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </div>
       </div>
 

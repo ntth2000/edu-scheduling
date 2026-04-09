@@ -26,7 +26,7 @@ export function CustomPagination({
   console.log(totalItems, itemsPerPage, currentPage);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  if (totalPages <= 1) return null;
+  if (totalPages < 1) return null;
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];

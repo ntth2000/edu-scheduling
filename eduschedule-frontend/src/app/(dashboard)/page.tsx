@@ -107,35 +107,43 @@ export default async function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teachers.slice(0, 5).map((teacher) => (
-                    <TableRow key={teacher.id}>
-                      <TableCell className="px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs select-none">
-                            {teacher.name.at(-1)?.toUpperCase()}
-                          </div>
-                          <span className="font-medium text-sm">{teacher.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6">
-                        <Badge
-                          className={
-                            teacher.type === "GVCN"
-                              ? "bg-blue-100 text-blue-700 border-transparent"
-                              : "bg-slate-100 text-slate-600 border-transparent"
-                          }
-                        >
-                          {teacher.type === "GVCN" ? "GVCN" : "Bộ môn"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-6 text-sm text-slate-600 italic">
-                        {teacher.subjects.join(", ") || "—"}
-                      </TableCell>
-                      <TableCell className="px-6 text-center text-sm font-semibold">
-                        {teacher.currentPeriods}
+                  {teachers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center text-slate-500 italic">
+                        Chưa có giáo viên
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    teachers.slice(0, 5).map((teacher) => (
+                      <TableRow key={teacher.id}>
+                        <TableCell className="px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs select-none">
+                              {teacher.name.at(-1)?.toUpperCase()}
+                            </div>
+                            <span className="font-medium text-sm">{teacher.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6">
+                          <Badge
+                            className={
+                              teacher.type === "GVCN"
+                                ? "bg-blue-100 text-blue-700 border-transparent"
+                                : "bg-slate-100 text-slate-600 border-transparent"
+                            }
+                          >
+                            {teacher.type === "GVCN" ? "GVCN" : "Bộ môn"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-6 text-sm text-slate-600 italic">
+                          {teacher.subjects.join(", ") || "—"}
+                        </TableCell>
+                        <TableCell className="px-6 text-center text-sm font-semibold">
+                          {teacher.currentPeriods}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

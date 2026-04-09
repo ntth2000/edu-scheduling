@@ -3,10 +3,12 @@ package com.eduschedule.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Setter
 @Getter
-@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,7 +21,7 @@ public class Subject {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 20)
+    @Column(length = 100)
     private String shortName;
 
     private Integer periodsGrade1 = 0;
@@ -27,4 +29,7 @@ public class Subject {
     private Integer periodsGrade3 = 0;
     private Integer periodsGrade4 = 0;
     private Integer periodsGrade5 = 0;
+
+    @ManyToMany(mappedBy = "subjects")
+    private Set<Teacher> teachers = new HashSet<>();
 }

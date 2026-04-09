@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { type Teacher } from "@/lib/mock-data";
+import { useEffect, useRef, useState } from "react";
+import { type Teacher } from "@/lib/types";
 import { TeacherModal } from "./TeacherModal";
 import {
   Pencil,
@@ -43,6 +43,8 @@ import {
 } from "@/lib/api";
 import { CustomPagination } from "../shared/CustomPagination";
 import { usePagination } from "@/hooks/usePagination";
+import * as XLSX from "xlsx";
+import { TeacherFilterModal, type TeacherFilter } from "./TeacherFilterModal";
 
 export function TeacherTable() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -51,7 +53,68 @@ export function TeacherTable() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [teacherToToggle, setTeacherToToggle] = useState<Teacher | null>(null);
-  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(teachers);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filter, setFilter] = useState<TeacherFilter>({ names: [], types: [], subjects: [], statuses: [] });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const activeFilterCount = filter.names.length + filter.types.length + filter.subjects.length + filter.statuses.length;
+
+  const filteredTeachers = teachers.filter((t) => {
+    if (filter.names.length > 0 && !filter.names.includes(t.name)) return false;
+    if (filter.types.length > 0 && !filter.types.includes(t.type)) return false;
+    if (filter.subjects.length > 0 && !filter.subjects.some((s) => t.subjects.includes(s))) return false;
+    if (filter.statuses.length > 0 && !filter.statuses.includes(t.status)) return false;
+    return true;
+  });
+
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredTeachers);
+
+  const downloadTemplate = () => {
+    const headers = ["Họ tên (*)", "Loại GV (*) [CHU_NHIEM/BO_MON/KHAC]", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
+    const sample = ["Nguyễn Văn A", "CHU_NHIEM", "23", "Toán, Tiếng Việt"];
+    const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
+    ws["!cols"] = headers.map(() => ({ wch: 32 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Giáo viên");
+    XLSX.writeFile(wb, "mau_giao_vien.xlsx");
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = "";
+    if (!file) return;
+
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as string[][];
+    const dataRows = rows.slice(1).filter((r) => r[0]);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of dataRows) {
+      const fullName = String(row[0] ?? "").trim();
+      const type = String(row[1] ?? "").trim() as "CHU_NHIEM" | "BO_MON" | "KHAC";
+      const maxPeriodsPerWeek = parseInt(String(row[2] ?? "23"), 10) || 23;
+      const subjectNames = String(row[3] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const subjectIds = subjectNames
+        .map((name) => subjectList.find((s) => s.name === name)?.id)
+        .filter((id): id is number => id !== undefined);
+
+      try {
+        const created = await teacherApi.create({ fullName, type, maxPeriodsPerWeek, subjectIds });
+        setTeachers((prev) => [...prev, mapTeacher(created)]);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) toast.success(`Đã nhập ${successCount} giáo viên thành công`);
+    if (failCount > 0) toast.error(`${failCount} dòng nhập thất bại`);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -89,8 +152,8 @@ export function TeacherTable() {
     const list = subjectList;
 
     const subjectIds = (data.subjects ?? [])
-      .map((name) => list.find((s) => s.name === name)?.id)
-      .filter((id): id is number => id !== undefined);
+      .map((name: string) => list.find((s) => s.name === name)?.id)
+      .filter((id: number | undefined): id is number => id !== undefined);
 
     const body = {
       fullName: data.name ?? "",
@@ -137,11 +200,16 @@ export function TeacherTable() {
             <UserPlus className="w-5 h-5" />
             Thêm giáo viên mới
           </Button>
-          <Button size="lg" variant="secondary">
+          <Button size="lg" variant="secondary" onClick={() => fileInputRef.current?.click()}>
             <FileUp className="w-5 h-5" />
             Nhập dữ liệu từ Excel
           </Button>
+          <Button size="lg" variant="outline" onClick={downloadTemplate}>
+            <Download className="w-5 h-5" />
+            Tải mẫu Excel
+          </Button>
         </div>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
 
         <TeacherModal
           open={isModalOpen}
@@ -200,14 +268,24 @@ export function TeacherTable() {
               <UserPlus className="h-3.5 w-3.5" />
               Thêm mới
             </Button>
-            <Button size="sm" variant="ghost">
+            <Button size="sm" variant={activeFilterCount > 0 ? "secondary" : "ghost"} onClick={() => setIsFilterOpen(true)}>
               <Filter className="h-3.5 w-3.5" />
               Lọc
+              {activeFilterCount > 0 && (
+                <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                  {activeFilterCount}
+                </Badge>
+              )}
             </Button>
-            <Button size="sm" variant="ghost">
+            <Button size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+              <FileUp className="h-3.5 w-3.5" />
+              Nhập Excel
+            </Button>
+            <Button size="sm" variant="ghost" onClick={downloadTemplate}>
               <Download className="h-3.5 w-3.5" />
-              Xuất Excel
+              Tải mẫu
             </Button>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -307,10 +385,13 @@ export function TeacherTable() {
           </Table>
         </div>
         <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
-          <p>Hiển thị {currentData.length} trong số {teachers.length} giáo viên</p>
+          <p>
+            Hiển thị {currentData.length} trong số {filteredTeachers.length} giáo viên
+            {activeFilterCount > 0 && <span className="ml-1 text-md-primary font-medium">(đang lọc)</span>}
+          </p>
           <div>
             <CustomPagination
-              totalItems={teachers.length}
+              totalItems={filteredTeachers.length}
               itemsPerPage={itemsPerPage}
               currentPage={currentPage}
               onPageChange={setCurrentPage}
@@ -318,6 +399,14 @@ export function TeacherTable() {
           </div>
         </div>
       </div>
+
+      <TeacherFilterModal
+        open={isFilterOpen}
+        onOpenChange={setIsFilterOpen}
+        teachers={teachers}
+        filter={filter}
+        onApply={setFilter}
+      />
 
       <TeacherModal
         open={isModalOpen}

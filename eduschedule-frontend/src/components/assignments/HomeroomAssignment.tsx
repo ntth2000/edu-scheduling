@@ -19,6 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TypographyH4 } from "@/components/ui/typography";
+import { CustomPagination } from "@/components/shared/CustomPagination";
+import { usePagination } from "@/hooks/usePagination";
 
 interface Props {
   assignments: HomeroomData[];
@@ -28,12 +30,14 @@ interface Props {
 
 export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Props) {
   const grades = [1, 2, 3, 4, 5];
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(assignments);
+
+  const currentGrades = [...new Set(currentData.map((a) => a.grade))].sort((a, b) => a - b);
 
   return (
     <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
       <div className="px-6 py-4 flex items-center justify-between bg-md-surface-container-low/30">
         <TypographyH4 title="Danh sách lớp học theo khối" />
-        <Badge variant="secondary">Năm học 2024 – 2025</Badge>
       </div>
 
       <div className="overflow-x-auto">
@@ -46,8 +50,8 @@ export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Prop
             </TableRow>
           </TableHeader>
           <TableBody>
-            {grades.map((grade) => {
-              const gradeClasses = assignments.filter((a) => a.grade === grade);
+            {grades.filter((g) => currentGrades.includes(g)).map((grade) => {
+              const gradeClasses = currentData.filter((a) => a.grade === grade);
               if (gradeClasses.length === 0) return null;
               return (
                 <GradeGroup
@@ -63,10 +67,14 @@ export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Prop
         </Table>
       </div>
 
-      <div className="px-6 py-3 bg-md-surface-container-low/10 border-t border-md-outline-variant/10">
-        <p className="text-[11px] text-slate-400 font-medium">
-          Đang hiển thị {assignments.length} lớp học
-        </p>
+      <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
+        <p>Hiển thị {currentData.length} trong số {assignments.length} lớp học</p>
+        <CustomPagination
+          totalItems={assignments.length}
+          itemsPerPage={itemsPerPage}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

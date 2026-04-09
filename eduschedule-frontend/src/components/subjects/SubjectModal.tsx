@@ -11,9 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { Subject, TeacherType } from "@/lib/mock-data";
 import { Save } from "lucide-react";
+import { Subject } from "@/lib/types";
 
 interface SubjectModalProps {
   open: boolean;
@@ -67,7 +66,6 @@ export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectMod
             <Input
               value={shortName}
               onChange={(e) => setShortName(e.target.value)}
-              maxLength={6}
               required
             />
           </Field>

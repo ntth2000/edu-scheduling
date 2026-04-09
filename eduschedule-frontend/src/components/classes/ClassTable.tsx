@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type SchoolClass } from "@/lib/mock-data";
+import { type SchoolClass } from "@/lib/types";
 import { ClassModal } from "./ClassModal";
-import { Pencil, Trash2, Filter, Download, ListChecks, Users, CalendarDays, CheckCircle, Plus } from "lucide-react";
+import { Pencil, Trash2, Filter, Download, ListChecks, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { classApi, mapClass } from "@/lib/api";
 import { ClassFilterModal, type ClassFilter } from "./ClassFilterModal";
+import { CustomPagination } from "../shared/CustomPagination";
+import { usePagination } from "@/hooks/usePagination";
 
 const EMPTY_FILTER: ClassFilter = { names: [], grades: [], homeroomTeachers: [] };
 
@@ -94,6 +96,8 @@ export function ClassTable() {
     return true;
   });
 
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredClasses);
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -104,6 +108,10 @@ export function ClassTable() {
 
   return (
     <>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={<ListChecks className="h-5 w-5" />} label="Tổng số lớp" value={classes.length} borderColor="border-md-primary" iconBg="bg-md-primary/10 text-md-primary" />
+      </div>
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <TypographyH4 title="Danh sách lớp học" />
@@ -139,7 +147,7 @@ export function ClassTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClasses.map((cls) => (
+              {currentData.map((cls) => (
                 <TableRow key={cls.id}>
                   <TableCell className="px-4 text-sm font-medium text-md-on-surface">
                     Lớp {cls.name}
@@ -179,15 +187,18 @@ export function ClassTable() {
 
         <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
           <p>
-            Hiển thị {filteredClasses.length} trong số {classes.length} lớp học
+            Hiển thị {currentData.length} trong số {filteredClasses.length} lớp học
             {activeFilterCount > 0 && <span className="ml-1 text-md-primary font-medium">(đang lọc)</span>}
           </p>
+          <div>
+            <CustomPagination
+              totalItems={filteredClasses.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ListChecks className="h-5 w-5" />} label="Tổng số lớp" value={classes.length} borderColor="border-md-primary" iconBg="bg-md-primary/10 text-md-primary" />
       </div>
 
       <ClassModal

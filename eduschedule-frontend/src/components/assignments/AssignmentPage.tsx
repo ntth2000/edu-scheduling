@@ -40,13 +40,15 @@ export function AssignmentPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const homeroomData: HomeroomAssignment[] = classes.map((c) => ({
-    classId: c.id,
-    classCode: `${c.name}_2024`,
-    className: c.name,
-    grade: c.grade,
-    teacherId: c.homeroomTeacherId ?? null,
-  }));
+  const homeroomData: HomeroomAssignment[] = classes
+    .map((c) => ({
+      classId: c.id,
+      classCode: `${c.name}_2024`,
+      className: c.name,
+      grade: c.grade,
+      teacherId: c.homeroomTeacherId ?? null,
+    }))
+    .sort((a, b) => a.grade - b.grade || a.className.localeCompare(b.className, "vi"));
 
   const subjectData: SubjectTeacherAssignment[] = teachers
     .map((t) => ({

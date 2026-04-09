@@ -13,7 +13,6 @@ import java.util.Set;
 @Table(name = "teachers")
 @Getter
 @Setter
-@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
