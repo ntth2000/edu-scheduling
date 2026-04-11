@@ -5,7 +5,7 @@ const GUEST_ONLY_PATHS = ["/login"];           // redirect away when logged in
 const ALWAYS_PUBLIC_PATHS = ["/timetable"];    // accessible regardless of auth
 const PROTECTED_PATHS = ["/", "/assignments", "/classes", "/subjects", "/teachers"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const accessToken = request.cookies.get("access_token")?.value;
