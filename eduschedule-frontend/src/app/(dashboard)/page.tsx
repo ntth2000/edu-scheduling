@@ -127,12 +127,12 @@ export default async function DashboardPage() {
                         <TableCell className="px-6">
                           <Badge
                             className={
-                              teacher.type === "GVCN"
+                              teacher.type === "CHU_NHIEM"
                                 ? "bg-blue-100 text-blue-700 border-transparent"
                                 : "bg-slate-100 text-slate-600 border-transparent"
                             }
                           >
-                            {teacher.type === "GVCN" ? "GVCN" : "Bộ môn"}
+                            {teacher.type === "CHU_NHIEM" ? "GVCN" : "Bộ môn"}
                           </Badge>
                         </TableCell>
                         <TableCell className="px-6 text-sm text-slate-600 italic">

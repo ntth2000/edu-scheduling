@@ -1,21 +1,28 @@
 spring.application.name=eduschedule-backend
+spring.profiles.active=${SPRING_PROFILES_ACTIVE:dev}
+
 # Server
-server.port=8080
+server.port=${PORT:8080}
+
 # Database
-spring.datasource.url=<YOUR DB URL>
-spring.datasource.username=<YOUR DB USERNAME>
-spring.datasource.password=<YOUR DB PASSWORD>
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/eduschedule}
+spring.datasource.username=${DB_USERNAME:<YOUR DB USERNAME>}
+spring.datasource.password=${DB_PASSWORD:<YOUR DB PASSWORD>}
 spring.datasource.driver-class-name=org.postgresql.Driver
+
 # JPA
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}
+spring.jpa.show-sql=${JPA_SHOW_SQL:true}
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 spring.jpa.properties.hibernate.format_sql=true
+
 # JWT
-jwt.secret=<YOUR JWT SECRET KEY>
-jwt.expiration=<JWT EXPIRATION TIME IN MILLISECONDS>
-# CORS
-cors.allowed-origins=<YOUR FRONTEND URL>
-# DEFAULT ADMIN ACCOUNT
-app.admin.username=<YOUR ADMIN USERNAME>
-app.admin.password=<YOUR ADMIN PASSWORD>
+jwt.secret=${JWT_SECRET:<YOUR JWT SECRET KEY>}
+jwt.expiration=${JWT_EXPIRATION:86400000}
+
+# CORS (comma-separated list of origins)
+cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+# Default admin account
+app.admin.username=${ADMIN_USERNAME:<YOUR ADMIN USERNAME>}
+app.admin.password=${ADMIN_PASSWORD:<YOUR ADMIN PASSWORD>}

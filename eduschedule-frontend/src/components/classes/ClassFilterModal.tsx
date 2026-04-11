@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { type SchoolClass } from "@/lib/mock-data";
+import { type SchoolClass } from "@/lib/types";
 
 export interface ClassFilter {
   names: string[];

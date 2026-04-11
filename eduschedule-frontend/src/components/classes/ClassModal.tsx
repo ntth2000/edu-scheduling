@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SchoolClass } from "@/lib/mock-data";
+import type { SchoolClass } from "@/lib/types";
 import { teacherApi, type TeacherResponse } from "@/lib/api";
 import { Save } from "lucide-react";
 
