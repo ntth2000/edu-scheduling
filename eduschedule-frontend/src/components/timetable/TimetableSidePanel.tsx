@@ -1,33 +1,68 @@
 "use client";
 
-import { type Slot, availableSubjects } from "@/lib/timetable-data";
-import { mockTeachers } from "@/lib/mock-data";
-import { BarChart3, User } from "lucide-react";
+import { type Slot } from "@/lib/timetable-data";
+import { BarChart3, User, GripVertical } from "lucide-react";
+import { type AssignmentResponse, type TeacherResponse } from "@/lib/api";
+import { useTimetableDrag } from "./TimetableDragContext";
+
+import { type Subject, type SchoolClass } from "@/lib/types";
 
 interface SidePanelClassProps {
   mode: "class";
   classId: string;
   slots: Slot[];
+  subjects: Subject[];
+  assignments: AssignmentResponse[];
+  currentClass?: SchoolClass;
+  teachers?: TeacherResponse[];
 }
 
 interface SidePanelTeacherProps {
   mode: "teacher";
   teacherId: string;
   slots: Slot[];
+  subjects: Subject[];
+  assignments: AssignmentResponse[];
+  teachers?: TeacherResponse[];
 }
 
 type TimetableSidePanelProps = SidePanelClassProps | SidePanelTeacherProps;
 
 export function TimetableSidePanel(props: TimetableSidePanelProps) {
   if (props.mode === "teacher") {
-    return <TeacherSidePanel teacherId={props.teacherId} slots={props.slots} />;
+    return <TeacherSidePanel teacherId={props.teacherId} slots={props.slots} teachers={props.teachers ?? []} />;
   }
-  return <ClassSidePanel classId={props.classId} slots={props.slots} />;
+  return (
+    <ClassSidePanel
+      classId={props.classId}
+      slots={props.slots}
+      subjects={props.subjects}
+      assignments={props.assignments}
+      currentClass={props.currentClass}
+    />
+  );
 }
 
-function ClassSidePanel({ classId, slots }: { classId: string; slots: Slot[] }) {
+function ClassSidePanel({
+  classId,
+  slots,
+  subjects,
+  assignments,
+  currentClass,
+}: {
+  classId: string;
+  slots: Slot[];
+  subjects: Subject[];
+  assignments: AssignmentResponse[];
+  currentClass?: SchoolClass;
+}) {
+  const { setIsDragging } = useTimetableDrag();
   const classSlots = slots.filter((s) => s.classId === classId);
-  const totalNeeded = 35;
+  const gradeIndex = currentClass ? currentClass.grade - 1 : 3; // Default to Grade 4 if not found
+  const totalNeeded = subjects.reduce(
+    (acc, s) => acc + (s.periodsByGrade[gradeIndex] || 0),
+    0
+  );
   const filled = classSlots.length;
   const ratio = filled / totalNeeded;
 
@@ -37,41 +72,57 @@ function ClassSidePanel({ classId, slots }: { classId: string; slots: Slot[] }) 
     subjectCounts[s.subjectId] = (subjectCounts[s.subjectId] || 0) + 1;
   });
 
-  // Required periods per subject (simplified)
-  const requiredPeriods: Record<string, number> = {
-    toan: 4, tv: 7, ta: 4, gdtc: 2, tin: 2, an: 1, mt: 1, hdtn: 2, lsdl: 2, dd: 1,
-  };
-
-  const missingSubjects = Object.entries(requiredPeriods)
-    .map(([id, required]) => {
-      const current = subjectCounts[id] || 0;
+  const missingSubjects = subjects
+    .map((s) => {
+      const required = s.periodsByGrade[gradeIndex] || 0;
+      const current = subjectCounts[s.id] || 0;
       const missing = required - current;
-      const subject = availableSubjects.find((s) => s.id === id);
-      return { id, name: subject?.name || id, missing, current, required };
+      return { id: s.id, name: s.name, missing, current, required };
     })
     .filter((s) => s.missing > 0);
 
-  // GV bộ môn for this class
-  const bmTeachers = classSlots
-    .filter((s) => s.teacherId)
-    .reduce(
-      (acc, s) => {
-        if (!acc.find((a) => a.teacherId === s.teacherId)) {
-          const subject = availableSubjects.find((sub) => sub.id === s.subjectId);
-          const assigned = classSlots.filter((cs) => cs.teacherId === s.teacherId).length;
-          const required = requiredPeriods[s.subjectId] || 2;
-          acc.push({
-            teacherId: s.teacherId!,
-            teacherName: s.teacherName!,
-            subjectName: subject?.name || s.subjectName,
-            assigned,
-            required,
-          });
-        }
-        return acc;
-      },
-      [] as { teacherId: string; teacherName: string; subjectName: string; assigned: number; required: number }[]
+  const handleDragStart = (e: React.DragEvent, sub: typeof missingSubjects[number]) => {
+    const assignment = assignments.find(
+      (a) => a.className === classId && a.subjectId === sub.id
     );
+    const dragData = {
+      subjectId: sub.id.toString(),
+      subjectName: sub.name,
+      subjectNumericId: sub.id,
+      ...(assignment
+        ? {
+            assignmentId: assignment.id,
+            teacherId: assignment.teacherId.toString(),
+            teacherName: assignment.teacherName,
+          }
+        : {
+            classNumericId: currentClass?.id,
+            homeroomTeacherId: currentClass?.homeroomTeacherId?.toString() ?? null,
+            homeroomTeacherName: currentClass?.homeroomTeacher ?? null,
+          }),
+    };
+    e.dataTransfer.setData("application/timetable-subject", JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = "copy";
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  // GV bộ môn for this class from assignments
+  const bmTeachers = assignments
+    .filter((a) => a.className === classId)
+    .map((a) => {
+      const assigned = classSlots.filter((cs) => cs.subjectId === a.subjectId.toString()).length;
+      return {
+        teacherId: a.teacherId.toString(),
+        teacherName: a.teacherName,
+        subjectName: a.subjectName,
+        assigned,
+        required: a.periodsPerWeek,
+      };
+    });
 
   return (
     <div className="w-72 space-y-6">
@@ -115,9 +166,15 @@ function ClassSidePanel({ classId, slots }: { classId: string; slots: Slot[] }) 
             {missingSubjects.map((sub) => (
               <div
                 key={sub.id}
-                className="flex justify-between items-center p-3 bg-md-surface-container-low rounded-xl"
+                draggable
+                onDragStart={(e) => handleDragStart(e, sub)}
+                onDragEnd={handleDragEnd}
+                className="flex justify-between items-center p-3 bg-md-surface-container-low rounded-xl cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-md-primary-fixed/10 transition-all select-none"
               >
-                <span className="text-sm font-semibold text-slate-700">{sub.name}</span>
+                <div className="flex items-center gap-2">
+                  <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-sm font-semibold text-slate-700">{sub.name}</span>
+                </div>
                 <span className="px-2 py-1 bg-white rounded-lg text-xs font-bold text-amber-600 border border-slate-100">
                   {String(sub.missing).padStart(2, "0")} tiết
                 </span>
@@ -165,13 +222,11 @@ function ClassSidePanel({ classId, slots }: { classId: string; slots: Slot[] }) 
   );
 }
 
-function TeacherSidePanel({ teacherId, slots }: { teacherId: string; slots: Slot[] }) {
+function TeacherSidePanel({ teacherId, slots, teachers }: { teacherId: string; slots: Slot[]; teachers: TeacherResponse[] }) {
   const teacherSlots = slots.filter((s) => s.teacherId === teacherId);
-  const teacher = mockTeachers.find(
-    (t) => t.name === teacherSlots[0]?.teacherName || t.id.toString() === teacherId
-  );
-  const teacherName = teacherSlots[0]?.teacherName || teacherId;
-  const maxPeriods = teacher?.maxPeriods || 23;
+  const teacher = teachers.find((t) => t.id.toString() === teacherId);
+  const teacherName = teacher?.fullName ?? teacherSlots[0]?.teacherName ?? teacherId;
+  const maxPeriods = teacher?.maxPeriodsPerWeek ?? 23;
   const currentPeriods = teacherSlots.length;
   const periodsRatio = currentPeriods / maxPeriods;
 

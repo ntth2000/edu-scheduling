@@ -1,62 +1,166 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   type ViewMode,
   type Slot,
-  mockSlots,
-  CLASSES_BY_GRADE,
   DAYS,
   PERIODS,
+  mapSlot,
 } from "@/lib/timetable-data";
 import { TimetableGrid } from "./TimetableGrid";
 import { TimetableSidePanel } from "./TimetableSidePanel";
 import { GradeView } from "./GradeView";
 import { CellPopover } from "./CellPopover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { Subject } from "@/lib/types";
+import {
+  assignmentApi,
+  AssignmentResponse,
+  classApi,
+  ClassResponse,
+  slotApi,
+  subjectApi,
+  TeacherResponse,
+  teacherApi,
+  timetableApi,
+  TimetableResponse,
+} from "@/lib/api";
+import { TimetableDragProvider } from "./TimetableDragContext";
 
 export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
   const [viewMode, setViewMode] = useState<ViewMode>("class");
-  const [selectedGrade, setSelectedGrade] = useState(4);
-  const [selectedClassId, setSelectedClassId] = useState("4A");
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("lien");
-  const [slots, setSlots] = useState<Slot[]>(mockSlots);
+  const [selectedGrade, setSelectedGrade] = useState(1);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+  const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<ClassResponse[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [currentTimetable, setCurrentTimetable] = useState<TimetableResponse | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const classes = CLASSES_BY_GRADE[selectedGrade] || [];
+  // Load master data
+  useEffect(() => {
+    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(), assignmentApi.getAll()])
+      .then(([t, s, c, a]) => {
+        setTeachers(t);
+        setSubjects(s.map((sub) => ({
+          ...sub,
+          periodsByGrade: [sub.periodsGrade1, sub.periodsGrade2, sub.periodsGrade3, sub.periodsGrade4, sub.periodsGrade5],
+        })));
+        const sortedClasses = [...c].sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "vi"));
+        setClasses(sortedClasses);
+        setAssignments(a);
 
-  // Get unique BM teachers for the teacher selector
-  const bmTeachers = useMemo(() => {
-    const uniqueIds = new Set<string>();
-    const result: { id: string; name: string }[] = [];
-    slots.forEach((s) => {
-      if (s.teacherId && !uniqueIds.has(s.teacherId)) {
-        uniqueIds.add(s.teacherId);
-        result.push({ id: s.teacherId, name: s.teacherName! });
+        // Set initial selections from real data
+        const firstClass = sortedClasses[0];
+        if (firstClass) {
+          setSelectedGrade(firstClass.grade);
+          setSelectedClassId(firstClass.name);
+        }
+        const firstBmTeacher = t.find((x) => x.type === "BO_MON" || x.type === "KHAC");
+        if (firstBmTeacher) setSelectedTeacherId(firstBmTeacher.id.toString());
+      })
+      .catch(() => toast.error("Không thể tải dữ liệu"));
+  }, []);
+
+  // Load timetable then slots
+  useEffect(() => {
+    timetableApi.getAll()
+      .then(async (list) => {
+        let timetable = list[0] ?? null; // most recent first
+        if (!timetable) {
+          timetable = await timetableApi.create();
+          toast.info("Đã tạo thời khoá biểu mới");
+        }
+        setCurrentTimetable(timetable);
+        const rawSlots = await slotApi.getByTimetable(timetable.id);
+        setSlots(rawSlots.map(mapSlot));
+      })
+      .catch(() => toast.error("Không thể tải thời khoá biểu"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // BM teachers for "Theo GV" view
+  const bmTeachers = useMemo(
+    () => teachers.filter((t) => t.type === "BO_MON" || t.type === "KHAC"),
+    [teachers]
+  );
+
+  const handleAddSlot = useCallback(
+    async (params: AddSlotParams) => {
+      if (readOnly || !currentTimetable) return;
+      try {
+        const saved = await slotApi.save({
+          timetableId: currentTimetable.id,
+          day: params.day,
+          period: params.period,
+          ...(params.assignmentId
+            ? { assignmentId: params.assignmentId }
+            : { classId: params.classNumericId, subjectId: params.subjectNumericId }),
+        });
+        setSlots((prev) => {
+          // Replace existing slot at same position if any (upsert)
+          const filtered = prev.filter((s) => !(s.classId === params.classId && s.day === params.day && s.period === params.period));
+          return [...filtered, mapSlot(saved)];
+        });
+        toast.success(`Đã xếp ${params.subjectName} vào TKB`);
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Không thể xếp tiết");
       }
-    });
-    return result;
-  }, [slots]);
+    },
+    [readOnly, currentTimetable]
+  );
 
-  const handleAddSlot = (newSlot: Omit<Slot, "id" | "isConflict">) => {
-    if (readOnly) return;
-    const id = `slot-${Date.now()}`;
-    setSlots((prev) => [...prev, { ...newSlot, id, isConflict: false }]);
-    toast.success(`Đã xếp ${newSlot.subjectName} vào TKB`);
-  };
+  const handleDeleteSlot = useCallback(
+    async (slotId: string) => {
+      if (readOnly) return;
+      const slot = slots.find((s) => s.id === slotId);
+      const apiId = slot?.apiId ?? parseInt(slotId);
+      if (!apiId || isNaN(apiId)) return;
+      try {
+        await slotApi.delete(apiId);
+        setSlots((prev) => prev.filter((s) => s.id !== slotId));
+        if (slot) toast.success(`Đã xóa ${slot.subjectName} khỏi TKB`);
+      } catch {
+        toast.error("Không thể xóa tiết");
+      }
+    },
+    [readOnly, slots]
+  );
 
-  const handleDeleteSlot = (slotId: string) => {
-    if (readOnly) return;
-    const slot = slots.find((s) => s.id === slotId);
-    setSlots((prev) => prev.filter((s) => s.id !== slotId));
-    if (slot) toast.success(`Đã xóa ${slot.subjectName} khỏi TKB`);
-  };
-
-  // Teacher view: show grid for the teacher across all classes
   const teacherSlots = useMemo(
     () => slots.filter((s) => s.teacherId === selectedTeacherId),
     [slots, selectedTeacherId]
   );
+
+  const currentClass = useMemo(
+    () => classes.find((c) => c.name === selectedClassId),
+    [classes, selectedClassId]
+  );
+
+  const currentSubjectsMapped = useMemo(
+    () => subjects.filter((s) => s.periodsByGrade[selectedGrade - 1] > 0),
+    [subjects, selectedGrade]
+  );
+
+  const classAssignments = useMemo(
+    () => assignments.filter((a) => a.className === selectedClassId),
+    [assignments, selectedClassId]
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-400">
+        Đang tải thời khoá biểu...
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-8 flex-1">
@@ -66,9 +170,20 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
           <h2 className="text-2xl font-extrabold text-md-on-surface tracking-tight font-heading">
             Thời khóa biểu
           </h2>
-          {!readOnly && <p className="text-slate-500 text-sm mt-1">
-            Xem và quản lý thời khoá biểu theo lớp, giáo viên hoặc khối.
-          </p>}
+          {!readOnly && (
+            <p className="text-slate-500 text-sm mt-1">
+              Xem và quản lý thời khoá biểu theo lớp, giáo viên hoặc khối.
+              {currentTimetable && (
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                  currentTimetable.status === "PUBLISHED"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}>
+                  {currentTimetable.status === "PUBLISHED" ? "Đã xuất bản" : "Bản nháp"}
+                </span>
+              )}
+            </p>
+          )}
           {/* Tabs */}
           <div className="flex gap-6 mt-4">
             {[
@@ -79,10 +194,11 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
               <button
                 key={tab.value}
                 onClick={() => setViewMode(tab.value)}
-                className={`text-sm pb-1 transition-colors ${viewMode === tab.value
+                className={`text-sm pb-1 transition-colors ${
+                  viewMode === tab.value
                     ? "text-blue-700 font-semibold border-b-2 border-blue-600"
                     : "text-slate-500 hover:text-blue-700"
-                  }`}
+                }`}
               >
                 {tab.label}
               </button>
@@ -111,14 +227,13 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
                 onChange={(e) => {
                   const g = Number(e.target.value);
                   setSelectedGrade(g);
-                  setSelectedClassId((CLASSES_BY_GRADE[g] || [])[0] || "");
+                  const firstInGrade = classes.find((c) => c.grade === g);
+                  if (firstInGrade) setSelectedClassId(firstInGrade.name);
                 }}
                 className="bg-md-surface-container-lowest border-none rounded-xl px-4 py-2.5 text-sm shadow-sm focus:ring-2 focus:ring-md-primary/20 min-w-[140px]"
               >
-                {[1, 2, 3, 4, 5].map((g) => (
-                  <option key={g} value={g}>
-                    Khối {g}
-                  </option>
+                {[...new Set(classes.map((c) => c.grade))].map((g) => (
+                  <option key={g} value={g}>Khối {g}</option>
                 ))}
               </select>
               <select
@@ -126,10 +241,8 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
                 onChange={(e) => setSelectedClassId(e.target.value)}
                 className="bg-md-surface-container-lowest border-none rounded-xl px-4 py-2.5 text-sm shadow-sm focus:ring-2 focus:ring-md-primary/20 min-w-[120px]"
               >
-                {classes.map((c) => (
-                  <option key={c} value={c}>
-                    Lớp {c}
-                  </option>
+                {classes.filter((c) => c.grade === selectedGrade).map((c) => (
+                  <option key={c.id} value={c.name}>Lớp {c.name}</option>
                 ))}
               </select>
             </>
@@ -142,9 +255,7 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
               className="bg-md-surface-container-lowest border-none rounded-xl px-4 py-2.5 text-sm shadow-sm focus:ring-2 focus:ring-md-primary/20 min-w-[200px]"
             >
               {bmTeachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
+                <option key={t.id} value={t.id.toString()}>{t.fullName}</option>
               ))}
             </select>
           )}
@@ -155,10 +266,8 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
               onChange={(e) => setSelectedGrade(Number(e.target.value))}
               className="bg-md-surface-container-lowest border-none rounded-xl px-4 py-2.5 text-sm shadow-sm focus:ring-2 focus:ring-md-primary/20 min-w-[140px]"
             >
-              {[1, 2, 3, 4, 5].map((g) => (
-                <option key={g} value={g}>
-                  Khối {g}
-                </option>
+              {[...new Set(classes.map((c) => c.grade))].map((g) => (
+                <option key={g} value={g}>Khối {g}</option>
               ))}
             </select>
           )}
@@ -168,18 +277,32 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
       {/* Main content */}
       <div className="flex-1">
         {viewMode === "class" && (
-          <div className="flex gap-8 mt-6">
-            <div className="flex-1">
-              <TimetableGrid
-                classId={selectedClassId}
-                slots={slots}
-                onAddSlot={handleAddSlot}
-                onDeleteSlot={handleDeleteSlot}
-                readOnly={readOnly}
-              />
+          <TimetableDragProvider>
+            <div className="flex gap-8 mt-6">
+              <div className="flex-1">
+                <TimetableGrid
+                  classId={selectedClassId}
+                  slots={slots}
+                  onAddSlot={handleAddSlot}
+                  onDeleteSlot={handleDeleteSlot}
+                  readOnly={readOnly}
+                  subjects={currentSubjectsMapped}
+                  assignments={classAssignments}
+                  currentClass={currentClass ? { id: currentClass.id, code: "", grade: currentClass.grade, name: currentClass.name, studentCount: 0, homeroomTeacher: currentClass.homeroomTeacherName ?? null, homeroomTeacherId: currentClass.homeroomTeacherId ?? null, assignmentStatus: currentClass.homeroomTeacherId ? "complete" : "incomplete" } : undefined}
+                />
+              </div>
+              {!readOnly && (
+                <TimetableSidePanel
+                  mode="class"
+                  classId={selectedClassId}
+                  slots={slots}
+                  subjects={currentSubjectsMapped}
+                  assignments={classAssignments}
+                  currentClass={currentClass ? { id: currentClass.id, code: "", grade: currentClass.grade, name: currentClass.name, studentCount: 0, homeroomTeacher: currentClass.homeroomTeacherName ?? null, homeroomTeacherId: currentClass.homeroomTeacherId ?? null, assignmentStatus: currentClass.homeroomTeacherId ? "complete" : "incomplete" } : undefined}
+                />
+              )}
             </div>
-            {!readOnly && <TimetableSidePanel mode="class" classId={selectedClassId} slots={slots} />}
-          </div>
+          </TimetableDragProvider>
         )}
 
         {viewMode === "teacher" && (
@@ -189,10 +312,23 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
                 teacherId={selectedTeacherId}
                 slots={slots}
                 teacherSlots={teacherSlots}
+                onAddSlot={handleAddSlot}
                 onDeleteSlot={handleDeleteSlot}
+                readOnly={readOnly}
+                subjects={subjects}
+                assignments={assignments.filter((a) => a.teacherId.toString() === selectedTeacherId)}
               />
             </div>
-            {!readOnly && <TimetableSidePanel mode="teacher" teacherId={selectedTeacherId} slots={slots} />}
+            {!readOnly && (
+              <TimetableSidePanel
+                mode="teacher"
+                teacherId={selectedTeacherId}
+                slots={slots}
+                subjects={subjects}
+                assignments={assignments}
+                teachers={teachers}
+              />
+            )}
           </div>
         )}
 
@@ -201,8 +337,14 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
             <GradeView
               grade={selectedGrade}
               slots={slots}
-              onSelectClass={(classId) => {
-                setSelectedClassId(classId);
+              classes={classes}
+              subjects={subjects}
+              assignments={assignments}
+              readOnly={readOnly}
+              onAddSlot={handleAddSlot}
+              onDeleteSlot={handleDeleteSlot}
+              onSelectClass={(className) => {
+                setSelectedClassId(className);
                 setViewMode("class");
               }}
             />
@@ -213,17 +355,26 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
   );
 }
 
+type AddSlotParams = { assignmentId?: number; classNumericId?: number; subjectNumericId?: number; day: number; period: number; subjectName: string; teacherId: string | null; teacherName: string | null; subjectId: string; classId: string };
+
 /** Grid showing a teacher's schedule across all classes */
 function TeacherTimetableGrid({
-  teacherId,
   slots,
   teacherSlots,
+  onAddSlot,
   onDeleteSlot,
+  readOnly = false,
+  subjects,
+  assignments,
 }: {
   teacherId: string;
   slots: Slot[];
   teacherSlots: Slot[];
+  onAddSlot: (params: AddSlotParams) => void;
   onDeleteSlot: (id: string) => void;
+  readOnly?: boolean;
+  subjects: Subject[];
+  assignments: AssignmentResponse[];
 }) {
   const getSlot = (day: number, period: number) =>
     teacherSlots.find((s) => s.day === day && s.period === period);
@@ -252,39 +403,139 @@ function TeacherTimetableGrid({
             </div>
             {DAYS.map((day) => {
               const slot = getSlot(day.value, period);
-              if (!slot) {
+              if (slot) {
                 return (
-                  <div
+                  <CellPopover
                     key={`${day.value}-${period}`}
-                    className="bg-md-surface-container-lowest min-h-[80px] rounded-sm"
-                  />
+                    slot={slot}
+                    day={day.value}
+                    period={period}
+                    classId={slot.classId}
+                    allSlots={slots}
+                    onAddSlot={onAddSlot}
+                    onDeleteSlot={onDeleteSlot}
+                    readOnly={readOnly}
+                    subjects={subjects}
+                    assignments={assignments}
+                  >
+                    <div className="bg-white border-l-[3px] border-md-primary min-h-[80px] p-3 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow rounded-sm">
+                      <span className="text-xs font-bold text-md-on-surface">{slot.subjectName}</span>
+                      <span className="text-[10px] text-md-primary font-medium">Lớp {slot.classId}</span>
+                    </div>
+                  </CellPopover>
                 );
               }
               return (
-                <CellPopover
+                <TeacherEmptyCellPopover
                   key={`${day.value}-${period}`}
-                  slot={slot}
                   day={day.value}
                   period={period}
-                  classId={slot.classId}
                   allSlots={slots}
-                  onAddSlot={() => { }}
-                  onDeleteSlot={onDeleteSlot}
-                >
-                  <div className="bg-white border-l-[3px] border-md-primary min-h-[80px] p-3 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow rounded-sm">
-                    <span className="text-xs font-bold text-md-on-surface">
-                      {slot.subjectName}
-                    </span>
-                    <span className="text-[10px] text-md-primary font-medium">
-                      Lớp {slot.classId}
-                    </span>
-                  </div>
-                </CellPopover>
+                  teacherAssignments={assignments}
+                  onAddSlot={onAddSlot}
+                  readOnly={readOnly}
+                />
               );
             })}
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+/** Popover for empty cells in the teacher view — lets user pick which class to schedule */
+function TeacherEmptyCellPopover({
+  day,
+  period,
+  allSlots,
+  teacherAssignments,
+  onAddSlot,
+  readOnly,
+}: {
+  day: number;
+  period: number;
+  allSlots: Slot[];
+  teacherAssignments: AssignmentResponse[];
+  onAddSlot: (params: AddSlotParams) => void;
+  readOnly: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | "">("");
+
+  const dayLabel = DAYS.find((d) => d.value === day)?.label ?? "";
+
+  // Classes that already have a slot at this day+period
+  const busyClasses = new Set(
+    allSlots.filter((s) => s.day === day && s.period === period).map((s) => s.classId)
+  );
+
+  const selected = teacherAssignments.find((a) => a.id === selectedId);
+
+  const handleSave = () => {
+    if (!selected) return;
+    onAddSlot({
+      assignmentId: selected.id,
+      day,
+      period,
+      classId: selected.className,
+      subjectId: selected.subjectId.toString(),
+      subjectName: selected.subjectName,
+      teacherId: selected.teacherId.toString(),
+      teacherName: selected.teacherName,
+    });
+    setOpen(false);
+    setSelectedId("");
+  };
+
+  if (readOnly) {
+    return <div className="bg-md-surface-container-lowest min-h-[80px] rounded-sm" />;
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSelectedId(""); }}>
+      <PopoverTrigger asChild>
+        <div className="bg-md-surface-container-lowest min-h-[80px] rounded-sm cursor-pointer hover:bg-md-surface-container transition-colors" />
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-4 rounded-xl" align="start">
+        <p className="font-semibold text-base font-heading mb-1">Xếp tiết</p>
+        <p className="text-xs text-md-on-surface/50 mb-3">
+          {dayLabel} &bull; Tiết {period}
+        </p>
+
+        <label className="text-[11px] uppercase tracking-[0.05em] font-medium text-md-on-surface/60 block mb-1">
+          Lớp / Môn *
+        </label>
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value === "" ? "" : Number(e.target.value))}
+          className="w-full text-sm border border-slate-200 rounded-lg p-2 focus:ring-md-primary bg-slate-50 mb-4"
+        >
+          <option value="">-- Chọn lớp --</option>
+          {teacherAssignments.map((a) => {
+            const busy = busyClasses.has(a.className);
+            return (
+              <option key={a.id} value={a.id} disabled={busy}>
+                Lớp {a.className} – {a.subjectName}{busy ? " (Lớp đang bận)" : ""}
+              </option>
+            );
+          })}
+        </select>
+
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" className="flex-1" onClick={() => setOpen(false)}>
+            Hủy
+          </Button>
+          <Button
+            size="sm"
+            className="flex-1 bg-gradient-to-br from-md-primary to-md-primary-container text-white rounded-xl"
+            disabled={!selectedId || (selected ? busyClasses.has(selected.className) : false)}
+            onClick={handleSave}
+          >
+            Xếp tiết
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

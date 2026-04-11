@@ -44,7 +44,9 @@ export function ClassTable() {
 
   useEffect(() => {
     classApi.getAll()
-      .then((data) => setClasses(data.map(mapClass)))
+      .then((data) => setClasses(
+        data.map(mapClass).sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "vi"))
+      ))
       .catch(() => toast.error("Không thể tải danh sách lớp học"))
       .finally(() => setLoading(false));
   }, []);

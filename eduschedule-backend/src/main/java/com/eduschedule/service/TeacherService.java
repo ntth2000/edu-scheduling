@@ -76,12 +76,12 @@ public class TeacherService {
     }
 
     private Set<Subject> getSubjects(TeacherRequest request) {
-        if (request.getType() == TeacherType.BO_MON
+        if ((request.getType() == TeacherType.BO_MON || request.getType() == TeacherType.KHAC)
                 && request.getSubjectIds() != null
                 && !request.getSubjectIds().isEmpty()) {
             return new HashSet<>(subjectRepository.findAllById(request.getSubjectIds()));
         }
-        return Set.of();
+        return new HashSet<>();
     }
 
     private TeacherResponse toResponse(Teacher teacher) {

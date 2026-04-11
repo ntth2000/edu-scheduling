@@ -23,6 +23,10 @@ public interface AssignmentRepository
             Long classId, Long subjectId
     );
 
+    Optional<Assignment> findBySchoolClassIdAndSubjectIdAndTeacherId(
+            Long classId, Long subjectId, Long teacherId
+    );
+
     @Query("""
                 SELECT COALESCE(SUM(
                     CASE a.schoolClass.grade

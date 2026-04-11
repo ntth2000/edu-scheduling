@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "timetables")
-@Data
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,6 +17,8 @@ public class Timetable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String name; // optional label
 
     @Column(nullable = false)
     private String status; // DRAFT, PUBLISHED

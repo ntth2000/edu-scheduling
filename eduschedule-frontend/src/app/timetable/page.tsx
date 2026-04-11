@@ -2,11 +2,20 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { TimetablePage } from "@/components/timetable/TimetablePage";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, LogIn, LayoutDashboard } from "lucide-react";
+import { GraduationCap, LogIn } from "lucide-react";
+import Layout from "@/components/layout";
 
 export default async function TimetableRoute() {
   const cookieStore = await cookies();
   const isAuthenticated = !!cookieStore.get("access_token")?.value;
+
+  if (isAuthenticated) {
+    return (
+      <Layout>
+        <TimetablePage />
+      </Layout>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -20,25 +29,16 @@ export default async function TimetableRoute() {
           <span className="text-xs text-slate-500">Thời khoá biểu</span>
         </div>
 
-        {isAuthenticated ? (
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/">
-              <LayoutDashboard className="h-3.5 w-3.5" />
-              Quản trị
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild size="sm">
-            <Link href="/login">
-              <LogIn className="h-3.5 w-3.5" />
-              Đăng nhập quản trị
-            </Link>
-          </Button>
-        )}
+        <Button asChild size="sm">
+          <Link href="/login">
+            <LogIn className="h-3.5 w-3.5" />
+            Đăng nhập quản trị
+          </Link>
+        </Button>
       </header>
 
       <main className="flex-1">
-        <TimetablePage readOnly={!isAuthenticated} />
+        <TimetablePage readOnly />
       </main>
     </div>
   );

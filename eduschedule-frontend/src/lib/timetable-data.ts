@@ -1,15 +1,35 @@
+import type { SlotResponse } from "./api";
+
 export type ViewMode = "class" | "teacher" | "grade";
 
 export interface Slot {
-  id: string;
-  day: number; // 2-6 (Thứ 2 → Thứ 6)
-  period: number; // 1-7
-  classId: string;
-  subjectId: string;
+  id: string;            // stringified backend id
+  apiId?: number;        // numeric backend id (for DELETE)
+  assignmentId?: number; // for POST /api/slots
+  day: number;          // 2-6 (Thứ 2 → Thứ 6)
+  period: number;       // 1-7
+  classId: string;      // class name e.g. "4A" (used as display key)
+  subjectId: string;    // stringified subject id
   subjectName: string;
-  teacherId: string | null; // null = GVCN tự dạy
+  teacherId: string | null; // stringified teacher id, null = GVCN tự dạy
   teacherName: string | null;
   isConflict: boolean;
+}
+
+export function mapSlot(s: SlotResponse): Slot {
+  return {
+    id: s.id.toString(),
+    apiId: s.id,
+    assignmentId: s.assignmentId,
+    day: s.day,
+    period: s.period,
+    classId: s.className,
+    subjectId: s.subjectId.toString(),
+    subjectName: s.subjectName,
+    teacherId: s.teacherId != null ? s.teacherId.toString() : null,
+    teacherName: s.teacherName,
+    isConflict: false,
+  };
 }
 
 export const DAYS = [

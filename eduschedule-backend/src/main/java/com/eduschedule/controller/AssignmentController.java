@@ -34,7 +34,7 @@ public class AssignmentController {
                     assignmentService.getByTeacher(teacherId)
             );
         }
-        return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(assignmentService.getAll());
     }
 
     // POST /api/assignments/homeroom
@@ -44,7 +44,7 @@ public class AssignmentController {
             @Valid @RequestBody HomeroomAssignmentRequest request
     ) {
         assignmentService.assignHomeroom(request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     // POST /api/assignments

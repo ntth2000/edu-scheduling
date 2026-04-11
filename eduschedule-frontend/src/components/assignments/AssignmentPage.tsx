@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import {
   type AssignmentMode,
   type HomeroomAssignment,
-  type SubjectTeacherAssignment,
 } from "@/lib/assignment-data";
 import { HomeroomAssignment as HomeroomAssignmentView } from "./HomeroomAssignment";
 import { SubjectAssignment } from "./SubjectAssignment";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -20,6 +18,7 @@ import {
   type TeacherResponse,
   type SubjectResponse,
   type ClassResponse,
+  type AssignmentResponse,
 } from "@/lib/api";
 
 export function AssignmentPage() {
@@ -27,14 +26,16 @@ export function AssignmentPage() {
   const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
   const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
   const [classes, setClasses] = useState<ClassResponse[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll()])
-      .then(([t, s, c]) => {
+    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(), assignmentApi.getAll()])
+      .then(([t, s, c, a]) => {
         setTeachers(t);
         setSubjects(s);
         setClasses(c);
+        setAssignments(a);
       })
       .catch(() => toast.error("Không thể tải dữ liệu phân công"))
       .finally(() => setLoading(false));
@@ -50,17 +51,7 @@ export function AssignmentPage() {
     }))
     .sort((a, b) => a.grade - b.grade || a.className.localeCompare(b.className, "vi"));
 
-  const subjectData: SubjectTeacherAssignment[] = teachers
-    .map((t) => ({
-      teacherId: t.id,
-      teacherCode: `GV${String(t.id).padStart(3, "0")}`,
-      teacherName: t.fullName,
-      assignedSubjects: t.subjects.map((s) => s.name),
-      periodsPerWeek: t.currentPeriodsPerWeek ?? 0,
-    }));
-
   const gvcnTeachers = teachers.filter((t) => t.type === "CHU_NHIEM");
-  const boMonSubjects = subjects.map((s) => s.name);
 
   const handleHomeroomAssign = async (classId: number, teacherId: number | null) => {
     const cls = classes.find((c) => c.id === classId);
@@ -85,52 +76,46 @@ export function AssignmentPage() {
     }
   };
 
-  const handleRemoveSubject = async (teacherId: number, subjectName: string) => {
-    const teacher = teachers.find((t) => t.id === teacherId);
-    if (!teacher) return;
-    const updatedSubjectIds = teacher.subjects
-      .filter((s) => s.name !== subjectName)
-      .map((s) => s.id);
-    try {
-      const updated = await teacherApi.update(teacherId, {
-        fullName: teacher.fullName,
-        type: teacher.type,
-        maxPeriodsPerWeek: teacher.maxPeriodsPerWeek,
-        subjectIds: updatedSubjectIds,
-      });
-      setTeachers((prev) => prev.map((t) => (t.id === teacherId ? updated : t)));
-      toast.success(`Đã xóa môn ${subjectName}`);
-    } catch {
-      toast.error("Không thể cập nhật môn học");
+  const handleSubjectBatchSave = async (
+    changes: { classId: number; subjectId: number; teacherId: number | null }[]
+  ) => {
+    let successCount = 0;
+    let failCount = 0;
+    const updatedAssignments = [...assignments];
+
+    for (const { classId, subjectId, teacherId } of changes) {
+      const existing = updatedAssignments.find(
+        (a) => a.classId === classId && a.subjectId === subjectId
+      );
+      try {
+        if (teacherId === null) {
+          if (existing) {
+            await assignmentApi.deleteAssignment(existing.id);
+            const idx = updatedAssignments.findIndex((a) => a.id === existing.id);
+            if (idx !== -1) updatedAssignments.splice(idx, 1);
+          }
+        } else {
+          const result = await assignmentApi.assign(classId, subjectId, teacherId);
+          if (existing) {
+            const idx = updatedAssignments.findIndex((a) => a.id === existing.id);
+            if (idx !== -1) updatedAssignments[idx] = result;
+          } else {
+            updatedAssignments.push(result);
+          }
+        }
+        successCount++;
+      } catch {
+        failCount++;
+      }
     }
+
+    setAssignments([...updatedAssignments]);
+    if (successCount > 0) toast.success(`Đã lưu ${successCount} phân công`);
+    if (failCount > 0) toast.error(`${failCount} phân công thất bại`);
+    if (failCount > 0) throw new Error("partial");
   };
 
-  const handleAddSubject = async (teacherId: number, subjectName: string) => {
-    const teacher = teachers.find((t) => t.id === teacherId);
-    const subject = subjects.find((s) => s.name === subjectName);
-    if (!teacher || !subject) return;
-    const updatedSubjectIds = [...teacher.subjects.map((s) => s.id), subject.id];
-    try {
-      const updated = await teacherApi.update(teacherId, {
-        fullName: teacher.fullName,
-        type: teacher.type,
-        maxPeriodsPerWeek: teacher.maxPeriodsPerWeek,
-        subjectIds: updatedSubjectIds,
-      });
-      setTeachers((prev) => prev.map((t) => (t.id === teacherId ? updated : t)));
-      toast.success(`Đã thêm môn ${subjectName}`);
-    } catch {
-      toast.error("Không thể cập nhật môn học");
-    }
-  };
-
-  const handleConfirm = () => {
-    toast.success("Đã xác nhận phân công thành công!");
-  };
-
-  const assignedCount = homeroomData.filter((a) => a.teacherId !== null).length;
-  const totalCount = homeroomData.length;
-  const progressPct = totalCount > 0 ? Math.round((assignedCount / totalCount) * 100) : 0;
+  const boMonTeachers = teachers.filter((t) => t.type === "BO_MON" || t.type === "KHAC");
 
   return (
     <div className="space-y-6">
@@ -155,17 +140,13 @@ export function AssignmentPage() {
               </TabsContent>
               <TabsContent value="subject">
                 <SubjectAssignment
-                  assignments={subjectData}
-                  availableSubjects={boMonSubjects}
-                  onRemoveSubject={handleRemoveSubject}
-                  onAddSubject={handleAddSubject}
+                  subjects={subjects}
+                  classes={classes}
+                  teachers={boMonTeachers}
+                  assignments={assignments}
+                  onSave={handleSubjectBatchSave}
                 />
               </TabsContent>
-
-              <div className="flex justify-between items-center px-1">
-                <p className="text-sm text-slate-500 italic">Tự động lưu sau khi thay đổi</p>
-                <Button onClick={handleConfirm}>Xác nhận phân công</Button>
-              </div>
             </div>
 
             {/* <div className="col-span-12 lg:col-span-3 space-y-4">

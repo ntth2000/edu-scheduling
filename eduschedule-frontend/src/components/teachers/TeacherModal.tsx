@@ -22,10 +22,10 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Save, Loader2, AlertCircle } from "lucide-react";
-import type { Teacher, TeacherType } from "@/lib/mock-data";
 import { z } from "zod";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { type SubjectResponse } from "@/lib/api";
+import { Teacher, TeacherType } from "@/lib/types";
 
 const teacherSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập họ và tên"),

@@ -1,30 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/timetable"];
+const GUEST_ONLY_PATHS = ["/login"];           // redirect away when logged in
+const ALWAYS_PUBLIC_PATHS = ["/timetable"];    // accessible regardless of auth
 const PROTECTED_PATHS = ["/", "/assignments", "/classes", "/subjects", "/teachers"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths and API routes
   const accessToken = request.cookies.get("access_token")?.value;
-  const isPublicPath = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isGuestOnly = GUEST_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isAlwaysPublic = ALWAYS_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isApiRoute = pathname.startsWith("/api/");
   const isValidProtectedPath = PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-  // If logged in:
+  // If logged in: redirect away from guest-only paths (e.g. /login)
   if (accessToken) {
-    // Redirect to home if path is public (guest-only) OR undefined (not protected and not api)
-    if (isPublicPath || (!isValidProtectedPath && !isApiRoute)) {
+    if (isGuestOnly || (!isAlwaysPublic && !isValidProtectedPath && !isApiRoute)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
     return NextResponse.next();
   }
 
-  // If not logged in:
-  // Redirect to /timetable for any non-public route (including undefined ones)
-  if (!isPublicPath && !isApiRoute) {
+  // If not logged in: redirect protected paths to /timetable
+  if (!isGuestOnly && !isAlwaysPublic && !isApiRoute) {
     return NextResponse.redirect(new URL("/timetable", request.url));
   }
 

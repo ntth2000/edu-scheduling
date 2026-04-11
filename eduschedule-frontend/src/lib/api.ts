@@ -1,4 +1,4 @@
-import type { Teacher, Subject, SchoolClass } from "./mock-data";
+import type { Teacher, Subject, SchoolClass } from "./types";
 import { type TeacherType } from "./enums";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -185,12 +185,77 @@ export const classApi = {
     apiFetch<void>(`/api/classes/${id}`, { method: "DELETE" }),
 };
 
+export interface TimetableResponse {
+  id: number;
+  name: string | null;
+  status: "DRAFT" | "PUBLISHED";
+  publishedAt: string | null;
+  createdAt: string;
+}
+
+export interface SlotResponse {
+  id: number;
+  timetableId: number;
+  assignmentId: number;
+  day: number;
+  period: number;
+  subjectId: number;
+  subjectName: string;
+  teacherId: number | null;
+  teacherName: string | null;
+  classId: number;
+  className: string;
+  grade: number;
+}
+
+export const timetableApi = {
+  getAll: () => apiFetch<TimetableResponse[]>("/api/timetables"),
+
+  create: (name?: string) =>
+    apiFetch<TimetableResponse>("/api/timetables", {
+      method: "POST",
+      body: JSON.stringify({ name: name ?? null }),
+    }),
+
+  updateStatus: (id: number, status: "DRAFT" | "PUBLISHED") =>
+    apiFetch<TimetableResponse>(`/api/timetables/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+};
+
+export const slotApi = {
+  getByTimetable: (timetableId: number) =>
+    apiFetch<SlotResponse[]>(`/api/slots?timetableId=${timetableId}`),
+
+  save: (params: { timetableId: number; day: number; period: number; assignmentId?: number; classId?: number; subjectId?: number }) =>
+    apiFetch<SlotResponse>("/api/slots", {
+      method: "POST",
+      body: JSON.stringify(params),
+    }),
+
+  delete: (id: number) =>
+    apiFetch<void>(`/api/slots/${id}`, { method: "DELETE" }),
+};
+
 export const assignmentApi = {
   assignHomeroom: (classId: number, teacherId: number) =>
     apiFetch<void>("/api/assignments/homeroom", {
       method: "POST",
       body: JSON.stringify({ classId, teacherId }),
     }),
+
+  getAll: () =>
+    apiFetch<AssignmentResponse[]>("/api/assignments"),
+
+  assign: (classId: number, subjectId: number, teacherId: number) =>
+    apiFetch<AssignmentResponse>("/api/assignments", {
+      method: "POST",
+      body: JSON.stringify({ classId, subjectId, teacherId }),
+    }),
+
+  deleteAssignment: (id: number) =>
+    apiFetch<void>(`/api/assignments/${id}`, { method: "DELETE" }),
 
   getByTeacher: (teacherId: number) =>
     apiFetch<AssignmentResponse[]>(`/api/assignments?teacherId=${teacherId}`),

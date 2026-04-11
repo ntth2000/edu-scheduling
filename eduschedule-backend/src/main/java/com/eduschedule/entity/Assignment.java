@@ -8,7 +8,6 @@ import lombok.*;
         name = "assignments",
         uniqueConstraints = {@UniqueConstraint(columnNames = {"class_id", "subject_id", "teacher_id"})}
 )
-@Data
 @Getter
 @Setter
 @Builder
