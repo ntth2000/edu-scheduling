@@ -42,6 +42,32 @@ export function ClassTable() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filter, setFilter] = useState<ClassFilter>(EMPTY_FILTER);
 
+  // Batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBatchDeleting(true);
+    try {
+      await classApi.deleteBatch(Array.from(selectedIds));
+      setClasses((prev) => prev.filter((c) => !selectedIds.has(c.id)));
+      toast.success(`Đã xóa ${selectedIds.size} lớp học`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Không thể xóa lớp học");
+    } finally {
+      setIsBatchDeleting(false);
+    }
+  };
+
   useEffect(() => {
     classApi.getAll()
       .then((data) => setClasses(
@@ -63,26 +89,46 @@ export function ClassTable() {
     setClassToDelete(null);
   };
 
-  const handleSave = async (data: Partial<SchoolClass> & { homeroomTeacherId?: number | null }) => {
-    const body = {
-      name: data.name ?? "",
-      grade: data.grade ?? 1,
-      homeroomTeacherId: data.homeroomTeacherId ?? null,
-    };
-    try {
-      if (editingClass) {
+  const handleSave = async (dataList: (Partial<SchoolClass> & { homeroomTeacherId?: number | null })[]) => {
+    if (editingClass && dataList.length === 1) {
+      // Edit mode: single class
+      const data = dataList[0];
+      const body = {
+        name: data.name ?? "",
+        grade: data.grade ?? 1,
+        homeroomTeacherId: data.homeroomTeacherId ?? null,
+      };
+      try {
         const updated = await classApi.update(editingClass.id, body);
         setClasses((prev) =>
           prev.map((c) => (c.id === editingClass.id ? mapClass(updated) : c))
         );
         toast.success("Đã cập nhật thông tin lớp học");
-      } else {
-        const created = await classApi.create(body);
-        setClasses((prev) => [...prev, mapClass(created)]);
-        toast.success("Đã thêm lớp học mới");
+      } catch {
+        toast.error("Không thể lưu lớp học");
       }
-    } catch {
-      toast.error("Không thể lưu lớp học");
+    } else {
+      // Add mode: batch create
+      let successCount = 0;
+      let failCount = 0;
+      for (const data of dataList) {
+        const body = {
+          name: data.name ?? "",
+          grade: data.grade ?? 1,
+          homeroomTeacherId: data.homeroomTeacherId ?? null,
+        };
+        try {
+          const created = await classApi.create(body);
+          setClasses((prev) =>
+            [...prev, mapClass(created)].sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "vi"))
+          );
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      }
+      if (successCount > 0) toast.success(`Đã thêm ${successCount} lớp học mới`);
+      if (failCount > 0) toast.error(`${failCount} lớp không thể tạo`);
     }
     setIsModalOpen(false);
     setEditingClass(null);
@@ -100,6 +146,26 @@ export function ClassTable() {
 
   const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredClasses);
 
+  const allOnPageSelected =
+    currentData.length > 0 && currentData.every((c) => selectedIds.has(c.id));
+
+  const toggleSelectAll = () => {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentData.forEach((c) => next.delete(c.id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentData.forEach((c) => next.add(c.id));
+        return next;
+      });
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -116,8 +182,26 @@ export function ClassTable() {
       </div>
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
-          <TypographyH4 title="Danh sách lớp học" />
+          <div className="flex items-center gap-3">
+            <TypographyH4 title="Danh sách lớp học" />
+            {selectedIds.size > 0 && (
+              <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
+                Đã chọn {selectedIds.size}
+              </span>
+            )}
+          </div>
           <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleBatchDelete}
+                disabled={isBatchDeleting}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa ({selectedIds.size})
+              </Button>
+            )}
             <Button size="sm" onClick={() => setIsModalOpen(true)}>
               <Plus className="h-3.5 w-3.5" />
               Thêm mới
@@ -142,6 +226,14 @@ export function ClassTable() {
           <Table>
             <TableHeader className="bg-md-surface-container-low/30">
               <TableRow>
+                <TableHead className="w-10 px-4">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-slate-300 accent-md-primary cursor-pointer"
+                    checked={allOnPageSelected}
+                    onChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead className="px-4">Tên lớp</TableHead>
                 <TableHead className="px-4">Khối</TableHead>
                 <TableHead className="px-4">GVCN</TableHead>
@@ -150,7 +242,15 @@ export function ClassTable() {
             </TableHeader>
             <TableBody>
               {currentData.map((cls) => (
-                <TableRow key={cls.id}>
+                <TableRow key={cls.id} className={selectedIds.has(cls.id) ? "bg-md-primary/5" : ""}>
+                  <TableCell className="px-4">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-slate-300 accent-md-primary cursor-pointer"
+                      checked={selectedIds.has(cls.id)}
+                      onChange={() => toggleSelect(cls.id)}
+                    />
+                  </TableCell>
                   <TableCell className="px-4 text-sm font-medium text-md-on-surface">
                     Lớp {cls.name}
                   </TableCell>

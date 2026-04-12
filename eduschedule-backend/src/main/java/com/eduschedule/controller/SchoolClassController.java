@@ -48,4 +48,11 @@ public class SchoolClassController {
         classService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    // DELETE /api/classes/batch
+    @DeleteMapping("/batch")
+    public ResponseEntity<Void> deleteBatch(@RequestBody List<Long> ids) {
+        classService.deleteBatch(ids);
+        return ResponseEntity.noContent().build();
+    }
 }

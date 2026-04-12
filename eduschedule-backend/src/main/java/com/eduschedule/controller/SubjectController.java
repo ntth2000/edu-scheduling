@@ -48,4 +48,11 @@ public class SubjectController {
         subjectService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    // DELETE /api/subjects/batch
+    @DeleteMapping("/batch")
+    public ResponseEntity<Void> deleteBatch(@RequestBody List<Long> ids) {
+        subjectService.deleteBatch(ids);
+        return ResponseEntity.noContent().build();
+    }
 }

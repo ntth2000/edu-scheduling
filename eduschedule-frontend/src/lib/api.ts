@@ -35,6 +35,20 @@ export interface ClassResponse {
   homeroomTeacherName: string | null;
 }
 
+export interface TeacherCascadeResponse {
+  teacher: TeacherResponse;
+  deletedAssignments: number;
+  deletedSlots: number;
+  unsetHomeroomClasses: string[];
+}
+
+export interface BatchDeleteCascadeResponse {
+  deletedTeachers: number;
+  deletedAssignments: number;
+  deletedSlots: number;
+  unsetHomeroomClasses: string[];
+}
+
 export interface AssignmentResponse {
   id: number;
   classId: number;
@@ -142,8 +156,14 @@ export const teacherApi = {
     }),
 
   toggleStatus: (id: number) =>
-    apiFetch<TeacherResponse>(`/api/teachers/${id}/toggle-status`, {
+    apiFetch<TeacherCascadeResponse>(`/api/teachers/${id}/toggle-status`, {
       method: "PATCH",
+    }),
+
+  deleteBatch: (ids: number[]) =>
+    apiFetch<BatchDeleteCascadeResponse>("/api/teachers/batch", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
     }),
 };
 
@@ -164,6 +184,12 @@ export const subjectApi = {
 
   delete: (id: number) =>
     apiFetch<void>(`/api/subjects/${id}`, { method: "DELETE" }),
+
+  deleteBatch: (ids: number[]) =>
+    apiFetch<void>("/api/subjects/batch", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
+    }),
 };
 
 export const classApi = {
@@ -183,6 +209,12 @@ export const classApi = {
 
   delete: (id: number) =>
     apiFetch<void>(`/api/classes/${id}`, { method: "DELETE" }),
+
+  deleteBatch: (ids: number[]) =>
+    apiFetch<void>("/api/classes/batch", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
+    }),
 };
 
 export interface TimetableResponse {

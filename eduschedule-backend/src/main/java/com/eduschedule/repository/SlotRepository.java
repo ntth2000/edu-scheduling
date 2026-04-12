@@ -13,4 +13,10 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
     Optional<Slot> findByTimetableIdAndDayAndPeriod(Long timetableId, Integer day, Integer period);
     boolean existsByTimetableIdAndDayAndPeriodAndAssignment_Teacher_IdAndIdNot(
             Long timetableId, Integer day, Integer period, Long teacherId, Long excludeSlotId);
+
+    List<Slot> findByAssignment_TeacherId(Long teacherId);
+
+    void deleteByAssignment_TeacherId(Long teacherId);
+
+    void deleteByAssignmentIdIn(List<Long> assignmentIds);
 }

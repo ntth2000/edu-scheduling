@@ -2,10 +2,13 @@ package com.eduschedule.service;
 
 import com.eduschedule.dto.request.ClassRequest;
 import com.eduschedule.dto.response.ClassResponse;
+import com.eduschedule.entity.Assignment;
 import com.eduschedule.entity.SchoolClass;
 import com.eduschedule.entity.Teacher;
 import com.eduschedule.entity.enums.TeacherType;
+import com.eduschedule.repository.AssignmentRepository;
 import com.eduschedule.repository.SchoolClassRepository;
+import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,8 @@ import java.util.List;
 public class SchoolClassService {
     private final SchoolClassRepository classRepository;
     private final TeacherRepository teacherRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final SlotRepository slotRepository;
 
     public List<ClassResponse> getAll() {
         return classRepository.findAll()
@@ -65,7 +70,23 @@ public class SchoolClassService {
     @Transactional
     public void delete(Long id) {
         findById(id);
+        cascadeDeleteClass(id);
         classRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteBatch(List<Long> ids) {
+        ids.forEach(this::cascadeDeleteClass);
+        classRepository.deleteAllById(ids);
+    }
+
+    private void cascadeDeleteClass(Long classId) {
+        List<Assignment> assignments = assignmentRepository.findBySchoolClassId(classId);
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+        if (!assignmentIds.isEmpty()) {
+            slotRepository.deleteByAssignmentIdIn(assignmentIds);
+        }
+        assignmentRepository.deleteAll(assignments);
     }
 
     private SchoolClass findById(Long id) {

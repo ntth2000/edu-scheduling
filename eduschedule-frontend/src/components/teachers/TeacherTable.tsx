@@ -12,6 +12,7 @@ import {
   FileUp,
   UserMinus,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,48 @@ export function TeacherTable() {
   const [filter, setFilter] = useState<TeacherFilter>({ names: [], types: [], subjects: [], statuses: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Import progress state
+  const [importProgress, setImportProgress] = useState<{
+    active: boolean;
+    current: number;
+    total: number;
+    successCount: number;
+    failCount: number;
+    done: boolean;
+  } | null>(null);
+
+  // Batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBatchDeleting(true);
+    try {
+      const result = await teacherApi.deleteBatch(Array.from(selectedIds));
+      setTeachers((prev) => prev.filter((t) => !selectedIds.has(t.id)));
+
+      const parts: string[] = [`Đã xóa ${result.deletedTeachers} giáo viên`];
+      if (result.deletedAssignments > 0) parts.push(`${result.deletedAssignments} phân công môn học`);
+      if (result.deletedSlots > 0) parts.push(`${result.deletedSlots} tiết trong TKB`);
+      if (result.unsetHomeroomClasses.length > 0) parts.push(`gỡ chủ nhiệm lớp ${result.unsetHomeroomClasses.join(", ")}`);
+      toast.success(parts.join(", "));
+
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Không thể xóa giáo viên");
+    } finally {
+      setIsBatchDeleting(false);
+    }
+  };
+
   const activeFilterCount = filter.names.length + filter.types.length + filter.subjects.length + filter.statuses.length;
 
   const filteredTeachers = teachers.filter((t) => {
@@ -68,6 +111,26 @@ export function TeacherTable() {
   });
 
   const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredTeachers);
+
+  // These must come AFTER usePagination so currentData is available
+  const allOnPageSelected =
+    currentData.length > 0 && currentData.every((t) => selectedIds.has(t.id));
+
+  const toggleSelectAll = () => {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentData.forEach((t) => next.delete(t.id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentData.forEach((t) => next.add(t.id));
+        return next;
+      });
+    }
+  };
 
   const downloadTemplate = () => {
     const headers = ["Họ tên (*)", "Loại GV (*) [CHU_NHIEM/BO_MON/KHAC]", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
@@ -91,10 +154,18 @@ export function TeacherTable() {
     const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as string[][];
     const dataRows = rows.slice(1).filter((r) => r[0]);
 
+    if (dataRows.length === 0) {
+      toast.error("File không có dữ liệu");
+      return;
+    }
+
     let successCount = 0;
     let failCount = 0;
 
-    for (const row of dataRows) {
+    setImportProgress({ active: true, current: 0, total: dataRows.length, successCount: 0, failCount: 0, done: false });
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
       const fullName = String(row[0] ?? "").trim();
       const type = String(row[1] ?? "").trim() as "CHU_NHIEM" | "BO_MON" | "KHAC";
       const maxPeriodsPerWeek = parseInt(String(row[2] ?? "23"), 10) || 23;
@@ -110,10 +181,16 @@ export function TeacherTable() {
       } catch {
         failCount++;
       }
-    }
 
-    if (successCount > 0) toast.success(`Đã nhập ${successCount} giáo viên thành công`);
-    if (failCount > 0) toast.error(`${failCount} dòng nhập thất bại`);
+      setImportProgress({
+        active: true,
+        current: i + 1,
+        total: dataRows.length,
+        successCount,
+        failCount,
+        done: i + 1 === dataRows.length,
+      });
+    }
   };
 
   useEffect(() => {
@@ -133,15 +210,21 @@ export function TeacherTable() {
   const confirmToggleStatus = async () => {
     if (!teacherToToggle) return;
     try {
-      const updated = await teacherApi.toggleStatus(teacherToToggle.id);
+      const result = await teacherApi.toggleStatus(teacherToToggle.id);
       setTeachers((prev) =>
-        prev.map((t) => (t.id === teacherToToggle.id ? mapTeacher(updated) : t))
+        prev.map((t) => (t.id === teacherToToggle.id ? mapTeacher(result.teacher) : t))
       );
-      toast.success(
-        teacherToToggle.status === "active"
-          ? `Đã vô hiệu hoá giáo viên ${teacherToToggle.name}`
-          : `Đã kích hoạt giáo viên ${teacherToToggle.name}`
-      );
+
+      if (teacherToToggle.status === "active") {
+        // Deactivated — show cascade info
+        const parts: string[] = [`Đã vô hiệu hoá giáo viên ${teacherToToggle.name}`];
+        if (result.deletedAssignments > 0) parts.push(`Đã xoá ${result.deletedAssignments} phân công môn học`);
+        if (result.deletedSlots > 0) parts.push(`Đã xoá ${result.deletedSlots} tiết trong TKB`);
+        if (result.unsetHomeroomClasses.length > 0) parts.push(`Đã gỡ chủ nhiệm lớp ${result.unsetHomeroomClasses.join(", ")}`);
+        toast.success(parts.join(". "));
+      } else {
+        toast.success(`Đã kích hoạt giáo viên ${teacherToToggle.name}`);
+      }
     } catch {
       toast.error("Không thể thay đổi trạng thái giáo viên");
     }
@@ -262,8 +345,26 @@ export function TeacherTable() {
       </div>
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
-          <TypographyH4 title="Danh sách giáo viên" />
+          <div className="flex items-center gap-3">
+            <TypographyH4 title="Danh sách giáo viên" />
+            {selectedIds.size > 0 && (
+              <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
+                Đã chọn {selectedIds.size}
+              </span>
+            )}
+          </div>
           <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleBatchDelete}
+                disabled={isBatchDeleting}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xóa ({selectedIds.size})
+              </Button>
+            )}
             <Button size="sm" onClick={() => setIsModalOpen(true)}>
               <UserPlus className="h-3.5 w-3.5" />
               Thêm mới
@@ -292,6 +393,14 @@ export function TeacherTable() {
           <Table>
             <TableHeader className="bg-md-surface-container-low/30">
               <TableRow>
+                <TableHead className="w-10 px-4">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-slate-300 text-md-primary accent-md-primary cursor-pointer"
+                    checked={allOnPageSelected}
+                    onChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead className="px-4">Mã GV</TableHead>
                 <TableHead className="px-4">Họ tên</TableHead>
                 <TableHead className="px-4">Loại GV</TableHead>
@@ -312,7 +421,18 @@ export function TeacherTable() {
                       : "text-emerald-600";
 
                 return (
-                  <TableRow key={teacher.id}>
+                  <TableRow
+                    key={teacher.id}
+                    className={selectedIds.has(teacher.id) ? "bg-md-primary/5" : ""}
+                  >
+                    <TableCell className="px-4">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300 text-md-primary accent-md-primary cursor-pointer"
+                        checked={selectedIds.has(teacher.id)}
+                        onChange={() => toggleSelect(teacher.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-mono text-xs text-blue-700 font-semibold px-4">
                       {teacher.code}
                     </TableCell>
@@ -451,6 +571,84 @@ export function TeacherTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Import Progress Overlay */}
+      {importProgress?.active && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4">
+              <div className="flex items-center gap-3 mb-1">
+                {importProgress.done ? (
+                  <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-bold text-base text-slate-800 font-heading">
+                    {importProgress.done ? "Nhập dữ liệu hoàn tất" : "Đang nhập dữ liệu..."}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {importProgress.done
+                      ? `Đã xử lý tất cả ${importProgress.total} giáo viên`
+                      : `Đang xử lý ${importProgress.current} / ${importProgress.total} giáo viên`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="px-6 pb-4">
+              <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.round((importProgress.current / importProgress.total) * 100)}%`,
+                    background: importProgress.done
+                      ? "linear-gradient(90deg, #10b981, #059669)"
+                      : "linear-gradient(90deg, #3b82f6, #6366f1)",
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5 text-[11px] text-slate-400 font-medium">
+                <span>{Math.round((importProgress.current / importProgress.total) * 100)}%</span>
+                <span>{importProgress.current}/{importProgress.total}</span>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="px-6 pb-4 flex gap-3">
+              <div className="flex-1 bg-emerald-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-extrabold text-emerald-600 font-heading">{importProgress.successCount}</p>
+                <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Thành công</p>
+              </div>
+              <div className="flex-1 bg-red-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-extrabold text-red-500 font-heading">{importProgress.failCount}</p>
+                <p className="text-[11px] text-red-600 font-medium mt-0.5">Thất bại</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            {importProgress.done && (
+              <div className="px-6 pb-6">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    if (importProgress.successCount > 0) toast.success(`Đã nhập ${importProgress.successCount} giáo viên thành công`);
+                    if (importProgress.failCount > 0) toast.error(`${importProgress.failCount} dòng nhập thất bại`);
+                    setImportProgress(null);
+                  }}
+                >
+                  Xong
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
