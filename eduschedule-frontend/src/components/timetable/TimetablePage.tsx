@@ -14,9 +14,14 @@ import { GradeView } from "./GradeView";
 import { CellPopover } from "./CellPopover";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, FileText } from "lucide-react";
+import { FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { Subject } from "@/lib/types";
+import {
+  exportClassTimetable,
+  exportTeacherTimetable,
+  exportGradeTimetable,
+} from "@/lib/export-timetable";
 import {
   assignmentApi,
   AssignmentResponse,
@@ -43,6 +48,7 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [currentTimetable, setCurrentTimetable] = useState<TimetableResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportingLabel, setExportingLabel] = useState<string | null>(null);
 
   // Load master data
   useEffect(() => {
@@ -116,6 +122,39 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
     },
     [readOnly, currentTimetable]
   );
+
+  const handleExportExcel = useCallback(() => {
+    let label = "";
+    if (viewMode === "class") {
+      label = `Thời khoá biểu lớp ${selectedClassId}`;
+    } else if (viewMode === "teacher") {
+      const teacher = teachers.find((t) => t.id.toString() === selectedTeacherId);
+      label = `Thời khoá biểu giáo viên ${teacher?.fullName ?? selectedTeacherId}`;
+    } else {
+      label = `Thời khoá biểu khối ${selectedGrade}`;
+    }
+    setExportingLabel(label);
+
+    // Small delay so the modal renders before the synchronous xlsx work blocks the thread
+    setTimeout(() => {
+      try {
+        if (viewMode === "class") {
+          const cls = classes.find((c) => c.name === selectedClassId);
+          exportClassTimetable(slots, selectedClassId, cls?.homeroomTeacherName);
+        } else if (viewMode === "teacher") {
+          const teacher = teachers.find((t) => t.id.toString() === selectedTeacherId);
+          exportTeacherTimetable(slots, selectedTeacherId, teacher?.fullName ?? selectedTeacherId);
+        } else {
+          exportGradeTimetable(slots, selectedGrade, classes);
+        }
+        toast.success(`Đã xuất ${label}`);
+      } catch {
+        toast.error("Xuất file thất bại");
+      } finally {
+        setExportingLabel(null);
+      }
+    }, 80);
+  }, [viewMode, selectedClassId, selectedTeacherId, selectedGrade, slots, teachers, classes]);
 
   const handleDeleteSlot = useCallback(
     async (slotId: string) => {
@@ -206,13 +245,12 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium"
+          >
             <FileSpreadsheet className="h-4 w-4" />
             Excel
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium">
-            <FileText className="h-4 w-4" />
-            PDF
           </button>
         </div>
       </div>
@@ -273,6 +311,19 @@ export function TimetablePage({ readOnly = false }: { readOnly?: boolean }) {
           )}
         </div>
       </section>
+
+      {/* Export loading modal */}
+      {exportingLabel && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 w-full max-w-sm mx-4">
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="text-center">
+              <p className="font-semibold text-slate-800">Đang xuất file...</p>
+              <p className="text-sm text-slate-500 mt-1">{exportingLabel}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1">
