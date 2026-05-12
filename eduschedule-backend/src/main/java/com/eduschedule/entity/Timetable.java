@@ -18,6 +18,10 @@ public class Timetable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "semester_id", nullable = false)
+    private Semester semester;
+
     private String name; // optional label
 
     @Column(nullable = false)

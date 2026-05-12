@@ -5,7 +5,12 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
-@Table(name="classes")
+@Table(
+    name = "classes",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"name", "school_year_id"})
+    }
+)
 @Data
 @Builder
 @NoArgsConstructor
@@ -24,4 +29,8 @@ public class SchoolClass {
     @ManyToOne
     @JoinColumn(name = "homeroom_teacher_id")
     private Teacher homeroomTeacher;
+
+    @ManyToOne
+    @JoinColumn(name = "school_year_id")
+    private SchoolYear schoolYear;
 }
