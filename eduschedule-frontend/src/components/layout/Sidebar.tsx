@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
   Users,
   GraduationCap,
   BookOpen,
   ClipboardList,
   CalendarDays,
   LogOut,
+  DoorOpen,
+  ChevronDown,
+  CalendarCheck
 } from "lucide-react";
 
 import {
@@ -18,20 +20,27 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+const GLOBAL_ITEMS = [
   { label: "Giáo viên", href: "/teachers", icon: Users },
-  { label: "Lớp học", href: "/classes", icon: GraduationCap },
   { label: "Môn học", href: "/subjects", icon: BookOpen },
+  { label: "Phòng chức năng", href: "/special-rooms", icon: DoorOpen },
+];
+
+const SCHOOL_YEAR_ITEMS = [
+  { label: "Lớp học", href: "/classes", icon: GraduationCap },
   { label: "Phân công giảng dạy", href: "/assignments", icon: ClipboardList },
-  { label: "Thời khoá biểu", href: "/timetable", icon: CalendarDays },
+  { label: "Học kì 1 (Xếp TKB)", href: "/timetable", icon: CalendarCheck },
+  { label: "Học kì 2 (Xếp TKB)", href: "/timetable", icon: CalendarCheck },
 ];
 
 export default function AppSidebar() {
@@ -56,17 +65,18 @@ export default function AppSidebar() {
             <h1 className="text-lg font-extrabold text-blue-800 leading-none font-heading">
               EduSchedule
             </h1>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">
-              Hệ thống Quản lý
-            </p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2">
+        {/* Nhóm: Dữ liệu trường */}
         <SidebarGroup>
+          <SidebarGroupLabel className="text-[11px] font-bold tracking-wider text-slate-500 mb-1 uppercase">
+            Dữ liệu trường
+          </SidebarGroupLabel>
           <SidebarMenu>
-            {navItems.map((item) => {
+            {GLOBAL_ITEMS.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
               return (
@@ -91,6 +101,42 @@ export default function AppSidebar() {
             })}
           </SidebarMenu>
         </SidebarGroup>
+
+        {/* Nhóm: Năm học */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[11px] font-bold tracking-wider text-slate-500 mb-1 uppercase mt-2">
+            Năm học
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton className="py-6 px-4 bg-slate-100/80 text-blue-600 hover:bg-slate-200/80 hover:text-blue-700 rounded-xl">
+                <div className="flex items-center gap-3 w-full">
+                  <CalendarDays className="h-5 w-5" />
+                  <span className="font-medium text-[15px] flex-1 text-left">2025-2026</span>
+                  <ChevronDown className="h-4 w-4 stroke-[3]" />
+                </div>
+              </SidebarMenuButton>
+
+              <SidebarMenuSub className="mt-3 ml-6 border-l border-slate-200/80 px-0 gap-2">
+                {
+                  SCHOOL_YEAR_ITEMS.map((item, index) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+                    return (
+                      <SidebarMenuSubItem key={index}>
+                        <SidebarMenuSubButton asChild isActive={isActive} className="py-5 px-4 ml-2 text-slate-700 hover:bg-slate-50">
+                          <Link href={item.href}>
+                            <Icon className="h-5 w-5" />
+                            <span className="font-medium text-[14.5px]">{item.label}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    );
+                  })}
+              </SidebarMenuSub>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-4">
@@ -99,7 +145,7 @@ export default function AppSidebar() {
             <SidebarMenuButton asChild className="py-5 px-4 text-slate-600 hover:bg-red-50 hover:text-red-600">
               <button className="flex w-full items-center gap-3" onClick={handleLogout}>
                 <LogOut className="h-5 w-5" />
-                <span className="font-medium text-sm">Đăng xuất</span>
+                <span className="font-medium text-[15px]">Đăng xuất</span>
               </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
