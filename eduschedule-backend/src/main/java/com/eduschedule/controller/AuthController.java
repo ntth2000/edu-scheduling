@@ -4,19 +4,26 @@ import com.eduschedule.dto.request.LoginRequest;
 import com.eduschedule.dto.request.RegisterRequest;
 import com.eduschedule.dto.response.LoginResponse;
 import com.eduschedule.dto.response.RegisterResponse;
+import com.eduschedule.entity.RefreshToken;
 import com.eduschedule.entity.User;
+import com.eduschedule.repository.RefreshTokenRepository;
 import com.eduschedule.repository.UserRepository;
 import com.eduschedule.service.JwtService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
 
 @RestController
@@ -25,6 +32,7 @@ import java.util.Map;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -44,6 +52,7 @@ public class AuthController {
                 .body(new RegisterResponse(user.getUsername(), "Đăng ký thành công"));
     }
 
+    @Transactional
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
@@ -53,20 +62,73 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Tên đăng nhập hoặc mật khẩu không đúng");
         }
 
-        String accessToken = jwtService.generateAccessToken(user.getUsername());
-        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+        // Invalidate any existing refresh tokens for this user
+        refreshTokenRepository.deleteByUser(user);
 
-        return ResponseEntity.ok(new LoginResponse(accessToken, refreshToken, user.getUsername()));
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String rawRefreshToken = jwtService.generateRefreshToken(user.getUsername());
+
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .token(rawRefreshToken)
+                .expiresAt(Instant.now().plusMillis(jwtService.getRefreshExpiration()))
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
+        return ResponseEntity.ok(new LoginResponse(accessToken, rawRefreshToken, user.getUsername()));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestBody Map<String, String> body) {
-        String refreshToken = body.get("refreshToken");
-        if (refreshToken == null || !jwtService.isValid(refreshToken)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ");
+        String rawToken = body.get("refreshToken");
+        if (rawToken == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu refreshToken");
         }
-        String username = jwtService.extractUsername(refreshToken);
+
+        RefreshToken stored = refreshTokenRepository.findByToken(rawToken)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ"));
+
+        if (stored.getExpiresAt().isBefore(Instant.now())) {
+            refreshTokenRepository.delete(stored);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token đã hết hạn");
+        }
+
+        // Rotate: delete old, issue new
+        refreshTokenRepository.delete(stored);
+
+        String username = stored.getUser().getUsername();
         String newAccessToken = jwtService.generateAccessToken(username);
-        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+        String newRawRefreshToken = jwtService.generateRefreshToken(username);
+
+        RefreshToken newRefreshToken = RefreshToken.builder()
+                .user(stored.getUser())
+                .token(newRawRefreshToken)
+                .expiresAt(Instant.now().plusMillis(jwtService.getRefreshExpiration()))
+                .build();
+        refreshTokenRepository.save(newRefreshToken);
+
+        return ResponseEntity.ok(Map.of(
+                "accessToken", newAccessToken,
+                "refreshToken", newRawRefreshToken
+        ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        String rawToken = extractCookie(request, "refresh_token");
+        if (rawToken != null) {
+            refreshTokenRepository.findByToken(rawToken).ifPresent(refreshTokenRepository::delete);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    private String extractCookie(HttpServletRequest request, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return null;
+        return Arrays.stream(cookies)
+                .filter(c -> name.equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
     }
 }

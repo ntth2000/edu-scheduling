@@ -19,14 +19,11 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long accessExpiration;
 
-    private static final long REFRESH_EXPIRATION = 7L * 24 * 60 * 60 * 1000;
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration;
 
     private SecretKey getKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        // Ensure key is at least 256 bits for HS256
-        byte[] paddedKey = new byte[32];
-        System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 32));
-        return Keys.hmacShaKeyFor(paddedKey);
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(String username) {
@@ -34,7 +31,11 @@ public class JwtService {
     }
 
     public String generateRefreshToken(String username) {
-        return buildToken(username, REFRESH_EXPIRATION);
+        return buildToken(username, refreshExpiration);
+    }
+
+    public long getRefreshExpiration() {
+        return refreshExpiration;
     }
 
     private String buildToken(String username, long expiration) {
