@@ -17,13 +17,18 @@ public class TimetableController {
     private final TimetableService timetableService;
 
     @GetMapping
-    public ResponseEntity<List<TimetableResponse>> getAll() {
+    public ResponseEntity<List<TimetableResponse>> getAll(
+            @RequestParam(required = false) Long schoolYearId) {
+        if (schoolYearId != null) {
+            return ResponseEntity.ok(timetableService.getBySchoolYear(schoolYearId));
+        }
         return ResponseEntity.ok(timetableService.getAll());
     }
 
     @PostMapping
-    public ResponseEntity<TimetableResponse> create(@RequestBody TimetableRequest request) {
-        return ResponseEntity.ok(timetableService.create(request));
+    public ResponseEntity<TimetableResponse> create(@RequestBody @jakarta.validation.Valid TimetableRequest request) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(timetableService.create(request));
     }
 
     @PatchMapping("/{id}/status")

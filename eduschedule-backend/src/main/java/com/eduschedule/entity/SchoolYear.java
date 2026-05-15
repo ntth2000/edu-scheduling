@@ -6,7 +6,10 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
-@Table(name = "school_years")
+@Table(
+    name = "school_years",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "start_year"})
+)
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,13 +23,7 @@ public class SchoolYear {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, unique = true, length = 10)
-    private String name;
-
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private Integer startYear;
-
-    @Column(nullable = false, unique = true)
-    private Integer endYear;
 
 }

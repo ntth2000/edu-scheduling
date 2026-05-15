@@ -18,11 +18,14 @@ export function TypographyP({ text }: { text: string }) {
 }
 
 
-export function TypographyH3({ title }: { title: string }) {
+export function TypographyH3({ title, subtitle }: { title: string; subtitle?: string }) {
     return (
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-            {title}
-        </h3>
+        <div>
+            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+                {title}
+            </h3>
+            {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+        </div>
     )
 }
 

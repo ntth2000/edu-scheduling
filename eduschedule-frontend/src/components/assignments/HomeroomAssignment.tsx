@@ -2,8 +2,6 @@
 
 import { type HomeroomAssignment as HomeroomData } from "@/lib/assignment-data";
 import { type TeacherResponse } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,17 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { TypographyH4 } from "@/components/ui/typography";
-import { CustomPagination } from "@/components/shared/CustomPagination";
-import { usePagination } from "@/hooks/usePagination";
+import { Button } from "@/components/ui/button";
+
+const GRADE_ROWS = [[1, 2, 3], [4, 5]];
 
 interface Props {
   assignments: HomeroomData[];
@@ -30,135 +20,97 @@ interface Props {
 }
 
 export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Props) {
-  const grades = [1, 2, 3, 4, 5];
-  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(assignments);
-
-  // Teachers already assigned to a class (teacherId → classId)
   const assignedTeacherIds = new Set(
     assignments.filter((a) => a.teacherId !== null).map((a) => a.teacherId as number)
   );
 
-  const currentGrades = [...new Set(currentData.map((a) => a.grade))].sort((a, b) => a - b);
+  const assignmentsByGrade = assignments.reduce((acc, a) => {
+    if (!acc[a.grade]) acc[a.grade] = [];
+    acc[a.grade].push(a);
+    return acc;
+  }, {} as Record<number, HomeroomData[]>);
 
   return (
-    <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 flex items-center justify-between bg-md-surface-container-low/30">
-        <TypographyH4 title="Danh sách lớp học theo khối" />
-      </div>
+    <div className="space-y-4">
+      {GRADE_ROWS.map((rowGrades, rowIdx) => (
+        <div key={rowIdx} className="grid grid-cols-3 gap-4">
+          {rowGrades.map((grade) => {
+            const gradeClasses = (assignmentsByGrade[grade] ?? []).sort((a, b) =>
+              a.className.localeCompare(b.className, "vi")
+            );
 
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-md-surface-container-low/30">
-            <TableRow>
-              <TableHead className="px-4">Tên lớp</TableHead>
-              <TableHead className="px-4 text-center w-20">Khối</TableHead>
-              <TableHead className="px-4">Giáo viên chủ nhiệm</TableHead>
-              <TableHead className="px-4 w-28"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {grades.filter((g) => currentGrades.includes(g)).map((grade) => {
-              const gradeClasses = currentData.filter((a) => a.grade === grade);
-              if (gradeClasses.length === 0) return null;
-              return (
-                <GradeGroup
-                  key={grade}
-                  grade={grade}
-                  classes={gradeClasses}
-                  gvcnTeachers={gvcnTeachers}
-                  assignedTeacherIds={assignedTeacherIds}
-                  onAssign={onAssign}
-                />
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+            return (
+              <div key={grade} className="bg-white rounded-xl border border-sidebar-border shadow-sm flex flex-col overflow-hidden">
+                {/* Card header */}
+                <div className="px-4 py-3 flex items-center gap-2.5 border-b border-sidebar-border">
+                  <span className="font-bold text-sm text-md-on-surface">Khối {grade}</span>
+                  <span className="ml-auto text-xs text-slate-400 font-medium">{gradeClasses.length} lớp</span>
+                </div>
 
-      <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
-        <p>Hiển thị {currentData.length} trong số {assignments.length} lớp học</p>
-        <CustomPagination
-          totalItems={assignments.length}
-          itemsPerPage={itemsPerPage}
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
-        />
-      </div>
+                {/* Column labels */}
+                {gradeClasses.length > 0 && (
+                  <div className="px-4 py-2 border-b border-slate-50 flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 w-16 shrink-0">Lớp</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Giáo viên chủ nhiệm</span>
+                  </div>
+                )}
+
+                {/* Class rows */}
+                <div className="flex-1 divide-y divide-slate-50">
+                  {gradeClasses.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic text-center py-8">Chưa có lớp nào</p>
+                  ) : (
+                    gradeClasses.map((cls) => {
+                      const availableTeachers = gvcnTeachers.filter(
+                        (t) => !assignedTeacherIds.has(t.id) || t.id === cls.teacherId
+                      );
+                      return (
+                        <div key={cls.classId} className="px-4 py-2 flex items-center gap-2 hover:bg-slate-50/60 transition-colors">
+                          <span className="text-sm font-medium text-md-on-surface w-16 shrink-0">
+                            {cls.className}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <Select
+                              value={cls.teacherId !== null ? String(cls.teacherId) : "none"}
+                              onValueChange={(val) =>
+                                onAssign(cls.classId, val === "none" ? null : Number(val))
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs border-slate-200 bg-slate-50 focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Chưa phân công" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  <span className="italic text-slate-400">Chưa phân công</span>
+                                </SelectItem>
+                                {availableTeachers.map((t) => (
+                                  <SelectItem key={t.id} value={String(t.id)}>
+                                    {t.fullName}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {cls.teacherId !== null && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 shrink-0 text-xs text-slate-400 hover:text-md-error hover:bg-md-error/10 px-2"
+                              onClick={() => onAssign(cls.classId, null)}
+                            >
+                              Xoá GVCN
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
-  );
-}
-
-function GradeGroup({
-  grade,
-  classes,
-  gvcnTeachers,
-  assignedTeacherIds,
-  onAssign,
-}: {
-  grade: number;
-  classes: HomeroomData[];
-  gvcnTeachers: TeacherResponse[];
-  assignedTeacherIds: Set<number>;
-  onAssign: (classId: number, teacherId: number | null) => void;
-}) {
-  return (
-    <>
-      <TableRow className="bg-md-surface-container-low/20 hover:bg-md-surface-container-low/20">
-        <TableCell colSpan={4} className="px-4 py-2">
-          <Badge variant="secondary" className="text-xs font-bold">
-            Khối {grade}
-          </Badge>
-        </TableCell>
-      </TableRow>
-
-      {classes.map((cls) => {
-        // Available = not assigned to any class, OR already assigned to THIS class
-        const availableTeachers = gvcnTeachers.filter(
-          (t) => !assignedTeacherIds.has(t.id) || t.id === cls.teacherId
-        );
-        return (
-          <TableRow key={cls.classId} className="group">
-            <TableCell className="px-4 font-medium text-md-on-surface">
-              Lớp {cls.className}
-            </TableCell>
-            <TableCell className="px-4 text-center">
-              <Badge variant="secondary">{cls.grade}</Badge>
-            </TableCell>
-            <TableCell className="px-4">
-              <Select
-                value={cls.teacherId !== null ? String(cls.teacherId) : "none"}
-                onValueChange={(val) => onAssign(cls.classId, val === "none" ? null : Number(val))}
-              >
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue placeholder="Chưa phân công" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    <span className="italic text-slate-400">Chưa phân công</span>
-                  </SelectItem>
-                  {availableTeachers.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>
-                      {t.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </TableCell>
-            <TableCell className="px-4">
-              {cls.teacherId !== null && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onAssign(cls.classId, null)}
-                  className="text-md-error hover:text-md-error hover:bg-md-error/10 transition-colors"
-                >
-                  Xóa GVCN
-                </Button>
-              )}
-            </TableCell>
-          </TableRow>
-        );
-      })}
-    </>
   );
 }

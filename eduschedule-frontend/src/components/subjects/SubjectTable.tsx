@@ -230,7 +230,6 @@ export function SubjectTable() {
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <div className="flex items-center gap-3">
-            <TypographyH4 title="Danh sách môn học" />
             {selectedIds.size > 0 && (
               <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
                 Đã chọn {selectedIds.size}
@@ -238,22 +237,20 @@ export function SubjectTable() {
             )}
           </div>
           <div className="flex gap-2">
-            {selectedIds.size > 0 && (
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={handleBatchDelete}
-                disabled={isBatchDeleting}
+                disabled={isBatchDeleting || selectedIds.size === 0}
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Xóa ({selectedIds.size})
               </Button>
-            )}
             <Button size="sm" onClick={() => setIsModalOpen(true)}>
               <Plus className="h-3.5 w-3.5" />
               Thêm mới
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+            {/* <Button size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>
               <FileUp className="h-3.5 w-3.5" />
               Nhập Excel
             </Button>
@@ -261,7 +258,7 @@ export function SubjectTable() {
               <Download className="h-3.5 w-3.5" />
               Tải mẫu
             </Button>
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} /> */}
           </div>
         </div>
 
@@ -347,18 +344,6 @@ export function SubjectTable() {
               onPageChange={setCurrentPage}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-md-primary-fixed/30 p-6 rounded-xl relative overflow-hidden">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-md-primary/70 mb-1">
-            Tổng số môn
-          </p>
-          <h4 className="text-3xl font-extrabold text-md-primary font-heading">
-            {subjects.length}
-          </h4>
         </div>
       </div>
 

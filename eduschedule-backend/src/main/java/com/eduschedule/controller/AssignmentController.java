@@ -18,23 +18,20 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
 
-    // GET /api/assignments?classId=1
+    // GET /api/assignments?year=2026-2027&classId=1&teacherId=1
     @GetMapping
     public ResponseEntity<List<AssignmentResponse>> getAll(
+            @RequestParam(required = false) String year,
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long teacherId
     ) {
         if (classId != null) {
-            return ResponseEntity.ok(
-                    assignmentService.getByClass(classId)
-            );
+            return ResponseEntity.ok(assignmentService.getByClass(classId));
         }
         if (teacherId != null) {
-            return ResponseEntity.ok(
-                    assignmentService.getByTeacher(teacherId)
-            );
+            return ResponseEntity.ok(assignmentService.getByTeacher(teacherId));
         }
-        return ResponseEntity.ok(assignmentService.getAll());
+        return ResponseEntity.ok(assignmentService.getAll(year));
     }
 
     // POST /api/assignments/homeroom

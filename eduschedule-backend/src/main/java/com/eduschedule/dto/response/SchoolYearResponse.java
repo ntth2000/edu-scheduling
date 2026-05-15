@@ -9,12 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClassResponse {
+public class SchoolYearResponse {
     private Long id;
     private String name;
-    private Integer grade;
-    private Long homeroomTeacherId;
-    private String homeroomTeacherName;
-    private Long schoolYearId;
-    private String schoolYearName;
+    private Integer startYear;
 }

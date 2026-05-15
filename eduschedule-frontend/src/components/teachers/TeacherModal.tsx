@@ -11,15 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Save, Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
@@ -29,7 +22,7 @@ import { Teacher, TeacherType } from "@/lib/types";
 
 const teacherSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập họ và tên"),
-  type: z.enum(["CHU_NHIEM", "BO_MON", "KHAC"]),
+  type: z.enum(["CHU_NHIEM", "BO_MON"]),
   maxPeriods: z.number().min(1, "Số tiết phải lớn hơn 0"),
   subjects: z.array(z.string()).default([]),
 }).refine((data) => {
@@ -53,7 +46,6 @@ interface TeacherModalProps {
 export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave }: TeacherModalProps) {
   const [name, setName] = useState("");
   const [type, setType] = useState<TeacherType>("CHU_NHIEM");
-  const [position, setPosition] = useState("Giáo viên");
   const [maxPeriods, setMaxPeriods] = useState(23);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,13 +55,11 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
     if (teacher) {
       setName(teacher.name);
       setType(teacher.type);
-      setPosition(teacher.position);
       setMaxPeriods(teacher.maxPeriods);
       setSubjects(teacher.subjects);
     } else {
       setName("");
       setType("CHU_NHIEM");
-      setPosition("Giáo viên");
       setMaxPeriods(23);
       setSubjects([]);
     }
@@ -77,7 +67,7 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
     setLoading(false);
   }, [teacher, open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (loading) return;
 
@@ -99,9 +89,8 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
       await onSave({
         name,
         type,
-        position,
         maxPeriods,
-        subjects: (type === "BO_MON" || type === "KHAC") ? subjects : [],
+        subjects: type === "BO_MON" ? subjects : [],
       });
       toast.success(teacher ? "Đã cập nhật thông tin giáo viên" : "Đã thêm giáo viên mới");
     } catch (error) {
@@ -159,26 +148,7 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
                 <RadioGroupItem value="BO_MON" id="type-bomon" />
                 <FieldLabel htmlFor="type-bomon">Bộ môn</FieldLabel>
               </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="KHAC" id="type-khac" />
-                <FieldLabel htmlFor="type-khac">Khác</FieldLabel>
-              </div>
             </RadioGroup>
-          </Field>
-
-          <Field>
-            <FieldLabel>Chức vụ</FieldLabel>
-            <Select value={position} onValueChange={setPosition}>
-              <SelectTrigger>
-                <SelectValue placeholder="Chọn chức vụ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Giáo viên">Giáo viên</SelectItem>
-                <SelectItem value="Tổ trưởng">Tổ trưởng</SelectItem>
-                <SelectItem value="Hiệu phó">Hiệu phó</SelectItem>
-                <SelectItem value="Hiệu trưởng">Hiệu trưởng</SelectItem>
-              </SelectContent>
-            </Select>
           </Field>
 
           <Field>

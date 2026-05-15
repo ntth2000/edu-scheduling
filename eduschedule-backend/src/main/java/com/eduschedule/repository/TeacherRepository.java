@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TeacherRepository extends JpaRepository<Teacher, Long> {
@@ -16,5 +17,9 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
             """)
     boolean isAlreadyHomeroom(Long teacherId);
 
+    List<Teacher> findAllByUserId(Long userId);
+
     List<Teacher> findByIsActiveTrue();
+
+    Optional<Teacher> findByUserId(Long userId);
 }

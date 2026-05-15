@@ -133,7 +133,7 @@ export function TeacherTable() {
   };
 
   const downloadTemplate = () => {
-    const headers = ["Họ tên (*)", "Loại GV (*) [CHU_NHIEM/BO_MON/KHAC]", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
+    const headers = ["Họ tên (*)", "Loại GV (*) [CHU_NHIEM/BO_MON]", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
     const sample = ["Nguyễn Văn A", "CHU_NHIEM", "23", "Toán, Tiếng Việt"];
     const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
     ws["!cols"] = headers.map(() => ({ wch: 32 }));
@@ -167,7 +167,7 @@ export function TeacherTable() {
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
       const fullName = String(row[0] ?? "").trim();
-      const type = String(row[1] ?? "").trim() as "CHU_NHIEM" | "BO_MON" | "KHAC";
+      const type = String(row[1] ?? "").trim() as "CHU_NHIEM" | "BO_MON";
       const maxPeriodsPerWeek = parseInt(String(row[2] ?? "23"), 10) || 23;
       const subjectNames = String(row[3] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
       const subjectIds = subjectNames
@@ -311,42 +311,9 @@ export function TeacherTable() {
   return (
     <>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-md-primary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-md-primary/70 mb-1">
-              Tổng số GV
-            </p>
-            <h4 className="text-3xl font-extrabold text-md-primary font-heading">
-              {teachers.length}
-            </h4>
-          </div>
-        </div>
-        <div className="bg-md-secondary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-md-secondary/70 mb-1">
-              GV Chủ nhiệm
-            </p>
-            <h4 className="text-3xl font-extrabold text-md-secondary font-heading">
-              {teachers.filter((t) => t.type === "CHU_NHIEM").length}
-            </h4>
-          </div>
-        </div>
-        <div className="bg-md-tertiary-fixed/30 p-6 rounded-xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-md-tertiary/70 mb-1">
-              Ban Giám Hiệu / Khác
-            </p>
-            <h4 className="text-3xl font-extrabold text-md-tertiary font-heading">
-              {teachers.filter((t) => t.type === "KHAC").length}
-            </h4>
-          </div>
-        </div>
-      </div>
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <div className="flex items-center gap-3">
-            <TypographyH4 title="Danh sách giáo viên" />
             {selectedIds.size > 0 && (
               <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
                 Đã chọn {selectedIds.size}
@@ -354,17 +321,15 @@ export function TeacherTable() {
             )}
           </div>
           <div className="flex gap-2">
-            {selectedIds.size > 0 && (
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={handleBatchDelete}
-                disabled={isBatchDeleting}
+                disabled={isBatchDeleting || selectedIds.size === 0}
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Xóa ({selectedIds.size})
               </Button>
-            )}
             <Button size="sm" onClick={() => setIsModalOpen(true)}>
               <UserPlus className="h-3.5 w-3.5" />
               Thêm mới
@@ -406,20 +371,12 @@ export function TeacherTable() {
                 <TableHead className="px-4">Loại GV</TableHead>
                 <TableHead className="px-4">Môn dạy</TableHead>
                 <TableHead className="px-4">Trạng thái</TableHead>
-                <TableHead className="text-center px-4">Tiết/Tuần</TableHead>
+                <TableHead className="text-center px-4">Định mức tiết/tuần</TableHead>
                 <TableHead className="text-right px-4">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentData.map((teacher) => {
-                const ratio = teacher.currentPeriods / teacher.maxPeriods;
-                const periodColor =
-                  ratio > 1
-                    ? "text-md-error font-bold"
-                    : ratio >= 0.8
-                      ? "text-amber-600 font-bold"
-                      : "text-emerald-600";
-
                 return (
                   <TableRow
                     key={teacher.id}
@@ -444,12 +401,10 @@ export function TeacherTable() {
                         className={
                           teacher.type === "CHU_NHIEM"
                             ? "bg-blue-100 text-blue-700 border-transparent whitespace-nowrap"
-                            : teacher.type === "BO_MON"
-                              ? "bg-slate-100 text-slate-600 border-transparent whitespace-nowrap"
-                              : "bg-purple-100 text-purple-700 border-transparent whitespace-nowrap"
+                            : "bg-slate-100 text-slate-600 border-transparent whitespace-nowrap"
                         }
                       >
-                        {teacher.type === "CHU_NHIEM" ? "GVCN" : teacher.type === "BO_MON" ? "Bộ môn" : "Khác"}
+                        {teacher.type === "CHU_NHIEM" ? "GVCN" : "Bộ môn"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600 italic">
@@ -466,8 +421,8 @@ export function TeacherTable() {
                         {teacher.status === "active" ? "Hoạt động" : "Vô hiệu hoá"}
                       </Badge>
                     </TableCell>
-                    <TableCell className={`text-center text-sm font-semibold ${periodColor}`}>
-                      {teacher.currentPeriods}/{teacher.maxPeriods}
+                    <TableCell className="text-center text-sm font-semibold text-slate-700">
+                      {teacher.maxPeriods}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

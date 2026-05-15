@@ -2,17 +2,15 @@ package com.eduschedule.service;
 
 import com.eduschedule.dto.request.ClassRequest;
 import com.eduschedule.dto.response.ClassResponse;
-import com.eduschedule.entity.Assignment;
-import com.eduschedule.entity.SchoolClass;
-import com.eduschedule.entity.Teacher;
+import com.eduschedule.entity.*;
 import com.eduschedule.entity.enums.TeacherType;
-import com.eduschedule.repository.AssignmentRepository;
-import com.eduschedule.repository.SchoolClassRepository;
-import com.eduschedule.repository.SlotRepository;
-import com.eduschedule.repository.TeacherRepository;
+import com.eduschedule.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,12 +21,26 @@ public class SchoolClassService {
     private final TeacherRepository teacherRepository;
     private final AssignmentRepository assignmentRepository;
     private final SlotRepository slotRepository;
+    private final SchoolYearRepository schoolYearRepository;
+    private final UserRepository userRepository;
 
-    public List<ClassResponse> getAll() {
-        return classRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public List<ClassResponse> getAll(String year) {
+        User user = getCurrentUser();
+        if (year != null) {
+            int startYear = Integer.parseInt(year.split("-")[0]);
+            SchoolYear schoolYear = schoolYearRepository.findByStartYearAndUserId(startYear, user.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy năm học: " + year));
+            return classRepository.findAllBySchoolYearId(schoolYear.getId())
+                    .stream().map(this::toResponse).toList();
+        }
+        return classRepository.findAllBySchoolYearUserId(user.getId())
+                .stream().map(this::toResponse).toList();
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Người dùng không tồn tại"));
     }
 
     public ClassResponse getById(Long id) {
@@ -42,10 +54,17 @@ public class SchoolClassService {
             teacher = findTeacherAndValidate(request.getHomeroomTeacherId(), null);
         }
 
+        SchoolYear schoolYear = null;
+        if (request.getSchoolYearId() != null) {
+            schoolYear = schoolYearRepository.findById(request.getSchoolYearId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy năm học với id: " + request.getSchoolYearId()));
+        }
+
         SchoolClass schoolClass = SchoolClass.builder()
                 .name(request.getName())
                 .grade(request.getGrade())
                 .homeroomTeacher(teacher)
+                .schoolYear(schoolYear)
                 .build();
 
         return toResponse(classRepository.save(schoolClass));
@@ -119,6 +138,10 @@ public class SchoolClassService {
                 .grade(schoolClass.getGrade())
                 .homeroomTeacherId(schoolClass.getHomeroomTeacher() != null ? schoolClass.getHomeroomTeacher().getId() : null)
                 .homeroomTeacherName(schoolClass.getHomeroomTeacher() != null ? schoolClass.getHomeroomTeacher().getFullName() : null)
+                .schoolYearId(schoolClass.getSchoolYear() != null ? schoolClass.getSchoolYear().getId() : null)
+                .schoolYearName(schoolClass.getSchoolYear() != null
+                        ? schoolClass.getSchoolYear().getStartYear() + "-" + (schoolClass.getSchoolYear().getStartYear() + 1)
+                        : null)
                 .build();
     }
 }

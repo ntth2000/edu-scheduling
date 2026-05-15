@@ -1,12 +1,22 @@
 package com.eduschedule.dto.request;
 
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TimetableRequest {
-    private String name; // optional label, e.g. "HK1 2024-2025"
+    @NotNull
+    private Long schoolYearId;
+
+    @NotNull
+    @Min(1) @Max(2)
+    private Integer semesterOrder;
+
+    @Min(2) @Max(6)
+    private Integer offDay;
+
+    @Min(1) @Max(2)
+    private Integer offSession;
 }

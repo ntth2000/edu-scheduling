@@ -3,16 +3,11 @@ package com.eduschedule.service;
 import com.eduschedule.dto.request.AssignmentRequest;
 import com.eduschedule.dto.request.HomeroomAssignmentRequest;
 import com.eduschedule.dto.response.AssignmentResponse;
-import com.eduschedule.entity.Assignment;
-import com.eduschedule.entity.SchoolClass;
-import com.eduschedule.entity.Subject;
-import com.eduschedule.entity.Teacher;
+import com.eduschedule.entity.*;
 import com.eduschedule.entity.enums.TeacherType;
-import com.eduschedule.repository.AssignmentRepository;
-import com.eduschedule.repository.SchoolClassRepository;
-import com.eduschedule.repository.SubjectRepository;
-import com.eduschedule.repository.TeacherRepository;
+import com.eduschedule.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +21,26 @@ public class AssignmentService {
     private final TeacherRepository teacherRepository;
     private final SubjectRepository subjectRepository;
     private final SchoolClassRepository classRepository;
+    private final UserRepository userRepository;
+    private final SchoolYearRepository schoolYearRepository;
 
-    public List<AssignmentResponse> getAll() {
-        return assignmentRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public List<AssignmentResponse> getAll(String year) {
+        User user = getCurrentUser();
+        if (year != null) {
+            int startYear = Integer.parseInt(year.split("-")[0]);
+            SchoolYear schoolYear = schoolYearRepository.findByStartYearAndUserId(startYear, user.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy năm học: " + year));
+            return assignmentRepository.findBySchoolClassSchoolYearId(schoolYear.getId())
+                    .stream().map(this::toResponse).toList();
+        }
+        return assignmentRepository.findBySchoolClassSchoolYearUserId(user.getId())
+                .stream().map(this::toResponse).toList();
+    }
+
+    private User getCurrentUser() {
+        String username = (String) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        return userRepository.findByUsername(username).orElseThrow();
     }
 
     // ── LẤY PHÂN CÔNG THEO LỚP ───────────────────────

@@ -33,6 +33,7 @@ export interface ClassResponse {
   grade: number;
   homeroomTeacherId: number | null;
   homeroomTeacherName: string | null;
+  schoolYearId: number | null;
 }
 
 export interface TeacherCascadeResponse {
@@ -103,6 +104,7 @@ export function mapClass(c: ClassResponse): SchoolClass {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     ...init,
   });
   if (!res.ok) {
@@ -110,7 +112,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     let msg: string;
     try {
       const json = JSON.parse(text);
-      msg = json.message || text;
+      return json.message || json.error || "Unknown error";
     } catch {
       msg = text;
     }
@@ -143,6 +145,7 @@ export interface ClassRequest {
   name: string;
   grade: number;
   homeroomTeacherId?: number | null;
+  schoolYearId?: number | null;
 }
 
 // API clients
@@ -200,7 +203,8 @@ export const subjectApi = {
 };
 
 export const classApi = {
-  getAll: () => apiFetch<ClassResponse[]>("/api/classes"),
+  getAll: (year?: string | null) =>
+    apiFetch<ClassResponse[]>(year ? `/api/classes?year=${encodeURIComponent(year)}` : "/api/classes"),
 
   create: (body: ClassRequest) =>
     apiFetch<ClassResponse>("/api/classes", {
@@ -277,6 +281,54 @@ export const slotApi = {
     apiFetch<void>(`/api/slots/${id}`, { method: "DELETE" }),
 };
 
+export interface SchoolYearResponse {
+  id: number;
+  name: string;
+  startYear: number;
+}
+
+export const schoolYearApi = {
+  getAll: () => apiFetch<SchoolYearResponse[]>("/api/school-years"),
+  create: (startYear: number) =>
+    apiFetch<SchoolYearResponse>("/api/school-years", {
+      method: "POST",
+      body: JSON.stringify({ startYear }),
+    }),
+};
+
+export interface SpecialRoomResponse {
+  id: number;
+  name: string;
+  quantity: number;
+  subjectId: number | null;
+  subjectName: string | null;
+}
+
+export interface SpecialRoomRequest {
+  name: string;
+  quantity: number;
+  subjectId?: number | null;
+}
+
+export const specialRoomApi = {
+  getAll: () => apiFetch<SpecialRoomResponse[]>("/api/special-rooms"),
+
+  create: (body: SpecialRoomRequest) =>
+    apiFetch<SpecialRoomResponse>("/api/special-rooms", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  update: (id: number, body: SpecialRoomRequest) =>
+    apiFetch<SpecialRoomResponse>(`/api/special-rooms/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  delete: (id: number) =>
+    apiFetch<void>(`/api/special-rooms/${id}`, { method: "DELETE" }),
+};
+
 export const assignmentApi = {
   assignHomeroom: (classId: number, teacherId: number) =>
     apiFetch<void>("/api/assignments/homeroom", {
@@ -284,8 +336,8 @@ export const assignmentApi = {
       body: JSON.stringify({ classId, teacherId }),
     }),
 
-  getAll: () =>
-    apiFetch<AssignmentResponse[]>("/api/assignments"),
+  getAll: (year?: string | null) =>
+    apiFetch<AssignmentResponse[]>(year ? `/api/assignments?year=${encodeURIComponent(year)}` : "/api/assignments"),
 
   assign: (classId: number, subjectId: number, teacherId: number) =>
     apiFetch<AssignmentResponse>("/api/assignments", {

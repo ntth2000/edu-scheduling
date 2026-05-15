@@ -4,12 +4,17 @@ import com.eduschedule.dto.request.SubjectRequest;
 import com.eduschedule.dto.response.SubjectResponse;
 import com.eduschedule.entity.Assignment;
 import com.eduschedule.entity.Subject;
+import com.eduschedule.entity.User;
 import com.eduschedule.repository.AssignmentRepository;
 import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.SubjectRepository;
+import com.eduschedule.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -19,9 +24,10 @@ public class SubjectService {
     private final SubjectRepository subjectRepository;
     private final AssignmentRepository assignmentRepository;
     private final SlotRepository slotRepository;
+    private final UserRepository userRepository;
 
     public List<SubjectResponse> getAll() {
-        return subjectRepository.findAll()
+        return subjectRepository.findAllByUserId(getCurrentUser().getId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -31,12 +37,16 @@ public class SubjectService {
         return toResponse(findById(id));
     }
 
+    @Transactional
     public SubjectResponse create(SubjectRequest request) {
-        if (subjectRepository.existsByName(request.getName())) {
-            throw new RuntimeException("Môn học '" + request.getName() + "' đã tồn tại");
+        User user = getCurrentUser();
+        if (subjectRepository.existsByNameAndUserId(request.getName(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Môn học '" + request.getName() + "' đã tồn tại");
         }
 
         Subject subject = Subject.builder()
+                .user(user)
                 .name(request.getName())
                 .shortName(request.getShortName())
                 .periodsGrade1(request.getPeriodsGrade1())
@@ -49,6 +59,7 @@ public class SubjectService {
         return toResponse(subjectRepository.save(subject));
     }
 
+    @Transactional
     public SubjectResponse update(Long id, SubjectRequest request) {
         Subject subject = findById(id);
 
@@ -83,6 +94,12 @@ public class SubjectService {
             slotRepository.deleteByAssignmentIdIn(assignmentIds);
         }
         assignmentRepository.deleteAll(assignments);
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Người dùng không tồn tại"));
     }
 
     private Subject findById(Long id) {

@@ -24,6 +24,10 @@ public class SpecialRoom {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @ManyToOne
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
+
     @Column(nullable = false)
     @Builder.Default
     private Integer quantity = 1;

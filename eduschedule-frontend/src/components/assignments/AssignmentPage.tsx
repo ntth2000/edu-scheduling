@@ -21,7 +21,7 @@ import {
   type AssignmentResponse,
 } from "@/lib/api";
 
-export function AssignmentPage() {
+export function AssignmentPage({ year }: { year: string | null }) {
   const [mode, setMode] = useState<AssignmentMode>("homeroom");
   const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
   const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
@@ -30,7 +30,8 @@ export function AssignmentPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(), assignmentApi.getAll()])
+    setLoading(true);
+    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(year), assignmentApi.getAll(year)])
       .then(([t, s, c, a]) => {
         setTeachers(t);
         setSubjects(s);
@@ -39,7 +40,7 @@ export function AssignmentPage() {
       })
       .catch(() => toast.error("Không thể tải dữ liệu phân công"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [year]);
 
   const homeroomData: HomeroomAssignment[] = classes
     .map((c) => ({

@@ -16,10 +16,11 @@ import java.util.List;
 public class SchoolClassController {
     private final SchoolClassService classService;
 
-    // GET /api/classes
+    // GET /api/classes?year=2026-2027
     @GetMapping
-    public ResponseEntity<List<ClassResponse>> getAll() {
-        return ResponseEntity.ok(classService.getAll());
+    public ResponseEntity<List<ClassResponse>> getAll(
+            @RequestParam(required = false) String year) {
+        return ResponseEntity.ok(classService.getAll(year));
     }
 
     // GET /api/classes/{id}

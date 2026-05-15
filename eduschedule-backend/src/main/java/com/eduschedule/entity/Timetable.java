@@ -7,7 +7,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "timetables")
+@Table(
+    name = "timetables",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"school_year_id", "semester_order"})
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,13 +22,20 @@ public class Timetable {
     private Long id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "semester_id", nullable = false)
-    private Semester semester;
+    @JoinColumn(name = "school_year_id", nullable = false)
+    private SchoolYear schoolYear;
 
-    private String name; // optional label
+    @Column(name = "semester_order", nullable = false)
+    private Integer semesterOrder;
 
-    @Column(nullable = false)
-    private String status; // DRAFT, PUBLISHED
+    @Column(nullable = false, length = 20)
+    private String status;
+
+    @Column(name = "off_day")
+    private Integer offDay;
+
+    @Column(name = "off_session")
+    private Integer offSession;
 
     private LocalDateTime publishedAt;
 

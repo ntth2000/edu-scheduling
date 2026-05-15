@@ -13,8 +13,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TimetableResponse {
     private Long id;
-    private String name;
-    private String status; // DRAFT | PUBLISHED
+    private Long schoolYearId;
+    private String schoolYearName;
+    private Integer semesterOrder;
+    private String status;
+    private Integer offDay;
+    private Integer offSession;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
 }

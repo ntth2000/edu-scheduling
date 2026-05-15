@@ -9,15 +9,20 @@ import com.eduschedule.entity.Assignment;
 import com.eduschedule.entity.SchoolClass;
 import com.eduschedule.entity.Subject;
 import com.eduschedule.entity.Teacher;
+import com.eduschedule.entity.User;
 import com.eduschedule.entity.enums.TeacherType;
 import com.eduschedule.repository.AssignmentRepository;
 import com.eduschedule.repository.SchoolClassRepository;
 import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.SubjectRepository;
 import com.eduschedule.repository.TeacherRepository;
+import com.eduschedule.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,9 +37,10 @@ public class TeacherService {
     private final SubjectRepository subjectRepository;
     private final AssignmentRepository assignmentRepository;
     private final SlotRepository slotRepository;
+    private final UserRepository userRepository;
 
     public List<TeacherResponse> getAll() {
-        return teacherRepository.findAll()
+        return teacherRepository.findAllByUserId(getCurrentUser().getId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -49,6 +55,7 @@ public class TeacherService {
         Set<Subject> subjects = getSubjects(request);
 
         Teacher teacher = Teacher.builder()
+                .user(getCurrentUser())
                 .fullName(request.getFullName())
                 .type(request.getType())
                 .maxPeriodsPerWeek(request.getMaxPeriodsPerWeek())
@@ -151,6 +158,12 @@ public class TeacherService {
     }
 
     private record CascadeResult(int deletedSlots, int deletedAssignments, List<String> unsetHomeroomClasses) {}
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Người dùng không tồn tại"));
+    }
 
     private Teacher findById(Long id) {
         return teacherRepository.findById(id)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import {
   type SubjectResponse,
   type ClassResponse,
@@ -10,6 +10,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableHeader,
   TableBody,
@@ -18,7 +25,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TypographyH4 } from "@/components/ui/typography";
-import { Save, Layers, LayoutGrid, Pencil, X, Check } from "lucide-react";
+import { Save, Users, X, Check } from "lucide-react";
 
 interface Change {
   classId: number;
@@ -44,36 +51,15 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
       .sort((a, b) => a.name.localeCompare(b.name, "vi"));
   });
 
+  const [viewMode, setViewMode] = useState<"matrix" | "teacher">("matrix");
+  const [pending, setPending] = useState<Map<string, { checked: boolean; teacherId: number }>>(new Map());
+  const [saving, setSaving] = useState(false);
+
   const savedMap = new Map<string, number>(
     assignments.map((a) => [`${a.classId}-${a.subjectId}`, a.teacherId])
   );
 
-  const [pending, setPending] = useState<Map<string, { checked: boolean; teacherId: number }>>(new Map());
-  const [saving, setSaving] = useState(false);
-  const [viewByGrade, setViewByGrade] = useState(false);
-  const [editing, setEditing] = useState(false);
-
-  const key = (classId: number, subjectId: number) => `${classId}-${subjectId}`;
-
-  const isChecked = (classId: number, subjectId: number, teacherId: number): boolean => {
-    const k = key(classId, subjectId);
-    const p = pending.get(k);
-    if (p !== undefined) return p.checked && p.teacherId === teacherId;
-    return savedMap.get(k) === teacherId;
-  };
-
-  const gradeCheckState = (grade: number, subjectId: number, teacherId: number): boolean | "indeterminate" => {
-    const gradeClasses = classesByGrade[grade] ?? [];
-    const checkedCount = gradeClasses.filter((c) => isChecked(c.id, subjectId, teacherId)).length;
-    if (checkedCount === 0) return false;
-    if (checkedCount === gradeClasses.length) return true;
-    return "indeterminate";
-  };
-
-  const isGradePending = (grade: number, subjectId: number): boolean =>
-    (classesByGrade[grade] ?? []).some((c) => pending.has(key(c.id, subjectId)));
-
-  const isDirty = pending.size > 0;
+  const k = (classId: number, subjectId: number) => `${classId}-${subjectId}`;
 
   const getPeriodsForGrade = (sub: SubjectResponse, grade: number): number => {
     switch (grade) {
@@ -86,17 +72,33 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
     }
   };
 
+  // ── Matrix view helpers ──────────────────────────────
+  const handleCellChange = async (classId: number, subjectId: number, value: string) => {
+    const teacherId = value === "homeroom" ? null : Number(value);
+    await onSave([{ classId, subjectId, teacherId }]);
+  };
+
+  // ── Teacher view helpers ─────────────────────────────
+  const isChecked = (classId: number, subjectId: number, teacherId: number): boolean => {
+    const key = k(classId, subjectId);
+    const p = pending.get(key);
+    if (p !== undefined) return p.checked && p.teacherId === teacherId;
+    return savedMap.get(key) === teacherId;
+  };
+
+  const isDirty = pending.size > 0;
+
   const totalPeriodsForTeacher = (teacher: TeacherResponse): number => {
     if (teacher.type === "KHAC") return teacher.maxPeriodsPerWeek;
     const keys = new Set<string>();
     assignments.filter((a) => a.teacherId === teacher.id).forEach((a) => keys.add(`${a.classId}-${a.subjectId}`));
-    pending.forEach(({ checked, teacherId }, k) => {
-      if (checked && teacherId === teacher.id) keys.add(k);
-      else if (savedMap.get(k) === teacher.id) keys.delete(k);
+    pending.forEach(({ checked, teacherId }, key) => {
+      if (checked && teacherId === teacher.id) keys.add(key);
+      else if (savedMap.get(key) === teacher.id) keys.delete(key);
     });
     let total = 0;
-    keys.forEach((k) => {
-      const [cid, sid] = k.split("-").map(Number);
+    keys.forEach((key) => {
+      const [cid, sid] = key.split("-").map(Number);
       const cls = classes.find((c) => c.id === cid);
       const sub = subjects.find((s) => s.id === sid);
       if (cls && sub) total += getPeriodsForGrade(sub, cls.grade);
@@ -105,59 +107,31 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
   };
 
   const handleToggle = (classId: number, subjectId: number, teacherId: number) => {
-    if (!editing) return;
-    const k = key(classId, subjectId);
+    const key = k(classId, subjectId);
     const currentlyChecked = isChecked(classId, subjectId, teacherId);
-    const savedTeacherId = savedMap.get(k);
+    const savedTeacherId = savedMap.get(key);
     setPending((prev) => {
       const next = new Map(prev);
-      if (!currentlyChecked && savedTeacherId === teacherId) { next.delete(k); return next; }
-      if (currentlyChecked && savedTeacherId === undefined) { next.delete(k); return next; }
-      next.set(k, { checked: !currentlyChecked, teacherId });
+      if (!currentlyChecked && savedTeacherId === teacherId) { next.delete(key); return next; }
+      if (currentlyChecked && savedTeacherId === undefined) { next.delete(key); return next; }
+      next.set(key, { checked: !currentlyChecked, teacherId });
       return next;
     });
   };
 
-  const handleGradeToggle = (grade: number, subjectId: number, teacherId: number) => {
-    if (!editing) return;
-    const state = gradeCheckState(grade, subjectId, teacherId);
-    const newChecked = state !== true;
-    (classesByGrade[grade] ?? []).forEach((cls) => {
-      const k = key(cls.id, subjectId);
-      const savedTeacherId = savedMap.get(k);
-      setPending((prev) => {
-        const next = new Map(prev);
-        if (newChecked && savedTeacherId === teacherId) { next.delete(k); return next; }
-        if (!newChecked && savedTeacherId === undefined) { next.delete(k); return next; }
-        next.set(k, { checked: newChecked, teacherId });
-        return next;
-      });
-    });
-  };
-
-  const handleSave = async () => {
+  const handleSaveTeacherView = async () => {
     const changes: Change[] = [];
-    pending.forEach(({ checked, teacherId }, k) => {
-      const [classIdStr, subjectIdStr] = k.split("-");
-      changes.push({
-        classId: Number(classIdStr),
-        subjectId: Number(subjectIdStr),
-        teacherId: checked ? teacherId : null,
-      });
+    pending.forEach(({ checked, teacherId }, key) => {
+      const [classIdStr, subjectIdStr] = key.split("-");
+      changes.push({ classId: Number(classIdStr), subjectId: Number(subjectIdStr), teacherId: checked ? teacherId : null });
     });
     setSaving(true);
     try {
       await onSave(changes);
       setPending(new Map());
-      setEditing(false);
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleDiscard = () => {
-    setPending(new Map());
-    setEditing(false);
   };
 
   const teacherGroups: { teacher: TeacherResponse; subjects: SubjectResponse[] }[] = [];
@@ -167,131 +141,145 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
     if (subs.length > 0) teacherGroups.push({ teacher: t, subjects: subs });
   });
 
-  const renderCell = (checked: boolean, isPending: boolean, onClick?: () => void) => {
-    const baseClass = "w-full h-full flex items-center justify-center min-h-[32px]";
-    if (editing) {
-      return (
-        <div
-          onClick={onClick}
-          className={`${baseClass} cursor-pointer rounded transition-all ${
-            checked
-              ? isPending
-                ? "bg-amber-100 text-amber-600"
-                : "bg-emerald-50 text-emerald-600"
-              : isPending
-              ? "bg-red-50 text-red-400"
-              : "hover:bg-slate-50"
-          }`}
-        >
-          {checked && <Check className="w-4 h-4" strokeWidth={2.5} />}
-          {!checked && isPending && <X className="w-3 h-3" />}
-        </div>
-      );
-    }
-    return (
-      <div className={`${baseClass} ${checked ? "text-emerald-500" : ""}`}>
-        {checked && <Check className="w-4 h-4" strokeWidth={2.5} />}
-      </div>
-    );
-  };
-
-  const renderGradeCell = (state: boolean | "indeterminate", isPending: boolean, onClick?: () => void) => {
-    const baseClass = "w-full h-full flex items-center justify-center min-h-[32px]";
-    const isOn = state === true || state === "indeterminate";
-    if (editing) {
-      return (
-        <div
-          onClick={onClick}
-          className={`${baseClass} cursor-pointer rounded transition-all ${
-            isOn
-              ? isPending
-                ? "bg-amber-100 text-amber-600"
-                : "bg-emerald-50 text-emerald-600"
-              : isPending
-              ? "bg-red-50 text-red-400"
-              : "hover:bg-slate-50"
-          }`}
-        >
-          {state === true && <Check className="w-4 h-4" strokeWidth={2.5} />}
-          {state === "indeterminate" && <div className="w-3 h-0.5 bg-current rounded" />}
-          {state === false && isPending && <X className="w-3 h-3" />}
-        </div>
-      );
-    }
-    return (
-      <div className={`${baseClass} ${isOn ? "text-emerald-500" : ""}`}>
-        {state === true && <Check className="w-4 h-4" strokeWidth={2.5} />}
-        {state === "indeterminate" && <div className="w-3 h-0.5 bg-emerald-400 rounded" />}
-      </div>
-    );
-  };
-
   return (
     <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+      {/* Header */}
       <div className="px-6 py-4 bg-md-surface-container-low/30 flex items-center justify-between">
         <TypographyH4 title="Phân công giáo viên bộ môn" />
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setViewByGrade((v) => !v)}
-          >
-            {viewByGrade ? (
-              <><LayoutGrid className="h-3.5 w-3.5" />Hiển thị theo lớp</>
-            ) : (
-              <><Layers className="h-3.5 w-3.5" />Hiển thị theo khối</>
-            )}
-          </Button>
-          {editing ? (
+          {viewMode === "teacher" && isDirty && (
             <>
-              <Button variant="ghost" size="sm" onClick={handleDiscard}>
-                Huỷ
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={!isDirty || saving}>
+              <Button variant="ghost" size="sm" onClick={() => setPending(new Map())}>Huỷ</Button>
+              <Button size="sm" onClick={handleSaveTeacherView} disabled={saving}>
                 <Save className="h-3.5 w-3.5" />
-                {saving ? "Đang lưu..." : "Lưu phân công"}
-                {isDirty && !saving && (
-                  <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                    {pending.size}
-                  </Badge>
-                )}
+                {saving ? "Đang lưu..." : "Lưu"}
+                <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                  {pending.size}
+                </Badge>
               </Button>
             </>
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Chỉnh sửa
-            </Button>
           )}
+          <Button
+            variant={viewMode === "teacher" ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setViewMode((v) => (v === "matrix" ? "teacher" : "matrix"))}
+          >
+            <Users className="h-3.5 w-3.5" />
+            {viewMode === "teacher" ? "Hiển thị theo lớp" : "Hiển thị theo GVBM"}
+          </Button>
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-md-surface-container-low/30 border-b border-md-outline-variant/20 hover:bg-md-surface-container-low/30">
-            <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-44 border-r border-md-outline-variant/20" rowSpan={viewByGrade ? 1 : 2}>
-              Giáo viên
-            </TableHead>
-            <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-24 text-center border-r border-md-outline-variant/20" rowSpan={viewByGrade ? 1 : 2}>
-              Định mức
-            </TableHead>
-            <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-24 text-center border-r border-md-outline-variant/20" rowSpan={viewByGrade ? 1 : 2}>
-              Số tiết/tuần
-            </TableHead>
-            <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-36 border-r border-md-outline-variant/20" rowSpan={viewByGrade ? 1 : 2}>
-              Môn học
-            </TableHead>
-            {viewByGrade ? (
-              activeGrades.map((g) => (
-                <TableHead
-                  key={g}
-                  className="text-xs font-bold text-md-primary text-center border-r border-md-outline-variant/20 last:border-r-0 min-w-20"
-                >
-                  Khối {g}
-                </TableHead>
-              ))
-            ) : (
-              activeGrades.map((g) => (
+      {/* ── Matrix view ────────────────────────────────── */}
+      {viewMode === "matrix" && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-md-surface-container-low/30 border-b border-md-outline-variant/20">
+                <th className="sticky left-0 z-20 bg-md-surface-container-low/30 text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3 text-left min-w-24 border-r border-md-outline-variant/20">
+                  Lớp
+                </th>
+                {subjects.map((sub) => (
+                  <th
+                    key={sub.id}
+                    className="text-xs font-semibold text-slate-600 px-2 py-3 text-center min-w-32 border-r border-md-outline-variant/10 last:border-r-0"
+                  >
+                    {sub.shortName || sub.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {activeGrades.map((grade) => (
+                <Fragment key={grade}>
+                  {/* Grade separator */}
+                  <tr className="bg-slate-50 border-y border-md-outline-variant/15">
+                    <td className="sticky left-0 z-10 bg-slate-50 px-4 py-1.5 border-r border-md-outline-variant/20">
+                      <Badge variant="secondary" className="text-xs font-bold">Khối {grade}</Badge>
+                    </td>
+                    <td colSpan={subjects.length} className="bg-slate-50" />
+                  </tr>
+                  {(classesByGrade[grade] ?? []).map((cls) => (
+                    <tr
+                      key={cls.id}
+                      className="group border-b border-md-outline-variant/10 hover:bg-slate-50/60 transition-colors"
+                    >
+                      {/* Sticky class name cell */}
+                      <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50/80 px-4 py-2 border-r border-md-outline-variant/20 transition-colors">
+                        <div className="text-sm font-medium text-md-on-surface">{cls.name}</div>
+                        {cls.homeroomTeacherName && (
+                          <div className="text-[10px] text-slate-400 leading-tight">{cls.homeroomTeacherName}</div>
+                        )}
+                      </td>
+                      {subjects.map((sub) => {
+                        const periods = getPeriodsForGrade(sub, grade);
+                        const disabled = periods === 0;
+                        const currentTeacherId = savedMap.get(k(cls.id, sub.id)) ?? null;
+                        return (
+                          <td
+                            key={sub.id}
+                            className="px-2 py-1.5 border-r border-md-outline-variant/10 last:border-r-0 text-center"
+                          >
+                            {disabled ? (
+                              <div className="h-8 bg-slate-100 rounded flex items-center justify-center">
+                                <span className="text-slate-300 text-xs select-none">—</span>
+                              </div>
+                            ) : (
+                              <Select
+                                value={currentTeacherId !== null ? String(currentTeacherId) : "homeroom"}
+                                onValueChange={(val) => handleCellChange(cls.id, sub.id, val)}
+                              >
+                                <SelectTrigger
+                                  className={`h-8 text-xs focus:ring-0 focus:ring-offset-0 ${
+                                    currentTeacherId !== null
+                                      ? "bg-blue-50 border-blue-200 text-blue-700 font-medium"
+                                      : "border-slate-200 bg-white text-slate-500"
+                                  }`}
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="homeroom">
+                                    <span className="text-slate-500 italic">GVCN</span>
+                                  </SelectItem>
+                                  {teachers.map((t) => (
+                                    <SelectItem key={t.id} value={String(t.id)}>
+                                      {t.fullName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Teacher view ────────────────────────────────── */}
+      {viewMode === "teacher" && (
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-md-surface-container-low/30 border-b border-md-outline-variant/20 hover:bg-md-surface-container-low/30">
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-44 border-r border-md-outline-variant/20" rowSpan={2}>
+                Giáo viên
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-24 text-center border-r border-md-outline-variant/20" rowSpan={2}>
+                Định mức
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-24 text-center border-r border-md-outline-variant/20" rowSpan={2}>
+                Số tiết/tuần
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-36 border-r border-md-outline-variant/20" rowSpan={2}>
+                Môn học
+              </TableHead>
+              {activeGrades.map((g) => (
                 <TableHead
                   key={g}
                   colSpan={classesByGrade[g].length}
@@ -299,10 +287,8 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
                 >
                   Khối {g}
                 </TableHead>
-              ))
-            )}
-          </TableRow>
-          {!viewByGrade && (
+              ))}
+            </TableRow>
             <TableRow className="bg-md-surface-container-low/20 border-b border-md-outline-variant/20 hover:bg-md-surface-container-low/20">
               {activeGrades.map((g) =>
                 classesByGrade[g].map((cls, i) => (
@@ -316,122 +302,103 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
                   >
                     <div className="font-semibold text-md-on-surface">{cls.name}</div>
                     {cls.homeroomTeacherName ? (
-                      <div className="text-[10px] text-slate-400 mt-0.5 font-normal">
-                        {cls.homeroomTeacherName}
-                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 font-normal">{cls.homeroomTeacherName}</div>
                     ) : (
-                      <div className="text-[10px] text-red-500 mt-0.5 font-medium">
-                        Chưa có GVCN
-                      </div>
+                      <div className="text-[10px] text-red-500 mt-0.5 font-medium">Chưa có GVCN</div>
                     )}
                   </TableHead>
                 ))
               )}
             </TableRow>
-          )}
-        </TableHeader>
-        <TableBody>
-          {teacherGroups.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={5 + (viewByGrade ? activeGrades.length : classes.length)}
-                className="text-center text-slate-400 italic py-8"
-              >
-                Chưa có giáo viên bộ môn nào được phân công môn học
-              </TableCell>
-            </TableRow>
-          ) : (
-            teacherGroups.map(({ teacher, subjects: teacherSubjects }) =>
-              teacherSubjects.map((subject, si) => {
-                const isFirst = si === 0;
-                const isLastSubject = si === teacherSubjects.length - 1;
-                return (
-                  <TableRow
-                    key={`${teacher.id}-${subject.id}`}
-                    className={isLastSubject ? "border-b border-md-outline-variant/20" : "border-b border-md-outline-variant/10"}
-                  >
-                    {isFirst && (
-                      <TableCell
-                        rowSpan={teacherSubjects.length}
-                        className="border-r border-md-outline-variant/20 align-top"
-                      >
-                        <div className="font-medium text-md-on-surface">{teacher.fullName}</div>
+          </TableHeader>
+          <TableBody>
+            {teacherGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4 + classes.length} className="text-center text-slate-400 italic py-8">
+                  Chưa có giáo viên bộ môn nào được phân công môn học
+                </TableCell>
+              </TableRow>
+            ) : (
+              teacherGroups.map(({ teacher, subjects: teacherSubjects }) =>
+                teacherSubjects.map((subject, si) => {
+                  const isFirst = si === 0;
+                  const isLastSubject = si === teacherSubjects.length - 1;
+                  return (
+                    <TableRow
+                      key={`${teacher.id}-${subject.id}`}
+                      className={isLastSubject ? "border-b border-md-outline-variant/20" : "border-b border-md-outline-variant/10"}
+                    >
+                      {isFirst && (
+                        <TableCell rowSpan={teacherSubjects.length} className="border-r border-md-outline-variant/20 align-top">
+                          <div className="font-medium text-md-on-surface">{teacher.fullName}</div>
+                        </TableCell>
+                      )}
+                      {isFirst && (
+                        <TableCell rowSpan={teacherSubjects.length} className="border-r border-md-outline-variant/20 align-middle text-center">
+                          <span className="font-semibold text-slate-700 text-sm">{teacher.maxPeriodsPerWeek}</span>
+                          <div className="text-[10px] text-slate-400 mt-0.5">tiết/tuần</div>
+                        </TableCell>
+                      )}
+                      {isFirst && (
+                        <TableCell rowSpan={teacherSubjects.length} className="border-r border-md-outline-variant/20 align-middle text-center">
+                          <span className={`font-semibold text-sm ${
+                            totalPeriodsForTeacher(teacher) > teacher.maxPeriodsPerWeek ? "text-red-500" : "text-md-primary"
+                          }`}>
+                            {totalPeriodsForTeacher(teacher)}
+                          </span>
+                          <div className="text-[10px] text-slate-400 mt-0.5">tiết/tuần</div>
+                        </TableCell>
+                      )}
+                      <TableCell className="border-r border-md-outline-variant/20">
+                        <div className="font-medium text-sm text-md-on-surface">{subject.name}</div>
                       </TableCell>
-                    )}
-                    {isFirst && (
-                      <TableCell
-                        rowSpan={teacherSubjects.length}
-                        className="border-r border-md-outline-variant/20 align-middle text-center"
-                      >
-                        <span className="font-semibold text-slate-700 text-sm">
-                          {teacher.maxPeriodsPerWeek}
-                        </span>
-                        <div className="text-[10px] text-slate-400 mt-0.5">tiết/tuần</div>
-                      </TableCell>
-                    )}
-                    {isFirst && (
-                      <TableCell
-                        rowSpan={teacherSubjects.length}
-                        className="border-r border-md-outline-variant/20 align-middle text-center"
-                      >
-                        <span className={`font-semibold text-sm ${
-                          totalPeriodsForTeacher(teacher) > teacher.maxPeriodsPerWeek
-                            ? "text-red-500"
-                            : "text-md-primary"
-                        }`}>
-                          {totalPeriodsForTeacher(teacher)}
-                        </span>
-                        <div className="text-[10px] text-slate-400 mt-0.5">tiết/tuần</div>
-                      </TableCell>
-                    )}
-                    <TableCell className="border-r border-md-outline-variant/20">
-                      <div className="font-medium text-sm text-md-on-surface">{subject.name}</div>
-                    </TableCell>
-
-                    {viewByGrade ? (
-                      activeGrades.map((g) => {
-                        const state = gradeCheckState(g, subject.id, teacher.id);
-                        const isPend = isGradePending(g, subject.id);
-                        return (
-                          <TableCell
-                            key={g}
-                            className="text-center border-r border-md-outline-variant/20 last:border-r-0"
-                          >
-                            {renderGradeCell(state, isPend, () => handleGradeToggle(g, subject.id, teacher.id))}
-                          </TableCell>
-                        );
-                      })
-                    ) : (
-                      activeGrades.map((g) =>
+                      {activeGrades.map((g) =>
                         classesByGrade[g].map((cls, i) => {
                           const checked = isChecked(cls.id, subject.id, teacher.id);
-                          const isPend = pending.has(key(cls.id, subject.id));
+                          const isPend = pending.has(k(cls.id, subject.id));
                           return (
                             <TableCell
                               key={cls.id}
-                              className={`text-center ${
+                              className={`text-center p-0 ${
                                 i === classesByGrade[g].length - 1
                                   ? "border-r border-md-outline-variant/20"
                                   : "border-r border-md-outline-variant/10"
                               }`}
                             >
-                              {renderCell(checked, isPend, () => handleToggle(cls.id, subject.id, teacher.id))}
+                              <div
+                                onClick={() => handleToggle(cls.id, subject.id, teacher.id)}
+                                className={`w-full h-full flex items-center justify-center min-h-[40px] cursor-pointer rounded transition-all ${
+                                  checked
+                                    ? isPend
+                                      ? "bg-amber-100 text-amber-600"
+                                      : "bg-emerald-50 text-emerald-600"
+                                    : isPend
+                                    ? "bg-red-50 text-red-400"
+                                    : "hover:bg-slate-50"
+                                }`}
+                              >
+                                {checked && <Check className="w-4 h-4" strokeWidth={2.5} />}
+                                {!checked && isPend && <X className="w-3 h-3" />}
+                              </div>
                             </TableCell>
                           );
                         })
-                      )
-                    )}
-                  </TableRow>
-                );
-              })
-            )
-          )}
-        </TableBody>
-      </Table>
+                      )}
+                    </TableRow>
+                  );
+                })
+              )
+            )}
+          </TableBody>
+        </Table>
+      )}
 
+      {/* Footer */}
       <div className="px-6 py-3 bg-md-surface-container-low/10 border-t border-md-outline-variant/10 text-xs text-slate-400">
         {teacherGroups.length} giáo viên · {subjects.length} môn học · {classes.length} lớp
-        {isDirty && <span className="ml-2 text-amber-600 font-medium">· {pending.size} thay đổi chưa lưu</span>}
+        {isDirty && viewMode === "teacher" && (
+          <span className="ml-2 text-amber-600 font-medium">· {pending.size} thay đổi chưa lưu</span>
+        )}
       </div>
     </div>
   );

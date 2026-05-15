@@ -17,4 +17,6 @@ public class ClassRequest {
     private Integer grade;
 
     private Long homeroomTeacherId;
+
+    private Long schoolYearId;
 }

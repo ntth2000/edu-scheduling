@@ -8,6 +8,7 @@ import com.eduschedule.entity.RefreshToken;
 import com.eduschedule.entity.User;
 import com.eduschedule.repository.RefreshTokenRepository;
 import com.eduschedule.repository.UserRepository;
+import com.eduschedule.service.DefaultSubjectSeeder;
 import com.eduschedule.service.JwtService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,7 +36,9 @@ public class AuthController {
     private final RefreshTokenRepository refreshTokenRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final DefaultSubjectSeeder defaultSubjectSeeder;
 
+    @Transactional
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
@@ -47,6 +50,8 @@ public class AuthController {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
         userRepository.save(user);
+
+        defaultSubjectSeeder.seedForUser(user);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new RegisterResponse(user.getUsername(), "Đăng ký thành công"));

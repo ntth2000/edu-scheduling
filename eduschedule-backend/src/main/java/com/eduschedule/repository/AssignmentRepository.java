@@ -13,6 +13,10 @@ public interface AssignmentRepository
 
     List<Assignment> findBySchoolClassId(Long classId);
 
+    List<Assignment> findBySchoolClassSchoolYearId(Long schoolYearId);
+
+    List<Assignment> findBySchoolClassSchoolYearUserId(Long userId);
+
     List<Assignment> findByTeacherId(Long teacherId);
 
     List<Assignment> findBySubjectId(Long subjectId);

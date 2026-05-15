@@ -3,19 +3,10 @@
 import { useEffect, useState } from "react";
 import { type SchoolClass } from "@/lib/types";
 import { ClassModal } from "./ClassModal";
-import { Pencil, Trash2, Filter, Download, ListChecks, Plus } from "lucide-react";
+import { Pencil, Trash2, Filter, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TypographyH4 } from "../ui/typography";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,25 +17,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { classApi, mapClass } from "@/lib/api";
+import { classApi, schoolYearApi, mapClass } from "@/lib/api";
 import { ClassFilterModal, type ClassFilter } from "./ClassFilterModal";
-import { CustomPagination } from "../shared/CustomPagination";
-import { usePagination } from "@/hooks/usePagination";
 
 const EMPTY_FILTER: ClassFilter = { names: [], grades: [], homeroomTeachers: [] };
+const GRADE_ROWS = [[1, 2, 3], [4, 5]];
 
-export function ClassTable() {
+export function ClassTable({ year }: { year: string | null }) {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingClass, setEditingClass] = useState<SchoolClass | null>(null);
+  const [defaultGrade, setDefaultGrade] = useState<number | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<SchoolClass | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filter, setFilter] = useState<ClassFilter>(EMPTY_FILTER);
-
-  // Batch selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [currentSchoolYearId, setCurrentSchoolYearId] = useState<number | null>(null);
 
   const toggleSelect = (id: number) =>
     setSelectedIds((prev) => {
@@ -52,6 +42,19 @@ export function ClassTable() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+
+  const toggleGrade = (gradeClasses: SchoolClass[]) => {
+    const allSelected = gradeClasses.every((c) => selectedIds.has(c.id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        gradeClasses.forEach((c) => next.delete(c.id));
+      } else {
+        gradeClasses.forEach((c) => next.add(c.id));
+      }
+      return next;
+    });
+  };
 
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) return;
@@ -69,13 +72,30 @@ export function ClassTable() {
   };
 
   useEffect(() => {
-    classApi.getAll()
-      .then((data) => setClasses(
-        data.map(mapClass).sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "vi"))
-      ))
-      .catch(() => toast.error("Không thể tải danh sách lớp học"))
-      .finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    setCurrentSchoolYearId(null);
+    const load = async () => {
+      try {
+        const [data, allYears] = await Promise.all([
+          classApi.getAll(year),
+          schoolYearApi.getAll(),
+        ]);
+        setClasses(data.map(mapClass).sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "vi")));
+        const fromClass = data.find((c) => c.schoolYearId != null)?.schoolYearId ?? null;
+        if (fromClass) {
+          setCurrentSchoolYearId(fromClass);
+        } else if (year) {
+          const match = allYears.find((y) => y.name === year);
+          if (match) setCurrentSchoolYearId(match.id);
+        }
+      } catch {
+        toast.error("Không thể tải danh sách lớp học");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [year]);
 
   const confirmDelete = async () => {
     if (!classToDelete) return;
@@ -91,7 +111,6 @@ export function ClassTable() {
 
   const handleSave = async (dataList: (Partial<SchoolClass> & { homeroomTeacherId?: number | null })[]) => {
     if (editingClass && dataList.length === 1) {
-      // Edit mode: single class
       const data = dataList[0];
       const body = {
         name: data.name ?? "",
@@ -108,7 +127,6 @@ export function ClassTable() {
         toast.error("Không thể lưu lớp học");
       }
     } else {
-      // Add mode: batch create
       let successCount = 0;
       let failCount = 0;
       for (const data of dataList) {
@@ -116,6 +134,7 @@ export function ClassTable() {
           name: data.name ?? "",
           grade: data.grade ?? 1,
           homeroomTeacherId: data.homeroomTeacherId ?? null,
+          schoolYearId: currentSchoolYearId,
         };
         try {
           const created = await classApi.create(body);
@@ -132,6 +151,7 @@ export function ClassTable() {
     }
     setIsModalOpen(false);
     setEditingClass(null);
+    setDefaultGrade(undefined);
   };
 
   const activeFilterCount =
@@ -144,31 +164,15 @@ export function ClassTable() {
     return true;
   });
 
-  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredClasses);
-
-  const allOnPageSelected =
-    currentData.length > 0 && currentData.every((c) => selectedIds.has(c.id));
-
-  const toggleSelectAll = () => {
-    if (allOnPageSelected) {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        currentData.forEach((c) => next.delete(c.id));
-        return next;
-      });
-    } else {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        currentData.forEach((c) => next.add(c.id));
-        return next;
-      });
-    }
-  };
-
+  const classesByGrade = filteredClasses.reduce((acc, cls) => {
+    if (!acc[cls.grade]) acc[cls.grade] = [];
+    acc[cls.grade].push(cls);
+    return acc;
+  }, {} as Record<number, SchoolClass[]>);
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex items-center justify-center py-16">
         <p className="text-slate-400 text-sm">Đang tải dữ liệu...</p>
       </div>
     );
@@ -176,140 +180,128 @@ export function ClassTable() {
 
   return (
     <>
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ListChecks className="h-5 w-5" />} label="Tổng số lớp" value={classes.length} borderColor="border-md-primary" iconBg="bg-md-primary/10 text-md-primary" />
-      </div>
-      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
-        <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
-          <div className="flex items-center gap-3">
-            <TypographyH4 title="Danh sách lớp học" />
-            {selectedIds.size > 0 && (
-              <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
-                Đã chọn {selectedIds.size}
-              </span>
+      <div className="space-y-4">
+        {/* Toolbar */}
+        {/* <div className="flex gap-2 justify-end">
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleBatchDelete}
+            disabled={selectedIds.size === 0 || isBatchDeleting}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Xóa {selectedIds.size > 0 && `(${selectedIds.size})`}
+          </Button>
+          <Button
+            size="sm"
+            variant={activeFilterCount > 0 ? "secondary" : "ghost"}
+            onClick={() => setIsFilterOpen(true)}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Lọc
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                {activeFilterCount}
+              </Badge>
             )}
-          </div>
-          <div className="flex gap-2">
-            {selectedIds.size > 0 && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleBatchDelete}
-                disabled={isBatchDeleting}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Xóa ({selectedIds.size})
-              </Button>
-            )}
-            <Button size="sm" onClick={() => setIsModalOpen(true)}>
-              <Plus className="h-3.5 w-3.5" />
-              Thêm mới
-            </Button>
-            <Button size="sm" variant={activeFilterCount > 0 ? "secondary" : "ghost"} onClick={() => setIsFilterOpen(true)}>
-              <Filter className="h-3.5 w-3.5" />
-              Lọc
-              {activeFilterCount > 0 && (
-                <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-            <Button size="sm" variant="ghost">
-              <Download className="h-3.5 w-3.5" />
-              Xuất Excel
-            </Button>
-          </div>
-        </div>
+          </Button>
+        </div> */}
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-md-surface-container-low/30">
-              <TableRow>
-                <TableHead className="w-10 px-4">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 accent-md-primary cursor-pointer"
-                    checked={allOnPageSelected}
-                    onChange={toggleSelectAll}
-                  />
-                </TableHead>
-                <TableHead className="px-4">Tên lớp</TableHead>
-                <TableHead className="px-4">Khối</TableHead>
-                <TableHead className="px-4">GVCN</TableHead>
-                <TableHead className="text-right px-4">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentData.map((cls) => (
-                <TableRow key={cls.id} className={selectedIds.has(cls.id) ? "bg-md-primary/5" : ""}>
-                  <TableCell className="px-4">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded border-slate-300 accent-md-primary cursor-pointer"
-                      checked={selectedIds.has(cls.id)}
-                      onChange={() => toggleSelect(cls.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="px-4 text-sm font-medium text-md-on-surface">
-                    Lớp {cls.name}
-                  </TableCell>
-                  <TableCell className="px-4">
-                    <Badge variant="secondary">Khối {cls.grade}</Badge>
-                  </TableCell>
-                  <TableCell className="px-4 text-sm text-slate-600">
-                    {cls.homeroomTeacher ?? <span className="italic text-slate-400">Chưa phân công</span>}
-                  </TableCell>
-                  <TableCell className="text-right px-4">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditingClass(cls);
-                        setIsModalOpen(true);
-                      }}
-                      className="text-slate-400 hover:text-md-primary transition-colors"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setClassToDelete(cls)}
-                      className="text-slate-400 hover:text-md-error transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {/* Grade card grid */}
+        {GRADE_ROWS.map((rowGrades, rowIdx) => (
+          <div key={rowIdx} className="grid grid-cols-3 gap-4">
+            {rowGrades.map((grade) => {
+              const gradeClasses = classesByGrade[grade] ?? [];
+              const allSelected = gradeClasses.length > 0 && gradeClasses.every((c) => selectedIds.has(c.id));
 
-        <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
-          <p>
-            Hiển thị {currentData.length} trong số {filteredClasses.length} lớp học
-            {activeFilterCount > 0 && <span className="ml-1 text-md-primary font-medium">(đang lọc)</span>}
-          </p>
-          <div>
-            <CustomPagination
-              totalItems={filteredClasses.length}
-              itemsPerPage={itemsPerPage}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-            />
+              return (
+                <div key={grade} className="bg-white rounded-xl border border-sidebar-border shadow-sm flex flex-col overflow-hidden">
+                  {/* Card header */}
+                  <div className="px-4 py-3 flex items-center gap-2.5 border-b border-sidebar-border">
+                    {/* {gradeClasses.length > 0 && (
+                      <input
+                        type="checkbox"
+                        className="w-3.5 h-3.5 rounded border-slate-300 accent-md-primary cursor-pointer"
+                        checked={allSelected}
+                        onChange={() => toggleGrade(gradeClasses)}
+                      />
+                    )} */}
+                    <span className="font-bold text-sm text-md-on-surface">Khối {grade}</span>
+                    <span className="ml-auto text-xs text-slate-400 font-medium">{gradeClasses.length} lớp</span>
+                  </div>
+
+                  {/* Column label */}
+                  {gradeClasses.length > 0 && (
+                    <div className="px-4 py-2 border-b border-slate-50">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Tên lớp</span>
+                    </div>
+                  )}
+
+                  {/* Class rows */}
+                  <div className="flex-1 divide-y divide-slate-50">
+                    {gradeClasses.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic text-center py-8">Chưa có lớp nào</p>
+                    ) : (
+                      gradeClasses.map((cls) => (
+                        <div
+                          key={cls.id}
+                          className={`px-4 py-2 flex items-center gap-2 group transition-colors ${selectedIds.has(cls.id) ? "bg-md-primary/5" : "hover:bg-slate-50/60"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-3.5 h-3.5 rounded border-slate-300 accent-md-primary cursor-pointer"
+                            checked={selectedIds.has(cls.id)}
+                            onChange={() => toggleSelect(cls.id)}
+                          />
+                          <span className="flex-1 text-sm font-medium text-md-on-surface">Lớp {cls.name}</span>
+                          <div className="flex gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-slate-400 hover:text-md-primary"
+                              onClick={() => { setEditingClass(cls); setDefaultGrade(undefined); setIsModalOpen(true); }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-slate-400 hover:text-md-error"
+                              onClick={() => setClassToDelete(cls)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Card footer */}
+                  <div className="border-t border-sidebar-border">
+                    <button
+                      onClick={() => { setEditingClass(null); setDefaultGrade(grade); setIsModalOpen(true); }}
+                      className="w-full py-2.5 text-xs text-slate-400 hover:text-md-primary hover:bg-md-primary/5 transition-colors flex items-center justify-center gap-1.5 font-medium"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Thêm vào Khối {grade}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        ))}
       </div>
 
       <ClassModal
         open={isModalOpen}
         onOpenChange={(open) => {
           setIsModalOpen(open);
-          if (!open) setEditingClass(null);
+          if (!open) { setEditingClass(null); setDefaultGrade(undefined); }
         }}
         schoolClass={editingClass}
+        defaultGrade={defaultGrade}
         onSave={handleSave}
       />
 
@@ -341,31 +333,5 @@ export function ClassTable() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  borderColor,
-  iconBg,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  borderColor: string;
-  iconBg: string;
-}) {
-  return (
-    <div className={`bg-md-surface-container-lowest p-6 rounded-xl shadow-sm border-l-4 ${borderColor} flex items-center gap-4`}>
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconBg}`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter">{label}</p>
-        <h4 className="text-2xl font-extrabold text-md-on-surface font-heading">{value}</h4>
-      </div>
-    </div>
   );
 }
