@@ -17,9 +17,9 @@ public class SlotController {
     private final SlotService slotService;
 
     @GetMapping
-    public ResponseEntity<List<SlotResponse>> getAll(@RequestParam(required = false) Long timetableId) {
-        if (timetableId != null) {
-            return ResponseEntity.ok(slotService.getByTimetable(timetableId));
+    public ResponseEntity<List<SlotResponse>> getAll(@RequestParam(required = false) Long weekId) {
+        if (weekId != null) {
+            return ResponseEntity.ok(slotService.getByWeek(weekId));
         }
         return ResponseEntity.ok(slotService.getAll());
     }

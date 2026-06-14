@@ -13,10 +13,4 @@ public class TimetableRequest {
     @NotNull
     @Min(1) @Max(2)
     private Integer semesterOrder;
-
-    @Min(2) @Max(6)
-    private Integer offDay;
-
-    @Min(1) @Max(2)
-    private Integer offSession;
 }

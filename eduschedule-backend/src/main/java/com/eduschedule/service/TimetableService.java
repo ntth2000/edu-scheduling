@@ -4,15 +4,17 @@ import com.eduschedule.dto.request.TimetableRequest;
 import com.eduschedule.dto.response.TimetableResponse;
 import com.eduschedule.entity.SchoolYear;
 import com.eduschedule.entity.Timetable;
+import com.eduschedule.entity.Week;
 import com.eduschedule.repository.SchoolYearRepository;
 import com.eduschedule.repository.TimetableRepository;
+
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -24,7 +26,8 @@ public class TimetableService {
 
     public List<TimetableResponse> getAll() {
         return timetableRepository.findAll().stream()
-                .sorted(Comparator.comparing(Timetable::getCreatedAt).reversed())
+                .sorted(Comparator.comparing((Timetable t) -> t.getSchoolYear().getStartYear())
+                        .thenComparing(Timetable::getSemesterOrder))
                 .map(this::toResponse)
                 .toList();
     }
@@ -35,52 +38,39 @@ public class TimetableService {
                 .toList();
     }
 
+    public TimetableResponse getById(Long id) {
+        return timetableRepository.findById(id)
+                .map(this::toResponse)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Không tìm thấy thời khoá biểu với id: " + id));
+    }
+
     @Transactional
     public TimetableResponse create(TimetableRequest request) {
         SchoolYear schoolYear = schoolYearRepository.findById(request.getSchoolYearId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Không tìm thấy năm học với id: " + request.getSchoolYearId()));
 
-        if (timetableRepository.existsBySchoolYearIdAndSemesterOrder(
-                request.getSchoolYearId(), request.getSemesterOrder())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Thời khoá biểu học kì " + request.getSemesterOrder() + " đã tồn tại");
-        }
-
         Timetable timetable = Timetable.builder()
                 .schoolYear(schoolYear)
                 .semesterOrder(request.getSemesterOrder())
-                .offDay(request.getOffDay())
-                .offSession(request.getOffSession())
-                .status("DRAFT")
                 .build();
-        return toResponse(timetableRepository.save(timetable));
-    }
-
-    @Transactional
-    public TimetableResponse updateStatus(Long id, String status) {
-        Timetable timetable = timetableRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Không tìm thấy thời khoá biểu với id: " + id));
-        timetable.setStatus(status);
-        if ("PUBLISHED".equals(status)) {
-            timetable.setPublishedAt(LocalDateTime.now());
-        }
         return toResponse(timetableRepository.save(timetable));
     }
 
     private TimetableResponse toResponse(Timetable t) {
         SchoolYear sy = t.getSchoolYear();
+        LocalDate semesterStartDate = t.getWeeks().stream()
+                .filter(w -> w.getWeekNumber() == 1)
+                .map(Week::getStartDate)
+                .findFirst()
+                .orElse(null);
         return TimetableResponse.builder()
                 .id(t.getId())
                 .schoolYearId(sy.getId())
                 .schoolYearName(sy.getStartYear() + "-" + (sy.getStartYear() + 1))
                 .semesterOrder(t.getSemesterOrder())
-                .status(t.getStatus())
-                .offDay(t.getOffDay())
-                .offSession(t.getOffSession())
-                .publishedAt(t.getPublishedAt())
-                .createdAt(t.getCreatedAt())
+                .semesterStartDate(semesterStartDate)
                 .build();
     }
 }

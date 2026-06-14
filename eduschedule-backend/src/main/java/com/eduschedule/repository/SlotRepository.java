@@ -9,14 +9,19 @@ import java.util.Optional;
 
 @Repository
 public interface SlotRepository extends JpaRepository<Slot, Long> {
-    List<Slot> findByTimetableId(Long timetableId);
-    Optional<Slot> findByTimetableIdAndDayAndPeriod(Long timetableId, Integer day, Integer period);
-    boolean existsByTimetableIdAndDayAndPeriodAndAssignment_Teacher_IdAndIdNot(
-            Long timetableId, Integer day, Integer period, Long teacherId, Long excludeSlotId);
+    List<Slot> findByWeekId(Long weekId);
+
+    Optional<Slot> findByWeekIdAndDayAndSessionAndPeriodAndAssignment_SchoolClassId(
+            Long weekId, Integer day, Integer session, Integer period, Long classId);
+
+    boolean existsByWeekIdAndDayAndSessionAndPeriodAndAssignment_Teacher_IdAndIdNot(
+            Long weekId, Integer day, Integer session, Integer period, Long teacherId, Long excludeSlotId);
 
     List<Slot> findByAssignment_TeacherId(Long teacherId);
 
     void deleteByAssignment_TeacherId(Long teacherId);
 
     void deleteByAssignmentIdIn(List<Long> assignmentIds);
+
+    void deleteByWeekIdIn(List<Long> weekIds);
 }

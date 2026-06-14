@@ -11,10 +11,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SlotResponse {
     private Long id;
-    private Long timetableId;
+    private Long weekId;
+    private Integer weekNumber;
     private Long assignmentId;
     private Integer day;
+    private Integer session;
     private Integer period;
+    private Long specialRoomId;
 
     // Flattened assignment info
     private Long subjectId;

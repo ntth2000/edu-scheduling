@@ -4,11 +4,11 @@ import com.eduschedule.dto.request.TimetableRequest;
 import com.eduschedule.dto.response.TimetableResponse;
 import com.eduschedule.service.TimetableService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/timetables")
@@ -25,20 +25,9 @@ public class TimetableController {
         return ResponseEntity.ok(timetableService.getAll());
     }
 
-    @PostMapping
-    public ResponseEntity<TimetableResponse> create(@RequestBody @jakarta.validation.Valid TimetableRequest request) {
-        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
-                .body(timetableService.create(request));
+    @GetMapping("/{id}")
+    public ResponseEntity<TimetableResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(timetableService.getById(id));
     }
 
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<TimetableResponse> updateStatus(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        String status = body.get("status");
-        if (status == null || (!status.equals("DRAFT") && !status.equals("PUBLISHED"))) {
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(timetableService.updateStatus(id, status));
-    }
 }

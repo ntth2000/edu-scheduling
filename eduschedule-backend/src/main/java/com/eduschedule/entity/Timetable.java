@@ -2,9 +2,9 @@ package com.eduschedule.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -28,17 +28,8 @@ public class Timetable {
     @Column(name = "semester_order", nullable = false)
     private Integer semesterOrder;
 
-    @Column(nullable = false, length = 20)
-    private String status;
-
-    @Column(name = "off_day")
-    private Integer offDay;
-
-    @Column(name = "off_session")
-    private Integer offSession;
-
-    private LocalDateTime publishedAt;
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("weekNumber ASC")
+    @Builder.Default
+    private List<Week> weeks = new ArrayList<>();
 }

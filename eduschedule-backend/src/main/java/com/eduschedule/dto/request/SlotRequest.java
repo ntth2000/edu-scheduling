@@ -13,23 +13,26 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SlotRequest {
-    @NotNull(message = "Timetable ID is required")
-    private Long timetableId;
+    @NotNull(message = "Week ID is required")
+    private Long weekId;
 
-    // Either assignmentId OR (classId + subjectId) must be provided
+    @NotNull(message = "Assignment ID is required")
     private Long assignmentId;
-
-    // Used when assignmentId is null (GVCN-taught subject — auto-resolves via homeroom teacher)
-    private Long classId;
-    private Long subjectId;
 
     @NotNull(message = "Day is required")
     @Min(value = 2, message = "Day must be between 2 (Mon) and 6 (Fri)")
     @Max(value = 6, message = "Day must be between 2 (Mon) and 6 (Fri)")
     private Integer day;
 
+    @NotNull(message = "Session is required")
+    @Min(value = 1, message = "Session must be 1 (sáng) or 2 (chiều)")
+    @Max(value = 2, message = "Session must be 1 (sáng) or 2 (chiều)")
+    private Integer session;
+
     @NotNull(message = "Period is required")
     @Min(value = 1, message = "Period must be between 1 and 7")
     @Max(value = 7, message = "Period must be between 1 and 7")
     private Integer period;
+
+    private Long specialRoomId;
 }

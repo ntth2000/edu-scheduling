@@ -11,10 +11,9 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TimetableResponse {
+public class WeekResponse {
     private Long id;
-    private Long schoolYearId;
-    private String schoolYearName;
-    private Integer semesterOrder;
-    private LocalDate semesterStartDate;
+    private Integer weekNumber;
+    private LocalDate startDate;  // null khi chưa set
+    private LocalDate endDate;    // null khi startDate chưa set
 }

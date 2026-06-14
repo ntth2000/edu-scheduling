@@ -23,6 +23,7 @@ public class AssignmentService {
     private final SchoolClassRepository classRepository;
     private final UserRepository userRepository;
     private final SchoolYearRepository schoolYearRepository;
+    private final SlotRepository slotRepository;
 
     public List<AssignmentResponse> getAll(String year) {
         User user = getCurrentUser();
@@ -117,6 +118,7 @@ public class AssignmentService {
             throw new RuntimeException(
                     "Không tìm thấy phân công với id: " + id);
         }
+        slotRepository.deleteByAssignmentIdIn(List.of(id));
         assignmentRepository.deleteById(id);
     }
 
