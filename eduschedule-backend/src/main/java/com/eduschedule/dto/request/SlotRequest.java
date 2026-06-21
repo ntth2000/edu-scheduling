@@ -16,8 +16,11 @@ public class SlotRequest {
     @NotNull(message = "Week ID is required")
     private Long weekId;
 
-    @NotNull(message = "Assignment ID is required")
     private Long assignmentId;
+
+    // Alternative to assignmentId for GVCN-taught subjects (no teacher assignment)
+    private Long classId;
+    private Long subjectId;
 
     @NotNull(message = "Day is required")
     @Min(value = 2, message = "Day must be between 2 (Mon) and 6 (Fri)")

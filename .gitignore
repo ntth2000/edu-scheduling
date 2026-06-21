@@ -12,3 +12,12 @@ GUIDE.md
 *.DS_Store
 Thumbs.db
 .env
+
+#graphify-out
+/graphify-out
+/graphify-out/cache
+
+/report_mau
+/report
+/dummy_data
+.graphifyignore

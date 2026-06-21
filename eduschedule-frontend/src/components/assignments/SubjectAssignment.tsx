@@ -25,7 +25,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TypographyH4 } from "@/components/ui/typography";
-import { Save, Users, X, Check } from "lucide-react";
+import { Users, Check } from "lucide-react";
 
 interface Change {
   classId: number;
@@ -52,10 +52,7 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
   });
 
   const [viewMode, setViewMode] = useState<"matrix" | "teacher">("matrix");
-  const [pending, setPending] = useState<Map<string, { checked: boolean; teacherId: number }>>(new Map());
-  const [saving, setSaving] = useState(false);
-
-  const savedMap = new Map<string, number>(
+  const savedMap = new Map<string, number | null>(
     assignments.map((a) => [`${a.classId}-${a.subjectId}`, a.teacherId])
   );
 
@@ -79,59 +76,20 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
   };
 
   // ── Teacher view helpers ─────────────────────────────
-  const isChecked = (classId: number, subjectId: number, teacherId: number): boolean => {
-    const key = k(classId, subjectId);
-    const p = pending.get(key);
-    if (p !== undefined) return p.checked && p.teacherId === teacherId;
-    return savedMap.get(key) === teacherId;
-  };
-
-  const isDirty = pending.size > 0;
+  const isAssigned = (classId: number, subjectId: number, teacherId: number): boolean =>
+    savedMap.get(k(classId, subjectId)) === teacherId;
 
   const totalPeriodsForTeacher = (teacher: TeacherResponse): number => {
     if (teacher.type === "KHAC") return teacher.maxPeriodsPerWeek;
-    const keys = new Set<string>();
-    assignments.filter((a) => a.teacherId === teacher.id).forEach((a) => keys.add(`${a.classId}-${a.subjectId}`));
-    pending.forEach(({ checked, teacherId }, key) => {
-      if (checked && teacherId === teacher.id) keys.add(key);
-      else if (savedMap.get(key) === teacher.id) keys.delete(key);
-    });
     let total = 0;
-    keys.forEach((key) => {
-      const [cid, sid] = key.split("-").map(Number);
-      const cls = classes.find((c) => c.id === cid);
-      const sub = subjects.find((s) => s.id === sid);
-      if (cls && sub) total += getPeriodsForGrade(sub, cls.grade);
-    });
+    assignments
+      .filter((a) => a.teacherId === teacher.id)
+      .forEach((a) => {
+        const cls = classes.find((c) => c.id === a.classId);
+        const sub = subjects.find((s) => s.id === a.subjectId);
+        if (cls && sub) total += getPeriodsForGrade(sub, cls.grade);
+      });
     return total;
-  };
-
-  const handleToggle = (classId: number, subjectId: number, teacherId: number) => {
-    const key = k(classId, subjectId);
-    const currentlyChecked = isChecked(classId, subjectId, teacherId);
-    const savedTeacherId = savedMap.get(key);
-    setPending((prev) => {
-      const next = new Map(prev);
-      if (!currentlyChecked && savedTeacherId === teacherId) { next.delete(key); return next; }
-      if (currentlyChecked && savedTeacherId === undefined) { next.delete(key); return next; }
-      next.set(key, { checked: !currentlyChecked, teacherId });
-      return next;
-    });
-  };
-
-  const handleSaveTeacherView = async () => {
-    const changes: Change[] = [];
-    pending.forEach(({ checked, teacherId }, key) => {
-      const [classIdStr, subjectIdStr] = key.split("-");
-      changes.push({ classId: Number(classIdStr), subjectId: Number(subjectIdStr), teacherId: checked ? teacherId : null });
-    });
-    setSaving(true);
-    try {
-      await onSave(changes);
-      setPending(new Map());
-    } finally {
-      setSaving(false);
-    }
   };
 
   const teacherGroups: { teacher: TeacherResponse; subjects: SubjectResponse[] }[] = [];
@@ -147,18 +105,6 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
       <div className="px-6 py-4 bg-md-surface-container-low/30 flex items-center justify-between">
         <TypographyH4 title="Phân công giáo viên bộ môn" />
         <div className="flex items-center gap-2">
-          {viewMode === "teacher" && isDirty && (
-            <>
-              <Button variant="ghost" size="sm" onClick={() => setPending(new Map())}>Huỷ</Button>
-              <Button size="sm" onClick={handleSaveTeacherView} disabled={saving}>
-                <Save className="h-3.5 w-3.5" />
-                {saving ? "Đang lưu..." : "Lưu"}
-                <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                  {pending.size}
-                </Badge>
-              </Button>
-            </>
-          )}
           <Button
             variant={viewMode === "teacher" ? "secondary" : "outline"}
             size="sm"
@@ -242,11 +188,13 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
                                   <SelectItem value="homeroom">
                                     <span className="text-slate-500 italic">GVCN</span>
                                   </SelectItem>
-                                  {teachers.map((t) => (
-                                    <SelectItem key={t.id} value={String(t.id)}>
-                                      {t.fullName}
-                                    </SelectItem>
-                                  ))}
+                                  {teachers
+                                    .filter((t) => t.subjects.some((s) => s.id === sub.id))
+                                    .map((t) => (
+                                      <SelectItem key={t.id} value={String(t.id)}>
+                                        {t.fullName}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                               </Select>
                             )}
@@ -354,8 +302,7 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
                       </TableCell>
                       {activeGrades.map((g) =>
                         classesByGrade[g].map((cls, i) => {
-                          const checked = isChecked(cls.id, subject.id, teacher.id);
-                          const isPend = pending.has(k(cls.id, subject.id));
+                          const assigned = isAssigned(cls.id, subject.id, teacher.id);
                           return (
                             <TableCell
                               key={cls.id}
@@ -365,20 +312,10 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
                                   : "border-r border-md-outline-variant/10"
                               }`}
                             >
-                              <div
-                                onClick={() => handleToggle(cls.id, subject.id, teacher.id)}
-                                className={`w-full h-full flex items-center justify-center min-h-[40px] cursor-pointer rounded transition-all ${
-                                  checked
-                                    ? isPend
-                                      ? "bg-amber-100 text-amber-600"
-                                      : "bg-emerald-50 text-emerald-600"
-                                    : isPend
-                                    ? "bg-red-50 text-red-400"
-                                    : "hover:bg-slate-50"
-                                }`}
-                              >
-                                {checked && <Check className="w-4 h-4" strokeWidth={2.5} />}
-                                {!checked && isPend && <X className="w-3 h-3" />}
+                              <div className={`w-full h-full flex items-center justify-center min-h-10 ${
+                                assigned ? "bg-emerald-50 text-emerald-600" : ""
+                              }`}>
+                                {assigned && <Check className="w-4 h-4" strokeWidth={2.5} />}
                               </div>
                             </TableCell>
                           );
@@ -396,9 +333,6 @@ export function SubjectAssignment({ subjects, classes, teachers, assignments, on
       {/* Footer */}
       <div className="px-6 py-3 bg-md-surface-container-low/10 border-t border-md-outline-variant/10 text-xs text-slate-400">
         {teacherGroups.length} giáo viên · {subjects.length} môn học · {classes.length} lớp
-        {isDirty && viewMode === "teacher" && (
-          <span className="ml-2 text-amber-600 font-medium">· {pending.size} thay đổi chưa lưu</span>
-        )}
       </div>
     </div>
   );

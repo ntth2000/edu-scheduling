@@ -2,6 +2,9 @@ package com.eduschedule.repository;
 
 import com.eduschedule.entity.Slot;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,9 +22,15 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
 
     List<Slot> findByAssignment_TeacherId(Long teacherId);
 
-    void deleteByAssignment_TeacherId(Long teacherId);
+    @Modifying
+    @Query("DELETE FROM Slot s WHERE s.assignment.teacher.id = :teacherId")
+    void deleteByAssignment_TeacherId(@Param("teacherId") Long teacherId);
 
-    void deleteByAssignmentIdIn(List<Long> assignmentIds);
+    @Modifying
+    @Query("DELETE FROM Slot s WHERE s.assignment.id IN :ids")
+    void deleteByAssignmentIdIn(@Param("ids") List<Long> ids);
 
-    void deleteByWeekIdIn(List<Long> weekIds);
+    @Modifying
+    @Query("DELETE FROM Slot s WHERE s.week.id IN :weekIds")
+    void deleteByWeekIdIn(@Param("weekIds") List<Long> weekIds);
 }

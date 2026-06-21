@@ -3,12 +3,16 @@ package com.eduschedule.service;
 import com.eduschedule.dto.request.SlotRequest;
 import com.eduschedule.dto.response.SlotResponse;
 import com.eduschedule.entity.Assignment;
+import com.eduschedule.entity.SchoolClass;
 import com.eduschedule.entity.Slot;
 import com.eduschedule.entity.SpecialRoom;
+import com.eduschedule.entity.Subject;
 import com.eduschedule.entity.Week;
 import com.eduschedule.repository.AssignmentRepository;
+import com.eduschedule.repository.SchoolClassRepository;
 import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.SpecialRoomRepository;
+import com.eduschedule.repository.SubjectRepository;
 import com.eduschedule.repository.WeekRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,8 @@ public class SlotService {
     private final WeekRepository weekRepository;
     private final AssignmentRepository assignmentRepository;
     private final SpecialRoomRepository specialRoomRepository;
+    private final SchoolClassRepository schoolClassRepository;
+    private final SubjectRepository subjectRepository;
 
     public List<SlotResponse> getAll() {
         return slotRepository.findAll().stream()
@@ -41,8 +47,25 @@ public class SlotService {
         Week week = weekRepository.findById(request.getWeekId())
                 .orElseThrow(() -> new RuntimeException("Week not found with id: " + request.getWeekId()));
 
-        Assignment assignment = assignmentRepository.findById(request.getAssignmentId())
-                .orElseThrow(() -> new RuntimeException("Assignment not found: " + request.getAssignmentId()));
+        Assignment assignment;
+        if (request.getAssignmentId() != null) {
+            assignment = assignmentRepository.findById(request.getAssignmentId())
+                    .orElseThrow(() -> new RuntimeException("Assignment not found: " + request.getAssignmentId()));
+        } else if (request.getClassId() != null && request.getSubjectId() != null) {
+            // GVCN-taught subject: find or create a null-teacher assignment
+            assignment = assignmentRepository
+                    .findBySchoolClassIdAndSubjectIdAndTeacherIsNull(request.getClassId(), request.getSubjectId())
+                    .orElseGet(() -> {
+                        SchoolClass cls = schoolClassRepository.findById(request.getClassId())
+                                .orElseThrow(() -> new RuntimeException("Class not found: " + request.getClassId()));
+                        Subject sub = subjectRepository.findById(request.getSubjectId())
+                                .orElseThrow(() -> new RuntimeException("Subject not found: " + request.getSubjectId()));
+                        return assignmentRepository.save(Assignment.builder()
+                                .schoolClass(cls).subject(sub).teacher(null).build());
+                    });
+        } else {
+            throw new RuntimeException("Either assignmentId or classId+subjectId must be provided");
+        }
 
         Long classId = assignment.getSchoolClass().getId();
         Slot slot = slotRepository.findByWeekIdAndDayAndSessionAndPeriodAndAssignment_SchoolClassId(

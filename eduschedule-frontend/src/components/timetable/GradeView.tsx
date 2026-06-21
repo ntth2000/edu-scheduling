@@ -1,6 +1,6 @@
 "use client";
 
-import { type Slot, DAYS, PERIODS } from "@/lib/timetable-data";
+import { type Slot, DAYS, SESSIONS } from "@/lib/timetable-data";
 import type { AssignmentResponse, ClassResponse } from "@/lib/api";
 import type { Subject } from "@/lib/types";
 import { CellPopover } from "./CellPopover";
@@ -28,6 +28,7 @@ interface GradeViewProps {
   onSelectClass: (className: string) => void;
   onAddSlot: (params: AddSlotParams) => void;
   onDeleteSlot: (slotId: string) => void;
+  highlightedSlotIds?: Set<string>;
 }
 
 export function GradeView({
@@ -40,11 +41,11 @@ export function GradeView({
   onSelectClass,
   onAddSlot,
   onDeleteSlot,
+  highlightedSlotIds,
 }: GradeViewProps) {
   const gradeClasses = classes
     .filter((c) => c.grade === grade)
     .sort((a, b) => a.name.localeCompare(b.name, "vi"));
-
   const gradeSubjects = subjects.filter((s) => s.periodsByGrade[grade - 1] > 0);
 
   const getSlot = (className: string, day: number, period: number) =>
@@ -63,18 +64,21 @@ export function GradeView({
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-md-surface-container-high">
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 w-20">
+            <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 w-14 sticky left-0 z-20 bg-md-surface-container-high">
               Thứ
             </th>
-            <th className="px-4 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 w-14">
-              Tiết
+            <th className="px-3 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 w-14">
+              Buổi
+            </th>
+            <th className="px-3 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 w-8">
+              T
             </th>
             {gradeClasses.map((cls) => (
               <th
                 key={cls.id}
-                className="px-4 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 last:border-r-0 cursor-pointer hover:bg-md-surface-container transition-colors"
+                className="px-3 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20 last:border-r-0 cursor-pointer hover:bg-md-surface-container transition-colors min-w-30"
                 onClick={() => onSelectClass(cls.name)}
-                title="Xem TKB lớp này"
+                title="Zoom vào TKB lớp này"
               >
                 <div>Lớp {cls.name}</div>
                 {cls.homeroomTeacherName && (
@@ -88,88 +92,145 @@ export function GradeView({
         </thead>
         <tbody>
           {DAYS.map((day) =>
-            PERIODS.map((period, pi) => (
-              <tr
-                key={`${day.value}-${period}`}
-                className={`border-t ${
-                  pi === 0 ? "border-md-outline-variant/30" : "border-md-outline-variant/10"
-                } hover:bg-md-surface-container-low/30 transition-colors`}
-              >
-                {pi === 0 && (
-                  <td
-                    rowSpan={PERIODS.length}
-                    className="px-4 py-2 border-r border-md-outline-variant/20 font-semibold text-xs text-slate-600 bg-md-surface-container-low/40 align-middle text-center"
+            SESSIONS.map((session, si) =>
+              session.periods.map((period, pi) => {
+                const isFirstOfDay = si === 0 && pi === 0;
+                const isFirstOfSession = pi === 0;
+                const sessionPeriodLabel = `T${pi + 1}`;
+                return (
+                  <tr
+                    key={`${day.value}-${period}`}
+                    className={`border-t ${
+                      isFirstOfSession
+                        ? "border-md-outline-variant/30"
+                        : "border-md-outline-variant/10"
+                    } hover:bg-md-surface-container-low/20 transition-colors`}
                   >
-                    {day.label}
-                  </td>
-                )}
-                <td className="px-4 py-2 text-center font-bold text-slate-400 text-xs border-r border-md-outline-variant/20 w-14">
-                  {period}
-                </td>
-
-                {gradeClasses.map((cls) => {
-                  const slot = getSlot(cls.name, day.value, period);
-                  const classAssignments = assignments.filter((a) => a.className === cls.name);
-                  const clsAsSchoolClass = {
-                    id: cls.id,
-                    code: "",
-                    grade: cls.grade,
-                    name: cls.name,
-                    studentCount: 0,
-                    homeroomTeacher: cls.homeroomTeacherName ?? null,
-                    homeroomTeacherId: cls.homeroomTeacherId ?? null,
-                    assignmentStatus: (cls.homeroomTeacherId ? "complete" : "incomplete") as "complete" | "incomplete",
-                  };
-                  return (
-                    <td
-                      key={cls.id}
-                      className="px-1.5 py-1 border-r border-md-outline-variant/10 last:border-r-0 min-w-[130px]"
-                    >
-                      <CellPopover
-                        slot={slot}
-                        day={day.value}
-                        period={period}
-                        classId={cls.name}
-                        allSlots={slots}
-                        onAddSlot={onAddSlot}
-                        onDeleteSlot={onDeleteSlot}
-                        readOnly={readOnly}
-                        subjects={gradeSubjects}
-                        assignments={classAssignments}
-                        currentClass={clsAsSchoolClass}
+                    {isFirstOfDay && (
+                      <td
+                        rowSpan={7}
+                        className="px-3 py-2 border-r border-md-outline-variant/20 font-semibold text-xs text-slate-600 bg-md-surface-container-low/40 align-middle text-center sticky left-0 z-10"
                       >
-                        {slot ? (
-                          <div
-                            className={`rounded-lg px-2 py-1.5 cursor-pointer hover:brightness-95 transition-all ${
-                              slot.isConflict
-                                ? "bg-md-error-container"
-                                : slot.teacherId && slot.teacherId !== cls.homeroomTeacherId?.toString()
-                                ? "bg-blue-50"
-                                : "bg-slate-50"
-                            }`}
-                          >
-                            <p className={`text-xs font-semibold leading-tight ${slot.isConflict ? "text-md-error" : "text-slate-800"}`}>
-                              {slot.subjectName}
-                            </p>
-                            {slot.teacherName && (
-                              <p className={`text-[10px] mt-0.5 leading-tight ${
-                                slot.teacherId && slot.teacherId !== cls.homeroomTeacherId?.toString()
-                                  ? "text-red-500 font-medium"
-                                  : "text-slate-400"
-                              }`}>
-                                {slot.teacherName}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className={`h-10 rounded-lg transition-colors ${readOnly ? "" : "hover:bg-md-surface-container cursor-pointer"}`} />
-                        )}
-                      </CellPopover>
+                        {day.label}
+                      </td>
+                    )}
+                    {isFirstOfSession && (
+                      <td
+                        rowSpan={session.periods.length}
+                        className={`px-3 py-2 border-r border-md-outline-variant/20 text-[11px] font-medium text-slate-500 align-middle text-center ${
+                          si === 0 ? "bg-sky-50/60" : "bg-orange-50/60"
+                        }`}
+                      >
+                        {session.label}
+                      </td>
+                    )}
+                    <td className="px-3 py-1.5 text-center font-bold text-slate-400 text-xs border-r border-md-outline-variant/20">
+                      {sessionPeriodLabel}
                     </td>
-                  );
-                })}
-              </tr>
-            ))
+
+                    {gradeClasses.map((cls) => {
+                      const slot = getSlot(cls.name, day.value, period);
+                      const classAssignments = assignments.filter(
+                        (a) => a.className === cls.name
+                      );
+                      const clsAsSchoolClass = {
+                        id: cls.id,
+                        code: "",
+                        grade: cls.grade,
+                        name: cls.name,
+                        studentCount: 0,
+                        homeroomTeacher: cls.homeroomTeacherName ?? null,
+                        homeroomTeacherId: cls.homeroomTeacherId ?? null,
+                        assignmentStatus: (
+                          cls.homeroomTeacherId ? "complete" : "incomplete"
+                        ) as "complete" | "incomplete",
+                      };
+                      const isHighlighted = slot && highlightedSlotIds?.has(slot.id);
+                      return (
+                        <td
+                          key={cls.id}
+                          id={slot ? `slot-${slot.id}` : undefined}
+                          className={`px-1.5 py-1 border-r border-md-outline-variant/10 last:border-r-0 min-w-30 transition-all ${
+                            isHighlighted ? "ring-2 ring-inset ring-amber-400 bg-amber-50" : ""
+                          }`}
+                        >
+                          <CellPopover
+                            slot={slot}
+                            day={day.value}
+                            period={period}
+                            classId={cls.name}
+                            allSlots={slots}
+                            onAddSlot={onAddSlot}
+                            onDeleteSlot={onDeleteSlot}
+                            readOnly={readOnly}
+                            subjects={gradeSubjects}
+                            assignments={classAssignments}
+                            currentClass={clsAsSchoolClass}
+                          >
+                            {slot ? (
+                              <div
+                                className={`rounded-lg px-2 py-1.5 cursor-pointer hover:brightness-95 transition-all ${
+                                  slot.isConflict
+                                    ? "bg-red-100 border border-red-300"
+                                    : slot.isDirty
+                                    ? "bg-amber-50 border border-dashed border-amber-300"
+                                    : slot.teacherId &&
+                                      slot.teacherId !==
+                                        cls.homeroomTeacherId?.toString()
+                                    ? "bg-blue-50"
+                                    : "bg-slate-50"
+                                }`}
+                              >
+                                <p
+                                  className={`text-xs font-semibold leading-tight ${
+                                    slot.isConflict ? "text-red-700" : "text-slate-800"
+                                  }`}
+                                >
+                                  {slot.subjectName}
+                                </p>
+                                {slot.teacherName && (
+                                  <p
+                                    className={`text-[10px] mt-0.5 leading-tight ${
+                                      slot.isConflict
+                                        ? "text-red-500"
+                                        : slot.teacherId &&
+                                          slot.teacherId !==
+                                            cls.homeroomTeacherId?.toString()
+                                        ? "text-blue-600 font-medium"
+                                        : "text-slate-400"
+                                    }`}
+                                  >
+                                    {slot.teacherName}
+                                  </p>
+                                )}
+                                {slot.isConflict && (
+                                  <p className="text-[10px] text-red-500 font-medium mt-0.5">
+                                    ⚠ Trùng lịch GV
+                                  </p>
+                                )}
+                                {slot.isDirty && (
+                                  <p className="text-[10px] text-amber-500 font-medium mt-0.5">
+                                    Chưa lưu
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div
+                                className={`h-9 rounded-lg transition-colors ${
+                                  readOnly
+                                    ? ""
+                                    : "hover:bg-md-surface-container cursor-pointer"
+                                }`}
+                              />
+                            )}
+                          </CellPopover>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
+            )
           )}
         </tbody>
       </table>

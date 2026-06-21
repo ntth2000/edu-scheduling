@@ -61,9 +61,10 @@ public class SchoolYearService {
         Timetable timetable = timetableRepository.save(
                 Timetable.builder().schoolYear(schoolYear).semesterOrder(semesterOrder).build());
 
+        int weekOffset = semesterOrder == 1 ? 0 : WEEKS_HK1;
         List<Week> weeks = new ArrayList<>();
         for (int i = 1; i <= weekCount; i++) {
-            weeks.add(Week.builder().timetable(timetable).weekNumber(i).startDate(null).build());
+            weeks.add(Week.builder().timetable(timetable).weekNumber(weekOffset + i).startDate(null).build());
         }
         weekRepository.saveAll(weeks);
     }

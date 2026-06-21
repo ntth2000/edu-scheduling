@@ -163,8 +163,8 @@ public class AssignmentService {
                 .subjectId(a.getSubject().getId())
                 .subjectName(a.getSubject().getName())
                 .subjectShortName(a.getSubject().getShortName())
-                .teacherId(a.getTeacher().getId())
-                .teacherName(a.getTeacher().getFullName())
+                .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
+                .teacherName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
                 .periodsPerWeek(periods)
                 .build();
     }

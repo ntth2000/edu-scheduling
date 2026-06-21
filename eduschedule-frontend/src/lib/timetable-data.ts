@@ -14,6 +14,7 @@ export interface Slot {
   teacherId: string | null; // stringified teacher id, null = GVCN tự dạy
   teacherName: string | null;
   isConflict: boolean;
+  isDirty?: boolean;    // true = pending add not yet sent to server
 }
 
 export function mapSlot(s: SlotResponse): Slot {
@@ -41,6 +42,27 @@ export const DAYS = [
 ];
 
 export const PERIODS = [1, 2, 3, 4, 5, 6, 7];
+
+export const SESSIONS = [
+  { label: "Sáng", periods: [1, 2, 3, 4] },
+  { label: "Chiều", periods: [5, 6, 7] },
+] as const;
+
+export function computeConflicts(slots: Slot[]): Slot[] {
+  const grouped = new Map<string, string[]>();
+  for (const s of slots) {
+    if (!s.teacherId) continue;
+    const key = `${s.day}-${s.period}-${s.teacherId}`;
+    const list = grouped.get(key) ?? [];
+    list.push(s.id);
+    grouped.set(key, list);
+  }
+  const conflictIds = new Set<string>();
+  grouped.forEach((ids) => {
+    if (ids.length > 1) ids.forEach((id) => conflictIds.add(id));
+  });
+  return slots.map((s) => ({ ...s, isConflict: conflictIds.has(s.id) }));
+}
 
 export const CLASSES_BY_GRADE: Record<number, string[]> = {
   1: ["1A", "1B"],

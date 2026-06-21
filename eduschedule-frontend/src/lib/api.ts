@@ -58,8 +58,8 @@ export interface AssignmentResponse {
   subjectId: number;
   subjectName: string;
   subjectShortName: string;
-  teacherId: number;
-  teacherName: string;
+  teacherId: number | null;
+  teacherName: string | null;
   periodsPerWeek: number;
 }
 
@@ -112,7 +112,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     let msg: string;
     try {
       const json = JSON.parse(text);
-      return json.message || json.error || "Unknown error";
+      msg = json.message || json.error || `HTTP ${res.status}`;
     } catch {
       msg = text;
     }
@@ -230,18 +230,30 @@ export const classApi = {
 
 export interface TimetableResponse {
   id: number;
-  name: string | null;
-  status: "DRAFT" | "PUBLISHED";
-  publishedAt: string | null;
+  schoolYearId: number;
+  schoolYearName: string;
+  semesterOrder: number;
+  semesterStartDate?: string;
   createdAt: string;
+}
+
+export interface WeekResponse {
+  id: number;
+  timetableId: number;
+  weekNumber: number;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export interface SlotResponse {
   id: number;
-  timetableId: number;
+  weekId: number;
+  weekNumber: number;
   assignmentId: number;
   day: number;
+  session: number;
   period: number;
+  specialRoomId?: number;
   subjectId: number;
   subjectName: string;
   teacherId: number | null;
@@ -254,24 +266,39 @@ export interface SlotResponse {
 export const timetableApi = {
   getAll: () => apiFetch<TimetableResponse[]>("/api/timetables"),
 
-  create: (name?: string) =>
+  getBySchoolYear: (schoolYearId: number) =>
+    apiFetch<TimetableResponse[]>(`/api/timetables?schoolYearId=${schoolYearId}`),
+
+  getById: (id: number) => apiFetch<TimetableResponse>(`/api/timetables/${id}`),
+
+  create: (params: { schoolYearId: number; semesterOrder: number }) =>
     apiFetch<TimetableResponse>("/api/timetables", {
       method: "POST",
-      body: JSON.stringify({ name: name ?? null }),
+      body: JSON.stringify(params),
+    }),
+};
+
+export const weekApi = {
+  getByTimetable: (timetableId: number) =>
+    apiFetch<WeekResponse[]>(`/api/weeks?timetableId=${timetableId}`),
+
+  updateStartDate: (weekId: number, startDate: string) =>
+    apiFetch<WeekResponse[]>(`/api/weeks/${weekId}/start-date`, {
+      method: "PATCH",
+      body: JSON.stringify({ startDate }),
     }),
 
-  updateStatus: (id: number, status: "DRAFT" | "PUBLISHED") =>
-    apiFetch<TimetableResponse>(`/api/timetables/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
+  applyForward: (weekId: number) =>
+    apiFetch<void>(`/api/weeks/${weekId}/apply-forward`, {
+      method: "POST",
     }),
 };
 
 export const slotApi = {
-  getByTimetable: (timetableId: number) =>
-    apiFetch<SlotResponse[]>(`/api/slots?timetableId=${timetableId}`),
+  getByWeek: (weekId: number) =>
+    apiFetch<SlotResponse[]>(`/api/slots?weekId=${weekId}`),
 
-  save: (params: { timetableId: number; day: number; period: number; assignmentId?: number; classId?: number; subjectId?: number }) =>
+  save: (params: { weekId: number; assignmentId?: number; classId?: number; subjectId?: number; day: number; session: number; period: number; specialRoomId?: number }) =>
     apiFetch<SlotResponse>("/api/slots", {
       method: "POST",
       body: JSON.stringify(params),

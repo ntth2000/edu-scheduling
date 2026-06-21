@@ -102,7 +102,7 @@ public class WeekService {
                 .id(w.getId())
                 .weekNumber(w.getWeekNumber())
                 .startDate(start)
-                .endDate(start != null ? start.plusDays(4) : null)
+                .endDate(start != null ? start.plusDays(6) : null)
                 .build();
     }
 }

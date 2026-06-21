@@ -83,11 +83,20 @@ public class SubjectService {
 
     @Transactional
     public void deleteBatch(List<Long> ids) {
-        ids.forEach(this::cascadeDeleteSubject);
+        subjectRepository.deleteTeacherSubjectsBySubjectIdIn(ids);
+        ids.forEach(id -> {
+            List<Assignment> assignments = assignmentRepository.findBySubjectId(id);
+            List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+            if (!assignmentIds.isEmpty()) {
+                slotRepository.deleteByAssignmentIdIn(assignmentIds);
+            }
+            assignmentRepository.deleteAll(assignments);
+        });
         subjectRepository.deleteAllById(ids);
     }
 
     private void cascadeDeleteSubject(Long subjectId) {
+        subjectRepository.deleteTeacherSubjectsBySubjectId(subjectId);
         List<Assignment> assignments = assignmentRepository.findBySubjectId(subjectId);
         List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
         if (!assignmentIds.isEmpty()) {

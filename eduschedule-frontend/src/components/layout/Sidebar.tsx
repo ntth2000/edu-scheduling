@@ -68,8 +68,12 @@ export default function AppSidebar() {
 
   useEffect(() => {
     if (!schoolYears.length) return;
-    const matched = yearParam ? schoolYears.find((y) => y.name === yearParam) : null;
-    setSelectedYearId(matched?.id ?? schoolYears[0].id);
+    if (yearParam) {
+      const matched = schoolYears.find((y) => y.name === yearParam);
+      setSelectedYearId(matched?.id ?? schoolYears[0].id);
+    } else {
+      setSelectedYearId((prev) => prev ?? schoolYears[0].id);
+    }
   }, [yearParam, schoolYears]);
 
   const handleLogout = async () => {

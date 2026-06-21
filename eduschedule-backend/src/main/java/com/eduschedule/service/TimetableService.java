@@ -62,8 +62,8 @@ public class TimetableService {
         SchoolYear sy = t.getSchoolYear();
         LocalDate semesterStartDate = t.getWeeks().stream()
                 .filter(w -> w.getWeekNumber() == 1)
-                .map(Week::getStartDate)
                 .findFirst()
+                .map(Week::getStartDate)
                 .orElse(null);
         return TimetableResponse.builder()
                 .id(t.getId())

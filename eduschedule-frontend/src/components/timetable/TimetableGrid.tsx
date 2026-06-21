@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { type Slot, DAYS, PERIODS, checkConflict } from "@/lib/timetable-data";
+import { type Slot, DAYS, PERIODS } from "@/lib/timetable-data";
 import { TimetableCell } from "./TimetableCell";
 import { CellPopover } from "./CellPopover";
 import { type AssignmentResponse } from "@/lib/api";
 import { type Subject, type SchoolClass } from "@/lib/types";
 import { useTimetableDrag } from "./TimetableDragContext";
-import { toast } from "sonner";
 
 interface TimetableGridProps {
   classId: string;
@@ -65,22 +64,6 @@ export function TimetableGrid({
 
       try {
         const data = JSON.parse(raw);
-        const teacherId: string | null = data.assignmentId
-          ? data.teacherId
-          : (data.homeroomTeacherId ?? null);
-
-        // Check teacher conflict before scheduling
-        if (teacherId) {
-          const conflict = checkConflict(
-            { day, period, classId, teacherId },
-            slots
-          );
-          if (conflict.hasConflict) {
-            toast.error(conflict.reason);
-            return;
-          }
-        }
-
         if (data.assignmentId) {
           // BM teacher path
           onAddSlot({
