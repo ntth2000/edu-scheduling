@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/register"];
-const PROTECTED_PATHS = ["/", "/assignments", "/classes", "/subjects", "/teachers", "/timetable"];
+const PROTECTED_PATHS = ["/assignments", "/classes", "/subjects", "/teachers", "/timetable"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,12 +13,17 @@ export function proxy(request: NextRequest) {
 
   // If logged in: redirect away from guest-only pages (e.g. /login)
   if (accessToken && isPublic) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/timetable", request.url));
   }
 
   // If not logged in: redirect protected paths to /login
   if (!accessToken && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Unknown paths: redirect based on auth state (skip internal API routes)
+  if (!isPublic && !isProtected && !pathname.startsWith("/api/")) {
+    return NextResponse.redirect(new URL(accessToken ? "/timetable" : "/login", request.url));
   }
 
   return NextResponse.next();

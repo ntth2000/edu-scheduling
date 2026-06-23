@@ -67,6 +67,19 @@ export default function AppSidebar() {
   }, []);
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      const year = (e as CustomEvent<SchoolYearResponse>).detail;
+      setSchoolYears((prev) => {
+        if (prev.some((y) => y.id === year.id)) return prev;
+        return [year, ...prev];
+      });
+      setSelectedYearId(year.id);
+    };
+    window.addEventListener("schoolyear:created", handler);
+    return () => window.removeEventListener("schoolyear:created", handler);
+  }, []);
+
+  useEffect(() => {
     if (!schoolYears.length) return;
     if (yearParam) {
       const matched = schoolYears.find((y) => y.name === yearParam);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, User, Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,7 +39,7 @@ export default function LoginPage() {
 
       toast.success("Đăng nhập thành công", { duration: 1000 });
       setTimeout(() => {
-        router.push("/");
+        router.push("/timetable");
         router.refresh();
       }, 500);
     } catch {
@@ -60,9 +60,9 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <Label className="font-semibold text-[16px] leading-[24px] text-[#191b23]" htmlFor="username">Email</Label>
+          <Label className="font-semibold text-[16px] leading-[24px] text-[#191b23]" htmlFor="username">Tên đăng nhập</Label>
           <div className="relative flex items-center">
-            <Mail className="absolute left-4 h-5 w-5 text-[#727785] z-10" />
+            <User className="absolute left-4 h-5 w-5 text-[#727785] z-10" />
             <Input
               id="username"
               name="username"

@@ -44,6 +44,7 @@ export function CreateSchoolYearDialog({ open, onOpenChange, onCreated }: Props)
     setError("");
     try {
       const created = await schoolYearApi.create(parseInt(startYear));
+      window.dispatchEvent(new CustomEvent("schoolyear:created", { detail: created }));
       onCreated(created);
       onOpenChange(false);
     } catch (e: unknown) {

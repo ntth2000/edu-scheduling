@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TypographyH3, TypographyH4, TypographyP } from "../ui/typography";
 import {
   Table,
@@ -110,11 +111,13 @@ export function TeacherTable() {
     return true;
   });
 
-  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredTeachers);
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredTeachers, 20);
 
   // These must come AFTER usePagination so currentData is available
   const allOnPageSelected =
     currentData.length > 0 && currentData.every((t) => selectedIds.has(t.id));
+  const someOnPageSelected =
+    !allOnPageSelected && currentData.some((t) => selectedIds.has(t.id));
 
   const toggleSelectAll = () => {
     if (allOnPageSelected) {
@@ -316,7 +319,7 @@ export function TeacherTable() {
           <div className="flex items-center gap-3">
             {selectedIds.size > 0 && (
               <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
-                Đã chọn {selectedIds.size}
+                Đã chọn {selectedIds.size}/{filteredTeachers.length}
               </span>
             )}
           </div>
@@ -359,11 +362,9 @@ export function TeacherTable() {
             <TableHeader className="bg-md-surface-container-low/30">
               <TableRow>
                 <TableHead className="w-10 px-4">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 text-md-primary accent-md-primary cursor-pointer"
-                    checked={allOnPageSelected}
-                    onChange={toggleSelectAll}
+                  <Checkbox
+                    checked={allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
                 <TableHead className="px-4">Mã GV</TableHead>
@@ -383,11 +384,9 @@ export function TeacherTable() {
                     className={selectedIds.has(teacher.id) ? "bg-md-primary/5" : ""}
                   >
                     <TableCell className="px-4">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 rounded border-slate-300 text-md-primary accent-md-primary cursor-pointer"
+                      <Checkbox
                         checked={selectedIds.has(teacher.id)}
-                        onChange={() => toggleSelect(teacher.id)}
+                        onCheckedChange={() => toggleSelect(teacher.id)}
                       />
                     </TableCell>
                     <TableCell className="font-mono text-xs text-blue-700 font-semibold px-4">
@@ -427,7 +426,7 @@ export function TeacherTable() {
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={() => {
                           setEditingTeacher(teacher);
                           setIsModalOpen(true);
@@ -435,21 +434,21 @@ export function TeacherTable() {
                         className="text-slate-400 hover:text-md-primary transition-colors"
                       >
                         <Pencil className="h-4 w-4" />
+                        Chỉnh sửa
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={() => setTeacherToToggle(teacher)}
                         className={`transition-colors ${teacher.status === "active"
                           ? "text-slate-400 hover:text-amber-600"
                           : "text-slate-400 hover:text-emerald-600"
                           }`}
-                        title={teacher.status === "active" ? "Vô hiệu hoá" : "Kích hoạt"}
                       >
                         {teacher.status === "active" ? (
-                          <UserMinus className="h-4 w-4" />
+                          <><UserMinus className="h-4 w-4" />Vô hiệu hoá</>
                         ) : (
-                          <UserCheck className="h-4 w-4" />
+                          <><UserCheck className="h-4 w-4" />Kích hoạt</>
                         )}
                       </Button>
                     </TableCell>
