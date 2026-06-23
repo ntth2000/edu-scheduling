@@ -23,8 +23,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { CreateSchoolYearDialog } from "@/components/school-year/CreateSchoolYearDialog";
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return "—";
@@ -189,6 +190,8 @@ export function TimetableListPage({ yearParam }: TimetableListPageProps) {
     startDate: string;
   } | null>(null);
 
+  const [createYearOpen, setCreateYearOpen] = useState(false);
+
   // Load school years on mount
   useEffect(() => {
     schoolYearApi
@@ -262,6 +265,12 @@ export function TimetableListPage({ yearParam }: TimetableListPageProps) {
     applyDateUpdate(timetableId, weekId, startDate);
   };
 
+  const handleYearCreated = (year: SchoolYearResponse) => {
+    setSchoolYears((prev) => [year, ...prev]);
+    setSelectedYearId(year.id);
+    toast.success(`Đã tạo năm học ${year.name}`);
+  };
+
   const handleOpen = (timetableId: number) => {
     const year = schoolYears.find((y) => y.id === selectedYearId);
     router.push(`/timetable/${timetableId}${year ? `?year=${year.name}` : ""}`);
@@ -276,7 +285,7 @@ export function TimetableListPage({ yearParam }: TimetableListPageProps) {
   }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -292,24 +301,45 @@ export function TimetableListPage({ yearParam }: TimetableListPageProps) {
         </div>
       </div>
 
-      {/* 2 fixed cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {([1, 2] as const).map((sem) => {
-          const tm = sem === 1 ? hk1 : hk2;
-          const weeks = tm ? (weeksMap[tm.id] ?? []) : [];
-          return (
-            <SemesterCard
-              key={sem}
-              semesterOrder={sem}
-              timetable={tm}
-              weeks={weeks}
-              saving={saving}
-              onApply={handleApply}
-              onOpen={handleOpen}
-            />
-          );
-        })}
-      </div>
+      {/* Empty state */}
+      {schoolYears.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <CalendarDays className="h-12 w-12 text-slate-300" />
+          <div>
+            <p className="text-slate-600 font-medium">Chưa có năm học nào</p>
+            <p className="text-slate-400 text-sm mt-1">Tạo năm học để bắt đầu xếp thời khoá biểu</p>
+          </div>
+          <Button onClick={() => setCreateYearOpen(true)} className="gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Tạo năm học
+          </Button>
+        </div>
+      ) : (
+        /* 2 fixed cards */
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {([1, 2] as const).map((sem) => {
+            const tm = sem === 1 ? hk1 : hk2;
+            const weeks = tm ? (weeksMap[tm.id] ?? []) : [];
+            return (
+              <SemesterCard
+                key={sem}
+                semesterOrder={sem}
+                timetable={tm}
+                weeks={weeks}
+                saving={saving}
+                onApply={handleApply}
+                onOpen={handleOpen}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      <CreateSchoolYearDialog
+        open={createYearOpen}
+        onOpenChange={setCreateYearOpen}
+        onCreated={handleYearCreated}
+      />
 
       {/* Confirmation dialog */}
       <AlertDialog open={confirmOpen} onOpenChange={(open) => { if (!open) setPendingUpdate(null); setConfirmOpen(open); }}>

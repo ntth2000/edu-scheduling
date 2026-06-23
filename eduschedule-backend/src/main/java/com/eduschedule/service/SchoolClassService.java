@@ -58,6 +58,11 @@ public class SchoolClassService {
         if (request.getSchoolYearId() != null) {
             schoolYear = schoolYearRepository.findById(request.getSchoolYearId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy năm học với id: " + request.getSchoolYearId()));
+
+            if (classRepository.existsByNameAndSchoolYearId(request.getName(), request.getSchoolYearId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Lớp '" + request.getName() + "' đã tồn tại trong năm học này");
+            }
         }
 
         SchoolClass schoolClass = SchoolClass.builder()

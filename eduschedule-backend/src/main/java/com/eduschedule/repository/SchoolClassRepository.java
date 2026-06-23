@@ -17,5 +17,7 @@ public interface SchoolClassRepository extends JpaRepository<SchoolClass, Long> 
 
     List<SchoolClass> findAllBySchoolYearId(Long schoolYearId);
 
+    boolean existsByNameAndSchoolYearId(String name, Long schoolYearId);
+
     List<SchoolClass> findAllBySchoolYearUserId(Long userId);
 }

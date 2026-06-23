@@ -34,4 +34,13 @@ public class SlotController {
         slotService.deleteSlot(id);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/by-teacher")
+    public ResponseEntity<Void> deleteByTeacher(
+            @RequestParam Long teacherId,
+            @RequestParam Long timetableId,
+            @RequestParam Integer fromWeekNumber) {
+        slotService.deleteByTeacherFromWeek(teacherId, timetableId, fromWeekNumber);
+        return ResponseEntity.noContent().build();
+    }
 }

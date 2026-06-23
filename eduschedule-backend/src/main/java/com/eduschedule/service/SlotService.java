@@ -100,6 +100,11 @@ public class SlotService {
     }
 
     @Transactional
+    public void deleteByTeacherFromWeek(Long teacherId, Long timetableId, Integer fromWeekNumber) {
+        slotRepository.deleteByTeacherFromWeek(teacherId, timetableId, fromWeekNumber);
+    }
+
+    @Transactional
     public void deleteSlot(Long id) {
         if (!slotRepository.existsById(id)) {
             throw new RuntimeException("Slot not found with id: " + id);

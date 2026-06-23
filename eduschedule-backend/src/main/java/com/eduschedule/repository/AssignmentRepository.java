@@ -19,6 +19,8 @@ public interface AssignmentRepository
 
     List<Assignment> findByTeacherId(Long teacherId);
 
+    boolean existsByTeacherId(Long teacherId);
+
     List<Assignment> findBySubjectId(Long subjectId);
 
     boolean existsBySchoolClassIdAndSubjectId(

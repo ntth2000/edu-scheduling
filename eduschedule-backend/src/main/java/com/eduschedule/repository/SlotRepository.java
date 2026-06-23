@@ -33,4 +33,10 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
     @Modifying
     @Query("DELETE FROM Slot s WHERE s.week.id IN :weekIds")
     void deleteByWeekIdIn(@Param("weekIds") List<Long> weekIds);
+
+    @Modifying
+    @Query("DELETE FROM Slot s WHERE s.assignment.teacher.id = :teacherId AND s.week.timetable.id = :timetableId AND s.week.weekNumber >= :fromWeekNumber")
+    void deleteByTeacherFromWeek(@Param("teacherId") Long teacherId,
+                                 @Param("timetableId") Long timetableId,
+                                 @Param("fromWeekNumber") Integer fromWeekNumber);
 }
