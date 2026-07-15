@@ -11,6 +11,7 @@ import { type Slot, DAYS } from "@/lib/timetable-data";
 import { Trash2, AlertTriangle, ChevronLeft } from "lucide-react";
 import { type AssignmentResponse } from "@/lib/api";
 import { type Subject, type SchoolClass } from "@/lib/types";
+import { toast } from "sonner";
 
 interface CellPopoverProps {
   children: React.ReactNode;
@@ -45,6 +46,7 @@ interface SubjectOption {
   teacherName: string | null;
   remaining: number;
   hasConflict: boolean;
+  unassigned: boolean;
 }
 
 export function CellPopover({
@@ -81,15 +83,13 @@ export function CellPopover({
         const max = assignment?.periodsPerWeek ?? s.periodsByGrade[gradeIndex];
         const remaining = max - used;
 
-        const teacherId = assignment
-          ? (assignment.teacherId != null ? assignment.teacherId.toString() : null)
-          : currentClass?.homeroomTeacherId?.toString() ?? null;
-        const teacherName = assignment
-          ? assignment.teacherName
-          : currentClass?.homeroomTeacher ?? null;
+        const unassigned = !assignment;
+        const teacherId = assignment?.teacherId != null
+          ? assignment.teacherId.toString()
+          : null;
+        const teacherName = assignment?.teacherName ?? null;
 
-        // Only flag conflict for explicit BM assignments — GVCN subjects never cross-class conflict
-        const hasConflict = assignment && teacherId
+        const hasConflict = !unassigned && teacherId
           ? otherSlots.some(
               (sl) =>
                 sl.day === day &&
@@ -105,6 +105,7 @@ export function CellPopover({
           teacherName,
           remaining,
           hasConflict,
+          unassigned,
         };
       })
       .sort((a, b) => {
@@ -116,30 +117,23 @@ export function CellPopover({
 
   const handleSelect = (opt: SubjectOption) => {
     if (opt.remaining <= 0) return;
-    if (opt.assignmentId) {
-      onAddSlot({
-        assignmentId: opt.assignmentId,
-        day,
-        period,
-        classId,
-        subjectId: opt.subject.id.toString(),
-        subjectName: opt.subject.name,
-        teacherId: opt.teacherId,
-        teacherName: opt.teacherName,
-      });
-    } else {
-      onAddSlot({
-        classNumericId: currentClass?.id,
-        subjectNumericId: opt.subject.id,
-        day,
-        period,
-        classId,
-        subjectId: opt.subject.id.toString(),
-        subjectName: opt.subject.name,
-        teacherId: opt.teacherId,
-        teacherName: opt.teacherName,
-      });
+    if (opt.unassigned) {
+      toast.warning(
+        `Môn học ${opt.subject.name} của lớp ${classId} chưa được phân công giáo viên dạy. Hãy phân công trước khi xếp TKB.`,
+        { duration: 4000 }
+      );
+      return;
     }
+    onAddSlot({
+      assignmentId: opt.assignmentId,
+      day,
+      period,
+      classId,
+      subjectId: opt.subject.id.toString(),
+      subjectName: opt.subject.name,
+      teacherId: opt.teacherId,
+      teacherName: opt.teacherName,
+    });
     setOpen(false);
     setPicking(false);
   };
@@ -195,8 +189,8 @@ export function CellPopover({
                   <span className="text-sm font-medium text-slate-800">
                     {opt.subject.name}
                   </span>
-                  <span className="text-[11px] text-slate-400 ml-1.5">
-                    {opt.teacherName ?? "GVCN"}
+                  <span className={`text-[11px] ml-1.5 ${opt.unassigned ? "text-amber-500 italic" : "text-slate-400"}`}>
+                    {opt.unassigned ? "Chưa phân công" : opt.teacherName}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -205,6 +199,8 @@ export function CellPopover({
                   )}
                   {disabled ? (
                     <span className="text-[11px] text-slate-300 font-medium">đủ rồi</span>
+                  ) : opt.unassigned ? (
+                    <span className="text-[11px] text-amber-400 font-medium">!</span>
                   ) : (
                     <span className="text-[11px] text-slate-500 font-medium">
                       còn {opt.remaining}t

@@ -29,4 +29,7 @@ public class Assignment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     private Teacher teacher;
+
+    @Column(name = "periods_per_week")
+    private Integer periodsPerWeek;
 }

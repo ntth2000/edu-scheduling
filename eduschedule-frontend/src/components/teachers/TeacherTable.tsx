@@ -314,7 +314,7 @@ export function TeacherTable() {
   return (
     <>
       {/* Stats Cards */}
-      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
+      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md border border-slate-200">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <div className="flex items-center gap-3">
             {selectedIds.size > 0 && (

@@ -13,30 +13,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DefaultSubjectSeeder {
 
-    private final SubjectRepository subjectRepository;
-
-    private static final String[][] DEFAULTS = {
-        { "Tiếng Việt",            "TV"   },
-        { "Toán",                  "T"    },
-        { "Đạo đức",               "ĐĐ"   },
-        { "Ngoại ngữ 1",           "NN1"  },
-        { "Tự nhiên và Xã hội",    "TNXH" },
-        { "Lịch sử và Địa lí",     "LSĐL" },
-        { "Khoa học",              "KH"   },
-        { "Tin học và Công nghệ",  "THCN" },
-        { "Giáo dục thể chất",     "GDTC" },
-        { "Âm nhạc",               "AN"   },
-        { "Mĩ thuật",              "MT"   },
-        { "Hoạt động trải nghiệm", "HĐTN" },
+    private static final String[] DEFAULTS = {
+            "Tiếng Việt",
+            "Toán",
+            "Đạo đức",
+            "Ngoại ngữ 1",
+            "Tự nhiên và Xã hội",
+            "Lịch sử và Địa lí",
+            "Khoa học",
+            "Tin học",
+            "Giáo dục thể chất",
+            "Âm nhạc",
+            "Mĩ thuật",
+            "Hoạt động trải nghiệm",
+            "Công nghệ"
     };
+    private final SubjectRepository subjectRepository;
 
     @Transactional
     public void seedForUser(User user) {
         List<Subject> subjects = java.util.Arrays.stream(DEFAULTS)
-                .map(row -> Subject.builder()
+                .map(name -> Subject.builder()
                         .user(user)
-                        .name(row[0])
-                        .shortName(row[1])
+                        .name(name)
                         .build())
                 .toList();
         subjectRepository.saveAll(subjects);

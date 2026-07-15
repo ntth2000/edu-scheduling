@@ -10,9 +10,6 @@ public class SubjectRequest {
     @NotBlank(message = "Tên môn học không được để trống")
     private String name;
 
-    @NotBlank(message = "Tên viết tắt không được để trống")
-    private String shortName;
-
     @NotNull(message = "Số tiết khối 1 không được để trống")
     @Min(value = 0, message = "Số tiết phải >= 0")
     private Integer periodsGrade1;

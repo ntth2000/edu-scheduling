@@ -57,7 +57,11 @@ export default function AppSidebar() {
   const yearParam = searchParams.get("year");
 
   const [schoolYears, setSchoolYears] = useState<SchoolYearResponse[]>([]);
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const [selectedYearId, setSelectedYearId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = sessionStorage.getItem("selectedYearId");
+    return saved ? Number(saved) : null;
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -83,9 +87,17 @@ export default function AppSidebar() {
     if (!schoolYears.length) return;
     if (yearParam) {
       const matched = schoolYears.find((y) => y.name === yearParam);
-      setSelectedYearId(matched?.id ?? schoolYears[0].id);
+      const id = matched?.id ?? schoolYears[0].id;
+      setSelectedYearId(id);
+      sessionStorage.setItem("selectedYearId", String(id));
     } else {
-      setSelectedYearId((prev) => prev ?? schoolYears[0].id);
+      setSelectedYearId((prev) => {
+        if (prev !== null && schoolYears.some((y) => y.id === prev)) return prev;
+        const saved = sessionStorage.getItem("selectedYearId");
+        const savedId = saved ? Number(saved) : null;
+        if (savedId && schoolYears.some((y) => y.id === savedId)) return savedId;
+        return schoolYears[0].id;
+      });
     }
   }, [yearParam, schoolYears]);
 
@@ -98,6 +110,7 @@ export default function AppSidebar() {
   const handleCreated = (year: SchoolYearResponse) => {
     setSchoolYears((prev) => [year, ...prev]);
     setSelectedYearId(year.id);
+    sessionStorage.setItem("selectedYearId", String(year.id));
     router.push(`/classes?year=${year.name}`);
   };
 
@@ -153,6 +166,7 @@ export default function AppSidebar() {
                 onValueChange={(v) => {
                   const newYearId = Number(v);
                   setSelectedYearId(newYearId);
+                  sessionStorage.setItem("selectedYearId", String(newYearId));
                   const newYear = schoolYears.find((y) => y.id === newYearId);
                   if (newYear) {
                     const yearBases = ["/classes", "/assignments", "/timetable"];

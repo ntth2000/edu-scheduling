@@ -48,7 +48,6 @@ public class SubjectService {
         Subject subject = Subject.builder()
                 .user(user)
                 .name(request.getName())
-                .shortName(request.getShortName())
                 .periodsGrade1(request.getPeriodsGrade1())
                 .periodsGrade2(request.getPeriodsGrade2())
                 .periodsGrade3(request.getPeriodsGrade3())
@@ -64,7 +63,6 @@ public class SubjectService {
         Subject subject = findById(id);
 
         subject.setName(request.getName());
-        subject.setShortName(request.getShortName());
         subject.setPeriodsGrade1(request.getPeriodsGrade1());
         subject.setPeriodsGrade2(request.getPeriodsGrade2());
         subject.setPeriodsGrade3(request.getPeriodsGrade3());
@@ -120,7 +118,6 @@ public class SubjectService {
         return SubjectResponse.builder()
                 .id(subject.getId())
                 .name(subject.getName())
-                .shortName(subject.getShortName())
                 .periodsGrade1(subject.getPeriodsGrade1())
                 .periodsGrade2(subject.getPeriodsGrade2())
                 .periodsGrade3(subject.getPeriodsGrade3())

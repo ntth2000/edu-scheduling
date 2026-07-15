@@ -25,9 +25,6 @@ public class Subject {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 100)
-    private String shortName;
-
     private Integer periodsGrade1 = 0;
     private Integer periodsGrade2 = 0;
     private Integer periodsGrade3 = 0;

@@ -5,7 +5,6 @@ import com.eduschedule.dto.response.BatchDeleteCascadeResponse;
 import com.eduschedule.dto.response.SubjectResponse;
 import com.eduschedule.dto.response.TeacherCascadeResponse;
 import com.eduschedule.dto.response.TeacherResponse;
-import com.eduschedule.entity.Assignment;
 import com.eduschedule.entity.SchoolClass;
 import com.eduschedule.entity.Subject;
 import com.eduschedule.entity.Teacher;
@@ -13,7 +12,6 @@ import com.eduschedule.entity.User;
 import com.eduschedule.entity.enums.TeacherType;
 import com.eduschedule.repository.AssignmentRepository;
 import com.eduschedule.repository.SchoolClassRepository;
-import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.SubjectRepository;
 import com.eduschedule.repository.TeacherRepository;
 import com.eduschedule.repository.UserRepository;
@@ -36,7 +34,6 @@ public class TeacherService {
     private final SchoolClassRepository classRepository;
     private final SubjectRepository subjectRepository;
     private final AssignmentRepository assignmentRepository;
-    private final SlotRepository slotRepository;
     private final UserRepository userRepository;
 
     public List<TeacherResponse> getAll() {
@@ -82,82 +79,43 @@ public class TeacherService {
     @Transactional
     public TeacherCascadeResponse toggleStatus(Long id) {
         Teacher teacher = findById(id);
-        boolean wasActive = Boolean.TRUE.equals(teacher.getIsActive());
-        teacher.setIsActive(!wasActive);
-
-        int deletedSlots = 0;
-        int deletedAssignments = 0;
-        List<String> unsetClasses = new ArrayList<>();
-
-        // Cascade only when deactivating
-        if (wasActive) {
-            CascadeResult cascade = cascadeRemoveTeacher(id);
-            deletedSlots = cascade.deletedSlots;
-            deletedAssignments = cascade.deletedAssignments;
-            unsetClasses = cascade.unsetHomeroomClasses;
-        }
+        teacher.setIsActive(!Boolean.TRUE.equals(teacher.getIsActive()));
 
         return TeacherCascadeResponse.builder()
                 .teacher(toResponse(teacherRepository.save(teacher)))
-                .deletedSlots(deletedSlots)
-                .deletedAssignments(deletedAssignments)
-                .unsetHomeroomClasses(unsetClasses)
+                .deletedSlots(0)
+                .deletedAssignments(0)
+                .unsetHomeroomClasses(List.of())
                 .build();
     }
 
     @Transactional
     public BatchDeleteCascadeResponse deleteBatch(List<Long> ids) {
-        int totalSlots = 0;
-        int totalAssignments = 0;
-        List<String> allUnsetClasses = new ArrayList<>();
+        List<String> blocked = new ArrayList<>();
 
         for (Long id : ids) {
-            CascadeResult cascade = cascadeRemoveTeacher(id);
-            totalSlots += cascade.deletedSlots;
-            totalAssignments += cascade.deletedAssignments;
-            allUnsetClasses.addAll(cascade.unsetHomeroomClasses);
+            Teacher teacher = findById(id);
+            boolean hasAssignments = assignmentRepository.existsByTeacherId(id);
+            boolean isHomeroom = !classRepository.findAllByHomeroomTeacherId(id).isEmpty();
+            if (hasAssignments || isHomeroom) {
+                blocked.add(teacher.getFullName());
+            }
+        }
+
+        if (!blocked.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Không thể xoá giáo viên đã có phân công: " + String.join(", ", blocked));
         }
 
         teacherRepository.deleteAllById(ids);
 
         return BatchDeleteCascadeResponse.builder()
                 .deletedTeachers(ids.size())
-                .deletedSlots(totalSlots)
-                .deletedAssignments(totalAssignments)
-                .unsetHomeroomClasses(allUnsetClasses)
+                .deletedSlots(0)
+                .deletedAssignments(0)
+                .unsetHomeroomClasses(List.of())
                 .build();
     }
-
-    /**
-     * Remove all slots, assignments, and homeroom links for a teacher.
-     */
-    private CascadeResult cascadeRemoveTeacher(Long teacherId) {
-        // 1. Delete slots referencing this teacher's assignments
-        List<Assignment> assignments = assignmentRepository.findByTeacherId(teacherId);
-        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
-        int deletedSlots = 0;
-        if (!assignmentIds.isEmpty()) {
-            deletedSlots = slotRepository.findByAssignment_TeacherId(teacherId).size();
-            slotRepository.deleteByAssignmentIdIn(assignmentIds);
-        }
-
-        // 2. Delete assignments
-        int deletedAssignments = assignments.size();
-        assignmentRepository.deleteAll(assignments);
-
-        // 3. Unset homeroom teacher
-        List<SchoolClass> homeroomClasses = classRepository.findAllByHomeroomTeacherId(teacherId);
-        List<String> unsetClassNames = new ArrayList<>();
-        for (SchoolClass cls : homeroomClasses) {
-            unsetClassNames.add(cls.getName());
-            cls.setHomeroomTeacher(null);
-            classRepository.save(cls);
-        }
-
-        return new CascadeResult(deletedSlots, deletedAssignments, unsetClassNames);
-    }
-
-    private record CascadeResult(int deletedSlots, int deletedAssignments, List<String> unsetHomeroomClasses) {}
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -182,12 +140,12 @@ public class TeacherService {
     private TeacherResponse toResponse(Teacher teacher) {
         String homeroomClass = null;
         if (teacher.getType() == TeacherType.CHU_NHIEM) {
-            homeroomClass = classRepository
-                    .findByHomeroomTeacherId(teacher.getId())
+            List<String> classNames = classRepository
+                    .findAllByHomeroomTeacherId(teacher.getId())
                     .stream()
-                    .findFirst()
-                    .map(c -> c.getName())
-                    .orElse(null);
+                    .map(SchoolClass::getName)
+                    .toList();
+            homeroomClass = classNames.isEmpty() ? null : String.join(", ", classNames);
         }
         return TeacherResponse.builder()
                 .id(teacher.getId())
@@ -201,7 +159,6 @@ public class TeacherService {
                                 .map(s -> SubjectResponse.builder()
                                         .id(s.getId())
                                         .name(s.getName())
-                                        .shortName(s.getShortName())
                                         .build()
                                 ).toList()
                 ).build();

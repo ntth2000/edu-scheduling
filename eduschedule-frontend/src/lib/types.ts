@@ -17,7 +17,6 @@ export interface Teacher {
 export interface Subject {
   id: number;
   name: string;
-  shortName: string;
   periodsByGrade: [number, number, number, number, number];
 }
 

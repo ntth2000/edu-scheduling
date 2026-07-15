@@ -143,7 +143,7 @@ export function SpecialRoomTable() {
 
   return (
     <>
-      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
+      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md border border-slate-200">
         {/* Toolbar */}
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <p className="text-sm text-slate-500">{rooms.length} phòng chức năng</p>
@@ -276,7 +276,7 @@ export function SpecialRoomTable() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Huỷ</Button>
-            <Button onClick={handleSave} disabled={saving || form.subjectId === "none"}>
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? "Đang lưu..." : editingRoom ? "Lưu thay đổi" : "Thêm phòng"}
             </Button>
           </DialogFooter>

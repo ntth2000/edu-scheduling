@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 public class SubjectResponse {
     private Long id;
     private String name;
-    private String shortName;
     private Integer periodsGrade1;
     private Integer periodsGrade2;
     private Integer periodsGrade3;

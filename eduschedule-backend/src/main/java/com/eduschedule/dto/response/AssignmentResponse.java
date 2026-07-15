@@ -16,7 +16,6 @@ public class AssignmentResponse {
     private Integer grade;
     private Long subjectId;
     private String subjectName;
-    private String subjectShortName;
     private Long teacherId;
     private String teacherName;
     private Integer periodsPerWeek;

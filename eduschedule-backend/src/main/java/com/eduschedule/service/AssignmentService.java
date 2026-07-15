@@ -72,13 +72,12 @@ public class AssignmentService {
                             " không phải GVCN");
         }
 
-        if (classRepository.existsByHomeroomTeacherId(teacher.getId())
-                && (schoolClass.getHomeroomTeacher() == null
-                || !schoolClass.getHomeroomTeacher()
-                .getId().equals(teacher.getId()))) {
+        Long schoolYearId = schoolClass.getSchoolYear().getId();
+        if (classRepository.existsByHomeroomTeacherIdAndSchoolYearIdAndIdNot(
+                teacher.getId(), schoolYearId, schoolClass.getId())) {
             throw new RuntimeException(
                     "Giáo viên " + teacher.getFullName() +
-                            " đã là GVCN của lớp khác");
+                            " đã là GVCN của lớp khác trong năm học này");
         }
 
         schoolClass.setHomeroomTeacher(teacher);
@@ -91,15 +90,6 @@ public class AssignmentService {
         Subject subject = findSubject(request.getSubjectId());
         Teacher teacher = findTeacher(request.getTeacherId());
 
-        boolean canTeach = teacher.getSubjects()
-                .stream()
-                .anyMatch(s -> s.getId().equals(subject.getId()));
-        if (!canTeach) {
-            throw new RuntimeException(
-                    "Giáo viên " + teacher.getFullName() +
-                            " không dạy môn " + subject.getName());
-        }
-
         Assignment assignment = assignmentRepository
                 .findBySchoolClassIdAndSubjectId(
                         request.getClassId(), request.getSubjectId())
@@ -109,6 +99,7 @@ public class AssignmentService {
                         .build());
 
         assignment.setTeacher(teacher);
+        assignment.setPeriodsPerWeek(getPeriodsForGrade(subject, schoolClass.getGrade()));
         return toResponse(assignmentRepository.save(assignment));
     }
 
@@ -152,9 +143,9 @@ public class AssignmentService {
     }
 
     private AssignmentResponse toResponse(Assignment a) {
-        int periods = getPeriodsForGrade(
-                a.getSubject(),
-                a.getSchoolClass().getGrade());
+        int periods = a.getPeriodsPerWeek() != null
+                ? a.getPeriodsPerWeek()
+                : getPeriodsForGrade(a.getSubject(), a.getSchoolClass().getGrade());
         return AssignmentResponse.builder()
                 .id(a.getId())
                 .classId(a.getSchoolClass().getId())
@@ -162,7 +153,6 @@ public class AssignmentService {
                 .grade(a.getSchoolClass().getGrade())
                 .subjectId(a.getSubject().getId())
                 .subjectName(a.getSubject().getName())
-                .subjectShortName(a.getSubject().getShortName())
                 .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
                 .teacherName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
                 .periodsPerWeek(periods)

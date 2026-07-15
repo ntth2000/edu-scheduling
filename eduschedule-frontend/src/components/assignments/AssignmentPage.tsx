@@ -11,6 +11,16 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   teacherApi,
   subjectApi,
   classApi,
@@ -21,6 +31,11 @@ import {
   type AssignmentResponse,
 } from "@/lib/api";
 
+interface PendingRemove {
+  classId: number;
+  className: string;
+}
+
 export function AssignmentPage({ year }: { year: string | null }) {
   const [mode, setMode] = useState<AssignmentMode>("homeroom");
   const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
@@ -28,6 +43,7 @@ export function AssignmentPage({ year }: { year: string | null }) {
   const [classes, setClasses] = useState<ClassResponse[]>([]);
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -57,6 +73,12 @@ export function AssignmentPage({ year }: { year: string | null }) {
   const handleHomeroomAssign = async (classId: number, teacherId: number | null) => {
     const cls = classes.find((c) => c.id === classId);
     if (!cls) return;
+
+    if (teacherId === null && cls.homeroomTeacherId !== null) {
+      setPendingRemove({ classId, className: cls.name });
+      return;
+    }
+
     try {
       if (teacherId !== null) {
         await assignmentApi.assignHomeroom(classId, teacherId);
@@ -74,6 +96,25 @@ export function AssignmentPage({ year }: { year: string | null }) {
       toast.success(`Đã cập nhật GVCN lớp ${cls.name}`);
     } catch {
       toast.error("Không thể cập nhật GVCN");
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!pendingRemove) return;
+    const cls = classes.find((c) => c.id === pendingRemove.classId);
+    if (!cls) return;
+    try {
+      await classApi.update(pendingRemove.classId, { name: cls.name, grade: cls.grade, homeroomTeacherId: null });
+      setClasses((prev) =>
+        prev.map((c) =>
+          c.id === pendingRemove.classId ? { ...c, homeroomTeacherId: null, homeroomTeacherName: null } : c
+        )
+      );
+      toast.success(`Đã xóa GVCN lớp ${pendingRemove.className}`);
+    } catch {
+      toast.error("Không thể xóa GVCN");
+    } finally {
+      setPendingRemove(null);
     }
   };
 
@@ -116,9 +157,30 @@ export function AssignmentPage({ year }: { year: string | null }) {
     if (failCount > 0) throw new Error("partial");
   };
 
-  const boMonTeachers = teachers.filter((t) => t.type === "BO_MON" || t.type === "KHAC");
-
   return (
+    <>
+    <AlertDialog open={pendingRemove !== null} onOpenChange={(open) => { if (!open) setPendingRemove(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Xóa giáo viên chủ nhiệm lớp {pendingRemove?.className}?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            Bạn có chắc chắn muốn xóa giáo viên chủ nhiệm lớp {pendingRemove?.className} không?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Hủy</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirmRemove}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Xóa GVCN
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <div className="space-y-6">
       {loading ? (
         <LoadingSkeleton />
@@ -129,7 +191,7 @@ export function AssignmentPage({ year }: { year: string | null }) {
             <div className="col-span-12 lg:col-span-12 space-y-4">
               <TabsList>
                 <TabsTrigger value="homeroom">Phân công Chủ nhiệm</TabsTrigger>
-                <TabsTrigger value="subject">Phân công Bộ môn</TabsTrigger>
+                <TabsTrigger value="subject">Phân công Chuyên môn</TabsTrigger>
               </TabsList>
 
               <TabsContent value="homeroom">
@@ -143,7 +205,7 @@ export function AssignmentPage({ year }: { year: string | null }) {
                 <SubjectAssignment
                   subjects={subjects}
                   classes={classes}
-                  teachers={boMonTeachers}
+                  teachers={teachers}
                   assignments={assignments}
                   onSave={handleSubjectBatchSave}
                 />
@@ -206,6 +268,7 @@ export function AssignmentPage({ year }: { year: string | null }) {
         </Tabs>
       )}
     </div>
+    </>
   );
 }
 

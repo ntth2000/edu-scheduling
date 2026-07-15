@@ -1,21 +1,13 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, useMemo } from "react";
 import {
   type SubjectResponse,
   type ClassResponse,
   type TeacherResponse,
   type AssignmentResponse,
 } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableHeader,
@@ -25,7 +17,10 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TypographyH4 } from "@/components/ui/typography";
-import { Users, Check } from "lucide-react";
+import { usePagination } from "@/hooks/usePagination";
+import { CustomPagination } from "@/components/shared/CustomPagination";
+import { SubjectAssignmentModal } from "./SubjectAssignmentModal";
+import { Pencil, Users, LayoutGrid, AlertTriangle } from "lucide-react";
 
 interface Change {
   classId: number;
@@ -41,299 +36,330 @@ interface Props {
   onSave: (changes: Change[]) => Promise<void>;
 }
 
-export function SubjectAssignment({ subjects, classes, teachers, assignments, onSave }: Props) {
-  const grades = [1, 2, 3, 4, 5];
-  const activeGrades = grades.filter((g) => classes.some((c) => c.grade === g));
-  const classesByGrade: Record<number, ClassResponse[]> = {};
-  activeGrades.forEach((g) => {
-    classesByGrade[g] = classes
-      .filter((c) => c.grade === g)
-      .sort((a, b) => a.name.localeCompare(b.name, "vi"));
-  });
+export function SubjectAssignment({
+  subjects,
+  classes,
+  teachers,
+  assignments,
+  onSave,
+}: Props) {
+  const [editingTeacher, setEditingTeacher] = useState<TeacherResponse | null>(null);
+  const [viewMode, setViewMode] = useState<"teacher" | "class">("teacher");
+  const [selectedGrade, setSelectedGrade] = useState<number>(1);
 
-  const [viewMode, setViewMode] = useState<"matrix" | "teacher">("matrix");
-  const savedMap = new Map<string, number | null>(
-    assignments.map((a) => [`${a.classId}-${a.subjectId}`, a.teacherId])
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } =
+    usePagination(teachers, 20);
+
+  // ── Teacher view stats ──────────────────────────────────────────
+  const teacherStats = useMemo(() => {
+    const summaryMap = new Map<number, string>();
+    const periodsMap = new Map<number, number>();
+    for (const teacher of teachers) {
+      const myAssignments = assignments.filter((a) => a.teacherId === teacher.id);
+      const byClass = new Map<string, string[]>();
+      let totalPeriods = 0;
+      for (const a of myAssignments) {
+        if (!byClass.has(a.className)) byClass.set(a.className, []);
+        byClass.get(a.className)!.push(a.subjectName);
+        totalPeriods += a.periodsPerWeek;
+      }
+      const parts = [...byClass.entries()]
+        .sort(([a], [b]) => a.localeCompare(b, "vi"))
+        .map(([cls, subs]) => `${cls} (${subs.join(", ")})`);
+      summaryMap.set(teacher.id, parts.join(", "));
+      periodsMap.set(teacher.id, totalPeriods);
+    }
+    return { summaryMap, periodsMap };
+  }, [teachers, assignments]);
+
+  // ── Class view derived ──────────────────────────────────────────
+  const grades = useMemo(
+    () => [...new Set(classes.map((c) => c.grade))].sort(),
+    [classes]
   );
 
-  const k = (classId: number, subjectId: number) => `${classId}-${subjectId}`;
+  const gradeSubjects = useMemo(
+    () =>
+      subjects.filter((s) => {
+        const p = [s.periodsGrade1, s.periodsGrade2, s.periodsGrade3, s.periodsGrade4, s.periodsGrade5];
+        return (p[selectedGrade - 1] ?? 0) > 0;
+      }),
+    [subjects, selectedGrade]
+  );
 
-  const getPeriodsForGrade = (sub: SubjectResponse, grade: number): number => {
-    switch (grade) {
-      case 1: return sub.periodsGrade1;
-      case 2: return sub.periodsGrade2;
-      case 3: return sub.periodsGrade3;
-      case 4: return sub.periodsGrade4;
-      case 5: return sub.periodsGrade5;
-      default: return 0;
-    }
-  };
+  const gradeClasses = useMemo(
+    () =>
+      classes
+        .filter((c) => c.grade === selectedGrade)
+        .sort((a, b) => a.name.localeCompare(b.name, "vi")),
+    [classes, selectedGrade]
+  );
 
-  // ── Matrix view helpers ──────────────────────────────
-  const handleCellChange = async (classId: number, subjectId: number, value: string) => {
-    const teacherId = value === "homeroom" ? null : Number(value);
-    await onSave([{ classId, subjectId, teacherId }]);
-  };
+  const completedCount = useMemo(
+    () =>
+      gradeClasses.filter((cls) =>
+        gradeSubjects.every((sub) =>
+          assignments.some((a) => a.classId === cls.id && a.subjectId === sub.id)
+        )
+      ).length,
+    [gradeClasses, gradeSubjects, assignments]
+  );
 
-  // ── Teacher view helpers ─────────────────────────────
-  const isAssigned = (classId: number, subjectId: number, teacherId: number): boolean =>
-    savedMap.get(k(classId, subjectId)) === teacherId;
-
-  const totalPeriodsForTeacher = (teacher: TeacherResponse): number => {
-    if (teacher.type === "KHAC") return teacher.maxPeriodsPerWeek;
-    let total = 0;
-    assignments
-      .filter((a) => a.teacherId === teacher.id)
-      .forEach((a) => {
-        const cls = classes.find((c) => c.id === a.classId);
-        const sub = subjects.find((s) => s.id === a.subjectId);
-        if (cls && sub) total += getPeriodsForGrade(sub, cls.grade);
+  // Badge: total unassigned across all classes/grades
+  const unassignedCount = useMemo(() => {
+    let count = 0;
+    for (const cls of classes) {
+      const subs = subjects.filter((s) => {
+        const p = [s.periodsGrade1, s.periodsGrade2, s.periodsGrade3, s.periodsGrade4, s.periodsGrade5];
+        return (p[cls.grade - 1] ?? 0) > 0;
       });
-    return total;
-  };
-
-  const teacherGroups: { teacher: TeacherResponse; subjects: SubjectResponse[] }[] = [];
-  teachers.forEach((t) => {
-    const teachableSubjectIds = new Set(t.subjects.map((s) => s.id));
-    const subs = subjects.filter((s) => teachableSubjectIds.has(s.id));
-    if (subs.length > 0) teacherGroups.push({ teacher: t, subjects: subs });
-  });
+      for (const sub of subs) {
+        if (!assignments.some((a) => a.classId === cls.id && a.subjectId === sub.id)) count++;
+      }
+    }
+    return count;
+  }, [classes, subjects, assignments]);
 
   return (
     <div className="bg-md-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 bg-md-surface-container-low/30 flex items-center justify-between">
-        <TypographyH4 title="Phân công giáo viên bộ môn" />
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "teacher" ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setViewMode((v) => (v === "matrix" ? "teacher" : "matrix"))}
+        <TypographyH4 title="Phân công chuyên môn" />
+        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode("teacher")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              viewMode === "teacher"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
           >
-            <Users className="h-3.5 w-3.5" />
-            {viewMode === "teacher" ? "Hiển thị theo lớp" : "Hiển thị theo GVBM"}
-          </Button>
+            <Users className="w-3.5 h-3.5" />
+            Theo giáo viên
+          </button>
+          <button
+            onClick={() => setViewMode("class")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              viewMode === "class"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            Theo lớp
+            {unassignedCount > 0 && (
+              <span className="ml-1 bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                {unassignedCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* ── Matrix view ────────────────────────────────── */}
-      {viewMode === "matrix" && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-md-surface-container-low/30 border-b border-md-outline-variant/20">
-                <th className="sticky left-0 z-20 bg-md-surface-container-low/30 text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3 text-left min-w-24 border-r border-md-outline-variant/20">
-                  Lớp
-                </th>
-                {subjects.map((sub) => (
-                  <th
-                    key={sub.id}
-                    className="text-xs font-semibold text-slate-600 px-2 py-3 text-center min-w-32 border-r border-md-outline-variant/10 last:border-r-0"
-                  >
-                    {sub.shortName || sub.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {activeGrades.map((grade) => (
-                <Fragment key={grade}>
-                  {/* Grade separator */}
-                  <tr className="bg-slate-50 border-y border-md-outline-variant/15">
-                    <td className="sticky left-0 z-10 bg-slate-50 px-4 py-1.5 border-r border-md-outline-variant/20">
-                      <Badge variant="secondary" className="text-xs font-bold">Khối {grade}</Badge>
-                    </td>
-                    <td colSpan={subjects.length} className="bg-slate-50" />
-                  </tr>
-                  {(classesByGrade[grade] ?? []).map((cls) => (
-                    <tr
-                      key={cls.id}
-                      className="group border-b border-md-outline-variant/10 hover:bg-slate-50/60 transition-colors"
-                    >
-                      {/* Sticky class name cell */}
-                      <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50/80 px-4 py-2 border-r border-md-outline-variant/20 transition-colors">
-                        <div className="text-sm font-medium text-md-on-surface">{cls.name}</div>
-                        {cls.homeroomTeacherName && (
-                          <div className="text-[10px] text-slate-400 leading-tight">{cls.homeroomTeacherName}</div>
-                        )}
-                      </td>
-                      {subjects.map((sub) => {
-                        const periods = getPeriodsForGrade(sub, grade);
-                        const disabled = periods === 0;
-                        const currentTeacherId = savedMap.get(k(cls.id, sub.id)) ?? null;
-                        return (
-                          <td
-                            key={sub.id}
-                            className="px-2 py-1.5 border-r border-md-outline-variant/10 last:border-r-0 text-center"
-                          >
-                            {disabled ? (
-                              <div className="h-8 bg-slate-100 rounded flex items-center justify-center">
-                                <span className="text-slate-300 text-xs select-none">—</span>
-                              </div>
-                            ) : (
-                              <Select
-                                value={currentTeacherId !== null ? String(currentTeacherId) : "homeroom"}
-                                onValueChange={(val) => handleCellChange(cls.id, sub.id, val)}
-                              >
-                                <SelectTrigger
-                                  className={`h-8 text-xs focus:ring-0 focus:ring-offset-0 ${
-                                    currentTeacherId !== null
-                                      ? "bg-blue-50 border-blue-200 text-blue-700 font-medium"
-                                      : "border-slate-200 bg-white text-slate-500"
-                                  }`}
-                                >
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="homeroom">
-                                    <span className="text-slate-500 italic">GVCN</span>
-                                  </SelectItem>
-                                  {teachers
-                                    .filter((t) => t.subjects.some((s) => s.id === sub.id))
-                                    .map((t) => (
-                                      <SelectItem key={t.id} value={String(t.id)}>
-                                        {t.fullName}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ── Teacher view ────────────────────────────────── */}
+      {/* ── View: Theo giáo viên ── */}
       {viewMode === "teacher" && (
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-md-surface-container-low/30 border-b border-md-outline-variant/20 hover:bg-md-surface-container-low/30">
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-44 border-r border-md-outline-variant/20" rowSpan={2}>
-                Giáo viên
-              </TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-24 text-center border-r border-md-outline-variant/20" rowSpan={2}>
-                Định mức
-              </TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-24 text-center border-r border-md-outline-variant/20" rowSpan={2}>
-                Số tiết/tuần
-              </TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-36 border-r border-md-outline-variant/20" rowSpan={2}>
-                Môn học
-              </TableHead>
-              {activeGrades.map((g) => (
-                <TableHead
-                  key={g}
-                  colSpan={classesByGrade[g].length}
-                  className="text-xs font-bold text-md-primary text-center border-r border-md-outline-variant/20 last:border-r-0"
-                >
-                  Khối {g}
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-md-surface-container-low/20 border-b border-md-outline-variant/20 hover:bg-md-surface-container-low/20">
+                <TableHead className="w-12 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20">
+                  STT
                 </TableHead>
-              ))}
-            </TableRow>
-            <TableRow className="bg-md-surface-container-low/20 border-b border-md-outline-variant/20 hover:bg-md-surface-container-low/20">
-              {activeGrades.map((g) =>
-                classesByGrade[g].map((cls, i) => (
-                  <TableHead
-                    key={cls.id}
-                    className={`text-xs font-medium text-center min-w-16 ${
-                      i === classesByGrade[g].length - 1
-                        ? "border-r border-md-outline-variant/20"
-                        : "border-r border-md-outline-variant/10"
-                    }`}
-                  >
-                    <div className="font-semibold text-md-on-surface">{cls.name}</div>
-                    {cls.homeroomTeacherName ? (
-                      <div className="text-[10px] text-slate-400 mt-0.5 font-normal">{cls.homeroomTeacherName}</div>
-                    ) : (
-                      <div className="text-[10px] text-red-500 mt-0.5 font-medium">Chưa có GVCN</div>
-                    )}
-                  </TableHead>
-                ))
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teacherGroups.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4 + classes.length} className="text-center text-slate-400 italic py-8">
-                  Chưa có giáo viên bộ môn nào được phân công môn học
-                </TableCell>
+                <TableHead className="w-12 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20">
+                  Phân công
+                </TableHead>
+                <TableHead className="w-56 text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20">
+                  Họ tên giáo viên
+                </TableHead>
+                <TableHead className="w-28 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-md-outline-variant/20">
+                  Số tiết
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Môn dạy
+                </TableHead>
               </TableRow>
-            ) : (
-              teacherGroups.map(({ teacher, subjects: teacherSubjects }) =>
-                teacherSubjects.map((subject, si) => {
-                  const isFirst = si === 0;
-                  const isLastSubject = si === teacherSubjects.length - 1;
+            </TableHeader>
+            <TableBody>
+              {currentData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-slate-400 italic py-8">
+                    Chưa có giáo viên nào
+                  </TableCell>
+                </TableRow>
+              ) : (
+                currentData.map((teacher, idx) => {
+                  const stt = (currentPage - 1) * itemsPerPage + idx + 1;
+                  const summary = teacherStats.summaryMap.get(teacher.id);
+                  const assigned = teacherStats.periodsMap.get(teacher.id) ?? 0;
+                  const max = teacher.maxPeriodsPerWeek;
+                  const overload = assigned > max;
                   return (
-                    <TableRow
-                      key={`${teacher.id}-${subject.id}`}
-                      className={isLastSubject ? "border-b border-md-outline-variant/20" : "border-b border-md-outline-variant/10"}
-                    >
-                      {isFirst && (
-                        <TableCell rowSpan={teacherSubjects.length} className="border-r border-md-outline-variant/20 align-top">
-                          <div className="font-medium text-md-on-surface">{teacher.fullName}</div>
-                        </TableCell>
-                      )}
-                      {isFirst && (
-                        <TableCell rowSpan={teacherSubjects.length} className="border-r border-md-outline-variant/20 align-middle text-center">
-                          <span className="font-semibold text-slate-700 text-sm">{teacher.maxPeriodsPerWeek}</span>
-                          <div className="text-[10px] text-slate-400 mt-0.5">tiết/tuần</div>
-                        </TableCell>
-                      )}
-                      {isFirst && (
-                        <TableCell rowSpan={teacherSubjects.length} className="border-r border-md-outline-variant/20 align-middle text-center">
-                          <span className={`font-semibold text-sm ${
-                            totalPeriodsForTeacher(teacher) > teacher.maxPeriodsPerWeek ? "text-red-500" : "text-md-primary"
-                          }`}>
-                            {totalPeriodsForTeacher(teacher)}
-                          </span>
-                          <div className="text-[10px] text-slate-400 mt-0.5">tiết/tuần</div>
-                        </TableCell>
-                      )}
-                      <TableCell className="border-r border-md-outline-variant/20">
-                        <div className="font-medium text-sm text-md-on-surface">{subject.name}</div>
+                    <TableRow key={teacher.id} className="border-b border-md-outline-variant/10 hover:bg-slate-50/60">
+                      <TableCell className="text-center text-sm text-slate-500 border-r border-md-outline-variant/20">
+                        {stt}
                       </TableCell>
-                      {activeGrades.map((g) =>
-                        classesByGrade[g].map((cls, i) => {
-                          const assigned = isAssigned(cls.id, subject.id, teacher.id);
-                          return (
-                            <TableCell
-                              key={cls.id}
-                              className={`text-center p-0 ${
-                                i === classesByGrade[g].length - 1
-                                  ? "border-r border-md-outline-variant/20"
-                                  : "border-r border-md-outline-variant/10"
-                              }`}
-                            >
-                              <div className={`w-full h-full flex items-center justify-center min-h-10 ${
-                                assigned ? "bg-emerald-50 text-emerald-600" : ""
-                              }`}>
-                                {assigned && <Check className="w-4 h-4" strokeWidth={2.5} />}
-                              </div>
-                            </TableCell>
-                          );
-                        })
-                      )}
+                      <TableCell className="text-center border-r border-md-outline-variant/20">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 border-0 bg-transparent hover:bg-slate-100 hover:text-md-primary"
+                          onClick={() => setEditingTeacher(teacher)}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-medium text-sm border-r border-md-outline-variant/20">
+                        {teacher.fullName}
+                      </TableCell>
+                      <TableCell className="text-center text-sm border-r border-md-outline-variant/20">
+                        <span className={overload ? "text-red-500" : ""}>{assigned}</span>
+                        <span className="text-slate-400"> / {max}</span>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600 whitespace-normal wrap-break-word max-w-xs">
+                        {summary ?? <span className="text-slate-400 italic text-xs">Chưa có phân công</span>}
+                      </TableCell>
                     </TableRow>
                   );
                 })
-              )
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+
+          {teachers.length > 0 && (
+            <div className="px-6 py-3 border-t border-md-outline-variant/10 flex items-center justify-between gap-4">
+              <span className="text-xs text-slate-400 shrink-0">
+                {teachers.length} giáo viên · {classes.length} lớp
+              </span>
+              <CustomPagination
+                totalItems={teachers.length}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
       )}
 
-      {/* Footer */}
-      <div className="px-6 py-3 bg-md-surface-container-low/10 border-t border-md-outline-variant/10 text-xs text-slate-400">
-        {teacherGroups.length} giáo viên · {subjects.length} môn học · {classes.length} lớp
-      </div>
+      {/* ── View: Theo lớp ── */}
+      {viewMode === "class" && (
+        <>
+          {/* Toolbar */}
+          <div className="px-6 py-3 border-b border-md-outline-variant/10 flex items-center gap-3">
+            <span className="text-xs font-semibold text-slate-500">Khối:</span>
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(Number(e.target.value))}
+              className="bg-slate-100 border-0 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-md-primary/20"
+            >
+              {grades.map((g) => (
+                <option key={g} value={g}>Khối {g}</option>
+              ))}
+            </select>
+            <span className="ml-auto text-xs text-slate-500">
+              Số lớp đã hoàn thành phân công:{" "}
+              <span className="font-semibold text-slate-700">
+                {completedCount}/{gradeClasses.length}
+              </span>
+            </span>
+          </div>
+
+          {/* Class cards */}
+          <div className="divide-y divide-md-outline-variant/10">
+            {gradeClasses.length === 0 ? (
+              <div className="text-center text-slate-400 italic py-10 text-sm">
+                Không có lớp nào trong khối {selectedGrade}
+              </div>
+            ) : (
+              gradeClasses.map((cls) => {
+                const clsUnassigned = gradeSubjects.filter(
+                  (sub) => !assignments.some((a) => a.classId === cls.id && a.subjectId === sub.id)
+                ).length;
+                return (
+                  <div key={cls.id} className="px-6 py-4">
+                    {/* Class name row */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="font-bold text-slate-800 text-sm">
+                        Lớp {cls.name}
+                      </span>
+                      {clsUnassigned > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                          <AlertTriangle className="w-3 h-3" />
+                          {clsUnassigned} môn chưa PC
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Subject rows */}
+                    <div className="space-y-1.5">
+                      {gradeSubjects.map((sub) => {
+                        const assignment = assignments.find(
+                          (a) => a.classId === cls.id && a.subjectId === sub.id
+                        );
+                        const homeroomTeacher = teachers.find(
+                          (t) => t.id === cls.homeroomTeacherId
+                        );
+                        const nonHomeroomTeachers = teachers.filter(
+                          (t) => t.type !== "CHU_NHIEM"
+                        );
+                        return (
+                          <div
+                            key={sub.id}
+                            className="flex items-center gap-4 py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            <span className="text-sm text-slate-700 w-56 shrink-0">{sub.name}</span>
+                            <select
+                              value={assignment?.teacherId ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                onSave([{
+                                  classId: cls.id,
+                                  subjectId: sub.id,
+                                  teacherId: val === "" ? null : Number(val),
+                                }]);
+                              }}
+                              className={`w-52 shrink-0 text-sm border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-md-primary/20 transition-colors ${
+                                assignment
+                                  ? "border-slate-200 bg-white text-slate-700"
+                                  : "border-amber-200 bg-amber-50 text-amber-700"
+                              }`}
+                            >
+                              <option value="">— Chưa phân công —</option>
+                              {homeroomTeacher && (
+                                <option value={homeroomTeacher.id}>
+                                  {homeroomTeacher.fullName} (GVCN)
+                                </option>
+                              )}
+                              {nonHomeroomTeachers.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.fullName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Assignment modal */}
+      {editingTeacher && (
+        <SubjectAssignmentModal
+          open
+          defaultTeacher={editingTeacher}
+          subjects={subjects}
+          classes={classes}
+          assignments={assignments}
+          onSave={onSave}
+          onClose={() => setEditingTeacher(null)}
+        />
+      )}
     </div>
   );
 }

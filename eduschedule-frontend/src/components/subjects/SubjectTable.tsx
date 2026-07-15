@@ -7,7 +7,6 @@ import { Pencil, Trash2, Download, Plus, FileUp } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { TypographyH4 } from "@/components/ui/typography";
 import {
   Table,
@@ -96,8 +95,8 @@ export function SubjectTable() {
   };
 
   const downloadTemplate = () => {
-    const headers = ["Tên môn học (*)", "Viết tắt (*)", "Tiết/tuần Khối 1 (*)", "Tiết/tuần Khối 2 (*)", "Tiết/tuần Khối 3 (*)", "Tiết/tuần Khối 4 (*)", "Tiết/tuần Khối 5 (*)"];
-    const sample = ["Toán", "Toán", 4, 5, 5, 5, 5];
+    const headers = ["Tên môn học (*)", "Tiết/tuần Khối 1 (*)", "Tiết/tuần Khối 2 (*)", "Tiết/tuần Khối 3 (*)", "Tiết/tuần Khối 4 (*)", "Tiết/tuần Khối 5 (*)"];
+    const sample = ["Toán", 4, 5, 5, 5, 5];
     const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
     ws["!cols"] = headers.map((_, i) => ({ wch: i === 0 ? 30 : 20 }));
     const wb = XLSX.utils.book_new();
@@ -126,17 +125,14 @@ export function SubjectTable() {
     const errors: string[] = [];
     const bodies = dataRows.map((row, i) => {
       const name = String(row[0] ?? "").trim();
-      const shortName = String(row[1] ?? "").trim();
       if (!name) errors.push(`Dòng ${i + 2}: Tên môn học không được để trống`);
-      if (!shortName) errors.push(`Dòng ${i + 2}: Viết tắt không được để trống`);
       return {
         name,
-        shortName,
-        periodsGrade1: parseInt(String(row[2] ?? "0"), 10) || 0,
-        periodsGrade2: parseInt(String(row[3] ?? "0"), 10) || 0,
-        periodsGrade3: parseInt(String(row[4] ?? "0"), 10) || 0,
-        periodsGrade4: parseInt(String(row[5] ?? "0"), 10) || 0,
-        periodsGrade5: parseInt(String(row[6] ?? "0"), 10) || 0,
+        periodsGrade1: parseInt(String(row[1] ?? "0"), 10) || 0,
+        periodsGrade2: parseInt(String(row[2] ?? "0"), 10) || 0,
+        periodsGrade3: parseInt(String(row[3] ?? "0"), 10) || 0,
+        periodsGrade4: parseInt(String(row[4] ?? "0"), 10) || 0,
+        periodsGrade5: parseInt(String(row[5] ?? "0"), 10) || 0,
       };
     });
 
@@ -191,7 +187,6 @@ export function SubjectTable() {
   const handleSave = async (data: Partial<Subject>) => {
     const body = {
       name: data.name ?? "",
-      shortName: data.shortName ?? "",
       periodsGrade1: data.periodsByGrade?.[0] ?? 0,
       periodsGrade2: data.periodsByGrade?.[1] ?? 0,
       periodsGrade3: data.periodsByGrade?.[2] ?? 0,
@@ -227,7 +222,7 @@ export function SubjectTable() {
 
   return (
     <>
-      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md">
+      <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md border border-slate-200">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <div className="flex items-center gap-3">
             {selectedIds.size > 0 && (
@@ -275,7 +270,6 @@ export function SubjectTable() {
                   />
                 </TableHead>
                 <TableHead className="px-4" rowSpan={2}>Tên môn học</TableHead>
-                <TableHead className="px-4 text-center" rowSpan={2}>Viết tắt</TableHead>
                 <TableHead className="px-4 text-center border-b-0" colSpan={5}>Số tiết theo khối</TableHead>
                 <TableHead className="text-right px-4" rowSpan={2}>Thao tác</TableHead>
               </TableRow>
@@ -298,9 +292,6 @@ export function SubjectTable() {
                   </TableCell>
                   <TableCell className="px-4 font-medium text-md-on-surface">
                     {subject.name}
-                  </TableCell>
-                  <TableCell className="px-4 text-center">
-                    <Badge variant="secondary">{subject.shortName}</Badge>
                   </TableCell>
                   {subject.periodsByGrade.map((p: number, i: number) => (
                     <TableCell key={i} className="px-4 text-center text-sm font-semibold text-md-on-surface">

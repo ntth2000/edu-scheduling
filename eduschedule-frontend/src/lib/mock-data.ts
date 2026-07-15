@@ -39,15 +39,15 @@ export const mockTeachers: Teacher[] = [
 ];
 
 export const mockSubjects: Subject[] = [
-  { id: 1, name: "Toán", shortName: "Toán", periodsByGrade: [4, 4, 4, 4, 4] },
-  { id: 2, name: "Tiếng Việt", shortName: "TV", periodsByGrade: [10, 9, 8, 7, 7] },
-  { id: 3, name: "Tiếng Anh", shortName: "TA", periodsByGrade: [0, 0, 3, 4, 4] },
-  { id: 4, name: "Giáo dục thể chất", shortName: "GDTC", periodsByGrade: [2, 2, 2, 2, 2] },
-  { id: 5, name: "Tin học", shortName: "Tin", periodsByGrade: [0, 0, 2, 2, 2] },
-  { id: 6, name: "Âm nhạc", shortName: "ÂN", periodsByGrade: [1, 1, 1, 1, 1] },
-  { id: 7, name: "Mĩ thuật", shortName: "MT", periodsByGrade: [1, 1, 1, 1, 1] },
-  { id: 8, name: "Hoạt động trải nghiệm", shortName: "HĐTN", periodsByGrade: [2, 2, 2, 2, 2] },
-  { id: 9, name: "Lịch sử & Địa lý", shortName: "LS&ĐL", periodsByGrade: [0, 0, 0, 2, 2] },
+  { id: 1, name: "Toán", periodsByGrade: [4, 4, 4, 4, 4] },
+  { id: 2, name: "Tiếng Việt", periodsByGrade: [10, 9, 8, 7, 7] },
+  { id: 3, name: "Tiếng Anh", periodsByGrade: [0, 0, 3, 4, 4] },
+  { id: 4, name: "Giáo dục thể chất", periodsByGrade: [2, 2, 2, 2, 2] },
+  { id: 5, name: "Tin học", periodsByGrade: [0, 0, 2, 2, 2] },
+  { id: 6, name: "Âm nhạc", periodsByGrade: [1, 1, 1, 1, 1] },
+  { id: 7, name: "Mĩ thuật", periodsByGrade: [1, 1, 1, 1, 1] },
+  { id: 8, name: "Hoạt động trải nghiệm", periodsByGrade: [2, 2, 2, 2, 2] },
+  { id: 9, name: "Lịch sử & Địa lý", periodsByGrade: [0, 0, 0, 2, 2] },
 ];
 
 export const mockClasses: SchoolClass[] = [

@@ -19,7 +19,6 @@ export interface TeacherResponse {
 export interface SubjectResponse {
   id: number;
   name: string;
-  shortName: string;
   periodsGrade1: number;
   periodsGrade2: number;
   periodsGrade3: number;
@@ -57,7 +56,6 @@ export interface AssignmentResponse {
   grade: number;
   subjectId: number;
   subjectName: string;
-  subjectShortName: string;
   teacherId: number | null;
   teacherName: string | null;
   periodsPerWeek: number;
@@ -83,7 +81,6 @@ export function mapSubject(s: SubjectResponse): Subject {
   return {
     id: s.id,
     name: s.name,
-    shortName: s.shortName,
     periodsByGrade: [s.periodsGrade1, s.periodsGrade2, s.periodsGrade3, s.periodsGrade4, s.periodsGrade5],
   };
 }
@@ -133,7 +130,6 @@ export interface TeacherRequest {
 
 export interface SubjectRequest {
   name: string;
-  shortName: string;
   periodsGrade1: number;
   periodsGrade2: number;
   periodsGrade3: number;
@@ -278,6 +274,23 @@ export const timetableApi = {
     }),
 };
 
+export interface AutoScheduleSlot {
+  day: number;
+  period: number;
+  className: string;
+  classId: number;
+  subjectId: number;
+  subjectName: string;
+  teacherId: number | null;
+  teacherName: string | null;
+  assignmentId: number;
+}
+
+export interface AutoScheduleResult {
+  slots: AutoScheduleSlot[];
+  errors: string[];
+}
+
 export const weekApi = {
   getByTimetable: (timetableId: number) =>
     apiFetch<WeekResponse[]>(`/api/weeks?timetableId=${timetableId}`),
@@ -290,6 +303,11 @@ export const weekApi = {
 
   applyForward: (weekId: number) =>
     apiFetch<void>(`/api/weeks/${weekId}/apply-forward`, {
+      method: "POST",
+    }),
+
+  generate: (weekId: number) =>
+    apiFetch<AutoScheduleResult>(`/api/weeks/${weekId}/generate`, {
       method: "POST",
     }),
 };

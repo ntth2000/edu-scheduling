@@ -23,24 +23,21 @@ interface SubjectModalProps {
 
 export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectModalProps) {
   const [name, setName] = useState("");
-  const [shortName, setShortName] = useState("");
   const [periodsByGrade, setPeriodsByGrade] = useState<[number, number, number, number, number]>([0, 0, 0, 0, 0]);
 
   useEffect(() => {
     if (subject) {
       setName(subject.name);
-      setShortName(subject.shortName);
       setPeriodsByGrade([...subject.periodsByGrade]);
     } else {
       setName("");
-      setShortName("");
       setPeriodsByGrade([0, 0, 0, 0, 0]);
     }
   }, [subject, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, shortName, periodsByGrade });
+    onSave({ name, periodsByGrade });
   };
 
   return (
@@ -57,15 +54,6 @@ export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectMod
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel>Tên viết tắt <span className="text-red-600">*</span></FieldLabel>
-            <Input
-              value={shortName}
-              onChange={(e) => setShortName(e.target.value)}
               required
             />
           </Field>

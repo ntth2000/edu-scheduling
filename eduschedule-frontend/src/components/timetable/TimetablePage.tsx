@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   type Slot,
   DAYS,
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   FileSpreadsheet, AlertTriangle, Users, ArrowLeft, BarChart2,
-  Check, ChevronDown, Save, X, Pencil,
+  Check, ChevronDown, Save, X, Pencil, Sparkles,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -52,6 +53,7 @@ import {
   TimetableResponse,
   weekApi,
   WeekResponse,
+  type AutoScheduleResult,
 } from "@/lib/api";
 import { TimetableDragProvider } from "./TimetableDragContext";
 
@@ -89,7 +91,6 @@ export function TimetablePage({
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [progressClassId, setProgressClassId] = useState<string>("");
   const [progressModalOpen, setProgressModalOpen] = useState(false);
-  const [activeProgressTab, setActiveProgressTab] = useState<"progress" | "workload">("progress");
   const [progressGrade, setProgressGrade] = useState(1);
   const [highlightedSlotIds, setHighlightedSlotIds] = useState<Set<string>>(new Set());
 
@@ -118,6 +119,9 @@ export function TimetablePage({
   const [loading, setLoading] = useState(true);
   const [exportingLabel, setExportingLabel] = useState<string | null>(null);
   const [pendingAdd, setPendingAdd] = useState<PendingSlotAdd | null>(null);
+  const [autoScheduleDialogOpen, setAutoScheduleDialogOpen] = useState(false);
+  const [autoScheduleErrors, setAutoScheduleErrors] = useState<{ className: string; subjects: string[] }[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   const hasDirtyChanges = pendingAdds.size > 0 || pendingDeletes.size > 0;
 
@@ -142,7 +146,7 @@ export function TimetablePage({
 
   // ── Data loading ──────────────────────────────────────
   useEffect(() => {
-    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(), assignmentApi.getAll(), specialRoomApi.getAll()])
+    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(yearParam), assignmentApi.getAll(yearParam), specialRoomApi.getAll()])
       .then(([t, s, c, a, r]) => {
         setTeachers(t);
         setSubjects(
@@ -161,7 +165,7 @@ export function TimetablePage({
         if (firstBm) setSelectedTeacherId(firstBm.id.toString());
       })
       .catch(() => toast.error("Không thể tải dữ liệu"));
-  }, []);
+  }, [yearParam]);
 
   useEffect(() => {
     const load = timetableId
@@ -284,22 +288,16 @@ export function TimetablePage({
       const p = session ? `${session.label} T${period - session.periods[0] + 1}` : `Tiết ${period}`;
       return { d, p };
     };
-    const errors = [
-      ...conflictGroups.map((cg) => {
-        const { d, p } = label(cg.day, cg.period);
-        return { key: cg.key, label: `GV ${cg.teacherName} trùng lịch — ${d}, ${p} (${cg.classNames.join(", ")})`, severity: "error" as const };
-      }),
-      ...roomConflictGroups.map((rg) => {
-        const { d, p } = label(rg.day, rg.period);
-        return { key: rg.key, label: `Phòng ${rg.roomName} trùng — ${d}, ${p} (${rg.classNames.join(", ")})`, severity: "error" as const };
-      }),
-    ];
+    const errors = conflictGroups.map((cg) => {
+      const { d, p } = label(cg.day, cg.period);
+      return { key: cg.key, label: `GV ${cg.teacherName} trùng lịch — ${d}, ${p} (${cg.classNames.join(", ")})`, severity: "error" as const };
+    });
     const warnings = gapWarnings.map((gw) => {
       const { d, p } = label(gw.day, gw.period);
       return { key: gw.key, label: `Tiết trống giữa buổi — ${gw.className}, ${d} ${p}`, severity: "warning" as const };
     });
     return [...errors, ...warnings];
-  }, [conflictGroups, roomConflictGroups, gapWarnings]);
+  }, [conflictGroups, gapWarnings]);
 
   const progressGradeClasses = useMemo(
     () => classes.filter((c) => c.grade === progressGrade).sort((a, b) => a.name.localeCompare(b.name, "vi")),
@@ -352,6 +350,28 @@ export function TimetablePage({
   const handleAddSlot = useCallback(
     (params: AddSlotParams) => {
       if (!selectedWeekId) return;
+
+      // Room conflict check — block immediately
+      const subjectId = params.subjectNumericId ?? Number(params.subjectId);
+      const room = specialRooms.find((r) => r.subjectId === subjectId);
+      if (room) {
+        const concurrentSlots = slots.filter(
+          (s) => s.day === params.day && s.period === params.period && s.subjectId === params.subjectId
+        );
+        if (concurrentSlots.length >= room.quantity) {
+          const dayLabel = DAYS.find((d) => d.value === params.day)?.label ?? `Thứ ${params.day}`;
+          const session = SESSIONS.find((s) => (s.periods as readonly number[]).includes(params.period));
+          const sessionLabel = session?.label ?? "";
+          const classNames = concurrentSlots.map((s) => `lớp ${s.classId}`).join(", ");
+          toast.error(
+            `Phòng ${room.name} (${params.subjectName}) đã có ${classNames} tiết ${params.period} ${sessionLabel} ${dayLabel}. Hãy chọn một tiết khác để xếp ${params.subjectName}.`,
+            { duration: 6000 }
+          );
+          return;
+        }
+      }
+
+      // Teacher conflict check
       if (params.assignmentId && params.teacherId) {
         const conflictingSlot = slots.find(
           (s) => s.day === params.day && s.period === params.period && s.teacherId === params.teacherId && s.classId !== params.classId
@@ -360,7 +380,7 @@ export function TimetablePage({
       }
       markDirtyAdd(params);
     },
-    [selectedWeekId, slots, markDirtyAdd]
+    [selectedWeekId, slots, specialRooms, markDirtyAdd]
   );
 
   const handleConfirmAdd = useCallback(() => {
@@ -486,6 +506,101 @@ export function TimetablePage({
     setOverlayClassId(selectedClassId !== "all" ? selectedClassId : "all");
     setIsEditOverlayOpen(true);
   }, [selectedGrade, selectedClassId]);
+
+  const handleAutoSchedule = useCallback(async () => {
+    // 1. Check all subjects are assigned
+    const unassigned: { className: string; subjects: string[] }[] = [];
+    for (const cls of classes) {
+      const clsSubjects = subjects.filter((s) => s.periodsByGrade[cls.grade - 1] > 0);
+      const missing = clsSubjects.filter(
+        (sub) => !assignments.some((a) => a.classId === cls.id && a.subjectId === sub.id)
+      );
+      if (missing.length > 0) {
+        unassigned.push({ className: cls.name, subjects: missing.map((s) => s.name) });
+      }
+    }
+    if (unassigned.length > 0) {
+      setAutoScheduleErrors(unassigned);
+      setAutoScheduleDialogOpen(true);
+      return;
+    }
+
+    if (!selectedWeekId) { toast.error("Chưa chọn tuần"); return; }
+
+    // 2. Call generate API
+    setGenerating(true);
+    let result: AutoScheduleResult;
+    try {
+      result = await weekApi.generate(selectedWeekId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Lỗi khi xếp tự động");
+      setGenerating(false);
+      return;
+    } finally {
+      setGenerating(false);
+    }
+
+    if (result.slots.length === 0 && result.errors.length === 0) {
+      toast.info("Tất cả các tiết đã được xếp rồi");
+      return;
+    }
+
+    if (result.slots.length === 0 && result.errors.length > 0) {
+      toast.error(
+        `Không thể xếp tự động: ${result.errors.slice(0, 3).join(" · ")}${result.errors.length > 3 ? ` (+${result.errors.length - 3} khác)` : ""}`,
+        { duration: 7000 }
+      );
+      return;
+    }
+
+    // 3. Batch-add all generated slots as dirty/pending (no individual toasts)
+    setSlots((prev) => {
+      let next = [...prev];
+      for (const s of result.slots) {
+        next = next.filter((x) => !(x.classId === s.className && x.day === s.day && x.period === s.period));
+        next.push({
+          id: `dirty-${s.day}-${s.period}-${s.className}`,
+          assignmentId: s.assignmentId,
+          day: s.day,
+          period: s.period,
+          classId: s.className,
+          subjectId: s.subjectId.toString(),
+          subjectName: s.subjectName,
+          teacherId: s.teacherId != null ? s.teacherId.toString() : null,
+          teacherName: s.teacherName,
+          isConflict: false,
+          isDirty: true,
+        });
+      }
+      return next;
+    });
+    setPendingAdds((prev) => {
+      const next = new Map(prev);
+      for (const s of result.slots) {
+        next.set(`${s.day}-${s.period}-${s.className}`, {
+          assignmentId: s.assignmentId,
+          classNumericId: s.classId,
+          subjectNumericId: s.subjectId,
+          day: s.day,
+          period: s.period,
+          subjectName: s.subjectName,
+          teacherId: s.teacherId != null ? s.teacherId.toString() : null,
+          teacherName: s.teacherName,
+          subjectId: s.subjectId.toString(),
+          classId: s.className,
+        });
+      }
+      return next;
+    });
+    if (result.errors.length > 0) {
+      toast.warning(
+        `Đã xếp ${result.slots.length} tiết, không xếp được ${result.errors.length} môn — nhớ lưu lại!`,
+        { duration: 6000 }
+      );
+    } else {
+      toast.success(`Đã tự động xếp ${result.slots.length} tiết — nhớ lưu lại!`, { duration: 4000 });
+    }
+  }, [classes, subjects, assignments, selectedWeekId]);
 
   const reloadSlots = useCallback(async () => {
     if (!selectedWeekId) return;
@@ -636,7 +751,7 @@ export function TimetablePage({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { setProgressModalOpen(true); setActiveProgressTab("progress"); }}
+            onClick={() => setProgressModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium"
           >
             <BarChart2 className="h-4 w-4" /> Tiến độ
@@ -802,6 +917,17 @@ export function TimetablePage({
                 </span>
               )}
               <Button
+                onClick={handleAutoSchedule}
+                disabled={saving || generating}
+                size="sm"
+                variant="outline"
+                title="Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"
+                className="flex items-center gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {generating ? "Đang xếp..." : "Tự động xếp TKB"}
+              </Button>
+              <Button
                 onClick={handleSave}
                 disabled={saving || !hasDirtyChanges}
                 size="sm"
@@ -809,7 +935,7 @@ export function TimetablePage({
                 className="flex items-center gap-1.5"
               >
                 <Save className="h-3.5 w-3.5" />
-                {saving ? "Đang lưu..." : `Lưu tuần ${selectedWeek?.weekNumber ?? ""}`}
+                {saving ? "Đang lưu..." : `Lưu tuần ${selectedWeek?.weekNumber ?? ""}${selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""}`}
               </Button>
               <Button
                 onClick={() => setApplyForwardConfirmOpen(true)}
@@ -817,7 +943,7 @@ export function TimetablePage({
                 size="sm"
                 className="bg-emerald-500 hover:bg-emerald-600 text-white"
               >
-                Áp dụng từ tuần {selectedWeek?.weekNumber ?? ""} trở đi →
+                Áp dụng từ tuần {selectedWeek?.weekNumber ?? ""}{selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} trở đi →
               </Button>
               <button
                 onClick={handleCloseOverlay}
@@ -949,107 +1075,56 @@ export function TimetablePage({
           <DialogHeader className="px-6 pt-5 pb-0">
             <DialogTitle className="font-heading text-lg font-bold">Tiến độ & Khối lượng</DialogTitle>
           </DialogHeader>
-          <div className="flex border-b border-slate-200 px-6 mt-3">
-            {([{ key: "progress", label: "Tiến độ theo lớp" }, { key: "workload", label: "Khối lượng giảng dạy" }] as const).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveProgressTab(key)}
-                className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
-                  activeProgressTab === key ? "border-md-primary text-md-primary" : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
           <div className="p-6 max-h-[60vh] overflow-y-auto">
-            {activeProgressTab === "progress" ? (
-              <div className="space-y-4">
-                {grades.length > 0 && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-semibold text-slate-500 mr-1">Khối:</span>
-                    {grades.map((g) => (
-                      <button key={g} onClick={() => handleProgressGradeChange(g)}
-                        className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
-                          progressGrade === g ? "bg-md-primary text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}>
-                        {g}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {progressGradeClasses.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Không có lớp nào</p>
-                ) : (
-                  <div className="space-y-3">
-                    {progressGradeClasses.map((cls) => {
-                      const filled = slotsWithConflicts.filter((s) => s.classId === cls.name).length;
-                      const clsAssignments = assignments.filter((a) => a.className === cls.name);
-                      const required = progressGradeSubjects.reduce((sum, sub) => {
-                        const a = clsAssignments.find((x) => x.subjectId === sub.id);
-                        return sum + (a?.periodsPerWeek ?? sub.periodsByGrade[progressGrade - 1]);
-                      }, 0);
-                      const done = required > 0 && filled >= required;
-                      return (
-                        <div key={cls.id}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-slate-700 flex items-center gap-1">
-                              Lớp {cls.name}
-                              {done && <Check className="h-3 w-3 text-emerald-500 shrink-0" />}
-                            </span>
-                            <span className={`text-[11px] font-semibold shrink-0 ml-2 ${done ? "text-emerald-600" : "text-slate-500"}`}>
-                              {filled}/{required}t
-                            </span>
-                          </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${done ? "bg-emerald-400" : "bg-md-primary"}`}
-                              style={{ width: `${required > 0 ? Math.min((filled / required) * 100, 100) : 0}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {teachers.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Chưa có giáo viên</p>
-                ) : (
-                  teachers.map((t) => {
-                    const current = slotsWithConflicts.filter((s) => s.teacherId === t.id.toString()).length;
-                    const ratio = current / t.maxPeriodsPerWeek;
-                    const overflow = ratio > 1;
-                    const full = ratio >= 1 && !overflow;
+            <div className="space-y-4">
+              {grades.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-500 mr-1">Khối:</span>
+                  {grades.map((g) => (
+                    <button key={g} onClick={() => handleProgressGradeChange(g)}
+                      className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
+                        progressGrade === g ? "bg-md-primary text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {progressGradeClasses.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">Không có lớp nào</p>
+              ) : (
+                <div className="space-y-3">
+                  {progressGradeClasses.map((cls) => {
+                    const filled = slotsWithConflicts.filter((s) => s.classId === cls.name).length;
+                    const clsAssignments = assignments.filter((a) => a.className === cls.name);
+                    const required = progressGradeSubjects.reduce((sum, sub) => {
+                      const a = clsAssignments.find((x) => x.subjectId === sub.id);
+                      return sum + (a?.periodsPerWeek ?? sub.periodsByGrade[progressGrade - 1]);
+                    }, 0);
+                    const done = required > 0 && filled >= required;
                     return (
-                      <div key={t.id}>
-                        <div className="flex items-center justify-between mb-1 gap-1">
-                          <div className="min-w-0">
-                            <span className="text-xs font-medium text-slate-700 truncate block">{t.fullName}</span>
-                            <span className="text-[10px] text-slate-400">{t.type === "CHU_NHIEM" ? "GVCN" : "Bộ môn"}</span>
-                          </div>
-                          {overflow && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-semibold shrink-0">⚠ Vượt</span>}
-                          {full && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600 font-semibold shrink-0">✓ Đủ</span>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${overflow ? "bg-amber-400" : full ? "bg-emerald-400" : "bg-blue-400"}`}
-                              style={{ width: `${Math.min(ratio * 100, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`text-[10px] font-semibold shrink-0 ${overflow ? "text-amber-600" : "text-slate-400"}`}>
-                            {current}/{t.maxPeriodsPerWeek}t
+                      <div key={cls.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-700 flex items-center gap-1">
+                            Lớp {cls.name}
+                            {done && <Check className="h-3 w-3 text-emerald-500 shrink-0" />}
                           </span>
+                          <span className={`text-[11px] font-semibold shrink-0 ml-2 ${done ? "text-emerald-600" : "text-slate-500"}`}>
+                            {filled}/{required}t
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${done ? "bg-emerald-400" : "bg-md-primary"}`}
+                            style={{ width: `${required > 0 ? Math.min((filled / required) * 100, 100) : 0}%` }}
+                          />
                         </div>
                       </div>
                     );
-                  })
-                )}
-              </div>
-            )}
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1057,7 +1132,7 @@ export function TimetablePage({
       <AlertDialog open={applyForwardConfirmOpen} onOpenChange={setApplyForwardConfirmOpen}>
         <AlertDialogContent className="z-10001">
           <AlertDialogHeader>
-            <AlertDialogTitle>Áp dụng từ tuần {selectedWeek?.weekNumber} trở đi?</AlertDialogTitle>
+            <AlertDialogTitle>Áp dụng từ tuần {selectedWeek?.weekNumber}{selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} trở đi?</AlertDialogTitle>
             <AlertDialogDescription>
               Thao tác này sẽ lưu TKB tuần {selectedWeek?.weekNumber} và sao chép toàn bộ sang tất cả các tuần tiếp theo.
               Dữ liệu TKB của các tuần sau sẽ bị ghi đè.
@@ -1074,6 +1149,66 @@ export function TimetablePage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={autoScheduleDialogOpen} onOpenChange={setAutoScheduleDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden z-10001">
+          <DialogHeader className="px-6 pt-5 pb-0">
+            <DialogTitle className="font-heading text-base font-bold flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> Không thể xếp tự động
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6 pt-3">
+            <p className="text-sm text-slate-600 mb-4">
+              Vẫn còn môn học chưa được phân công giáo viên.<br />
+              Vui lòng hoàn tất phân công giảng dạy trước khi xếp thời khóa biểu.
+            </p>
+            <div className="bg-slate-50 rounded-xl px-4 py-3 mb-4 max-h-52 overflow-y-auto">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Chi tiết</p>
+              {autoScheduleErrors.map(({ className, subjects }) => (
+                <div key={className} className="text-sm text-slate-700 mb-1 leading-snug">
+                  <span className="font-semibold">Lớp {className}:</span>{" "}
+                  <span className="text-slate-500">{subjects.join(", ")}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setAutoScheduleDialogOpen(false)}>
+                Đóng
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setAutoScheduleDialogOpen(false);
+                  router.push(`/assignments${yearParam ? `?year=${yearParam}` : ""}`);
+                }}
+              >
+                Đến phân công giảng dạy
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {generating && createPortal(
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/45"
+          style={{ zIndex: 99999 }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl px-10 py-10 flex flex-col items-center gap-6 w-full max-w-sm mx-4">
+            <div className="w-14 h-14 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+            <div className="text-center">
+              <p className="font-bold text-slate-800 text-[17px] font-heading leading-snug">
+                Đang xếp thời khóa biểu...
+              </p>
+              <p className="text-sm text-slate-500 mt-2.5 leading-relaxed">
+                Hệ thống đang tự động sắp xếp thời khóa biểu.<br />
+                Vui lòng không đóng hoặc tải lại trang.
+              </p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {exportingLabel && (
         <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm">

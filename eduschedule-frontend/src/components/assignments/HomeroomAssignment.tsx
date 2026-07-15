@@ -76,7 +76,7 @@ export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Prop
                                 onAssign(cls.classId, val === "none" ? null : Number(val))
                               }
                             >
-                              <SelectTrigger className="h-8 text-xs border-slate-200 bg-slate-50 focus:ring-0 focus:ring-offset-0">
+                              <SelectTrigger className="h-8 w-full text-xs border-slate-200 bg-slate-50 focus:ring-0 focus:ring-offset-0">
                                 <SelectValue placeholder="Chưa phân công" />
                               </SelectTrigger>
                               <SelectContent>
@@ -91,16 +91,14 @@ export function HomeroomAssignment({ assignments, gvcnTeachers, onAssign }: Prop
                               </SelectContent>
                             </Select>
                           </div>
-                          {cls.teacherId !== null && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 shrink-0 text-xs text-slate-400 hover:text-md-error hover:bg-md-error/10 px-2"
-                              onClick={() => onAssign(cls.classId, null)}
-                            >
-                              Xoá GVCN
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-7 shrink-0 text-xs px-2 ${cls.teacherId !== null ? "text-slate-400 hover:text-md-error hover:bg-md-error/10" : "invisible pointer-events-none"}`}
+                            onClick={() => onAssign(cls.classId, null)}
+                          >
+                            Xoá GVCN
+                          </Button>
                         </div>
                       );
                     })
