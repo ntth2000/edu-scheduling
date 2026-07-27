@@ -7,87 +7,39 @@
 
 % \textbf{Lưu ý}: Mỗi chương nên có thêm 1 đoạn mở đầu chương và kết thúc chương, mở đầu giới thiệu những nội dung sẽ trình bày trong chương, kết thúc tổng kết lại các nội dung đã trình bày
 
-Chương 2 trình bày kết quả khảo sát hiện trạng và phân tích yêu cầu của hệ thống. Trước tiên, chương khảo sát hiện trạng việc sắp xếp thời khoá biểu tại trường tiểu học thực tế, đồng thời so sánh các phần mềm tương tự hiện có trên thị trường. Tiếp theo, chương mô tả các nghiệp vụ chính của hệ thống theo góc nhìn người dùng — từ quản lý danh mục, phân công giảng dạy đến xếp và xuất thời khoá biểu. Trên cơ sở đó, chương phân tích chi tiết dữ liệu đầu vào và kết quả đầu ra của hệ thống. Tổng quan chức năng sau đó được thể hiện qua biểu đồ use case cùng đặc tả các use case quan trọng. Cuối cùng, chương nêu các yêu cầu phi chức năng về hiệu năng, bảo mật và khả năng mở rộng.
-
+Chương 2 trình bày kết quả khảo sát hiện trạng và phân tích yêu cầu của hệ thống EduSchedule. Trước tiên, chương khảo sát phương pháp lập thời khóa biểu bằng bảng tính và một số phần mềm hỗ trợ hiện có. Tiếp theo, các quy trình nghiệp vụ chính của hệ thống được mô tả từ khâu chuẩn bị thông tin, phân công giảng dạy đến lập, công bố và tra cứu thời khóa biểu. Trên cơ sở đó, chương xác định các tác nhân, xây dựng biểu đồ use case, đặc tả những use case trọng tâm và trình bày các yêu cầu phi chức năng của hệ thống.
 \section{Khảo sát hiện trạng}
 \label{section:2.1}
-% Thông thường, khảo sát chi tiết về hiện trạng và yêu cầu của phần mềm sẽ được lấy từ ba nguồn chính, đó là (i) người dùng/khách hàng, (ii) các hệ thống đã có, (iii) và các ứng dụng tương tự.
-% Sinh viên cần tiến hành phân tích, so sánh, đánh giá chi tiết ưu nhược điểm của các sản phẩm/nghiên cứu hiện có. Sinh viên có thể lập bảng so sánh nếu cần thiết. Kết hợp với khảo sát người dùng/khách hàng (nếu có), sinh viên nêu và mô tả sơ lược các tính năng phần mềm quan trọng cần phát triển.
 
-\subsection{Khảo sát người dùng}
-Để khảo sát nhu cầu sử dụng thực tế, tác giả đã tiến hành phỏng vấn giáo viên tại trường Tiểu học Lãng Sơn (phường Tân An, tỉnh Bắc Ninh). Kết quả khảo sát cho thấy nhà trường hiện đang thực hiện sắp xếp thời khoá biểu thủ công trên phần mềm Microsoft Excel do phó hiệu trường phụ trách chuyên môn thực hiện vào đầu mỗi học kì. Thời gian thực hiện sắp xếp thời khoá biểu cho cả trường có thể kéo dài khoảng 01 ngày.
+Hiện nay, việc xây dựng thời khóa biểu tại các trường học có thể được thực hiện bằng nhiều phương pháp khác nhau, từ sử dụng bảng tính đến các phần mềm xếp thời khóa biểu chuyên dụng. Mỗi phương pháp có những ưu điểm và hạn chế riêng về khả năng quản lý thông tin, kiểm tra xung đột, tự động hóa quá trình sắp xếp và mức độ phù hợp với quy trình của từng nhà trường. Để xác định các yêu cầu cần thiết cho đề tài, tác giả tiến hành tìm hiểu thực trạng lập thời khóa biểu tại trường tiểu học và khảo sát một số giải pháp đang được sử dụng hiện nay.
 
-Qua khảo sát, một số khó khăn trong quá trình sắp xếp thời khoá biểu được ghi nhận như sau:
+Một trong những phương pháp thường được sử dụng để xây dựng thời khóa biểu là Microsoft Excel. Với phương pháp này, người phụ trách dựa trên danh sách lớp học, giáo viên, môn học, số tiết yêu cầu và kết quả phân công giảng dạy để sắp xếp từng tiết vào bảng thời khóa biểu. Sau khi hoàn thành, thời khóa biểu được rà soát, điều chỉnh và phổ biến tới giáo viên cùng các lớp học. Microsoft Excel có ưu điểm là quen thuộc, linh hoạt và cho phép người phụ trách chủ động điều chỉnh từng vị trí trong thời khóa biểu. Tuy nhiên, bảng tính không trực tiếp quản lý mối quan hệ giữa lớp học, môn học, giáo viên và phòng chức năng. Việc kiểm tra lịch dạy của giáo viên, số tiết đã được sắp xếp của từng môn và khả năng sử dụng phòng chức năng chủ yếu được thực hiện thủ công. Vì vậy, người phụ trách phải đối chiếu nhiều thông tin trong quá trình lập lịch và có thể bỏ sót xung đột, đặc biệt khi một giáo viên bộ môn được phân công giảng dạy tại nhiều lớp. Khi có thay đổi về giáo viên, phân công giảng dạy hoặc kế hoạch học tập, những vị trí liên quan trong thời khóa biểu phải được rà soát và điều chỉnh lại. Một thay đổi ở một lớp có thể ảnh hưởng đến lịch dạy của giáo viên tại các lớp khác. Bên cạnh đó, việc sử dụng nhiều bảng hoặc tệp riêng để quản lý thông tin có thể gây khó khăn trong quá trình cập nhật và kiểm tra tính thống nhất của dữ liệu.
 
-Thứ nhất, việc sắp xếp thời khoá biểu thủ công trên Excel có nguy cơ cao dẫn tới tình trạng trùng tiết dạy do không có cơ chế kiểm tra trùng lặp tự động. Người phụ trách phải kiểm tra từng ô để tránh xung đột, đặc biệt với các tiết học do các giáo viên bộ môn phụ trách nhiều lớp. Quá trình này tốn thời gian và dễ xảy ra sai sót.
+Bên cạnh phương pháp sử dụng bảng tính, hiện nay đã có một số hệ thống hỗ trợ quản lý và xếp thời khóa biểu như VietSchool TKB, K12Online, TKB.com.vn và FTKB. Các sản phẩm này cung cấp nhiều chức năng như quản lý thông tin giảng dạy, hỗ trợ xếp lịch, kiểm tra xung đột, tra cứu thời khóa biểu và xuất dữ liệu. So với phương pháp thủ công, việc sử dụng phần mềm chuyên dụng giúp giảm một phần khối lượng kiểm tra và hỗ trợ người dùng quản lý thời khóa biểu tập trung hơn.
 
-Thứ hai, khi có biến động về nhân sự (giáo viên chuyển công tác hoặc xin nghỉ), toàn bộ thời khoá biểu cần được kiểm tra và và điều chỉnh lại để tránh trùng lặp. Thời gian tinh chỉnh thời có thể dài tương đương việc xếp mới từ đầu.
+Các hệ thống như VietSchool và K12Online được phát triển trong phạm vi nền tảng quản lý giáo dục với nhiều nhóm chức năng khác nhau. Việc tích hợp thời khóa biểu với các nghiệp vụ quản lý nhà trường tạo thuận lợi cho những đơn vị đang sử dụng đồng bộ hệ sinh thái của sản phẩm. Tuy nhiên, phạm vi chức năng rộng cũng có thể khiến quy trình sử dụng trở nên phức tạp đối với trường chỉ có nhu cầu quản lý và lập thời khóa biểu ở quy mô nhỏ.
 
-Từ những khó khăn trên, người dùng mong muốn một hệ thống tự động phát hiện và cảnh báo xung đột ngay khi xếp tiết, đồng thời hỗ trợ điều chỉnh nhanh chóng khi có biến động nhân sự.
+Trong khi đó, TKB.com.vn và FTKB tập trung nhiều hơn vào chức năng lập thời khóa biểu và hỗ trợ tự động hóa quá trình sắp xếp. Các hệ thống này có khả năng xử lý nhiều điều kiện của bài toán lập lịch và giúp người dùng tạo thời khóa biểu nhanh hơn so với phương pháp thủ công. Tuy nhiên, mỗi sản phẩm được xây dựng theo mô hình dữ liệu và quy trình riêng, vì vậy khả năng tùy chỉnh theo nghiệp vụ cụ thể của từng trường phụ thuộc vào những chức năng mà sản phẩm cung cấp.
 
-\subsection{Khảo sát các hệ thống hiện có}
+Qua quá trình khảo sát, có thể thấy phương pháp sử dụng Excel đem lại sự chủ động trong việc sắp xếp nhưng thiếu khả năng quản lý dữ liệu tập trung và kiểm tra ràng buộc tự động. Ngược lại, các phần mềm chuyên dụng hỗ trợ nhiều chức năng tự động hóa nhưng có thể chưa phù hợp hoàn toàn với nhu cầu kết hợp giữa sắp xếp thủ công và tự động của người phụ trách tại trường tiểu học.
 
-Để có cơ sở đánh giá, phân tích hạn chế và xác định các tính năng cốt lõi cần phát triển cho đề tài, tác giả đã tiến hành khảo sát, nghiên cứu một số hệ thống quản lý/xếp thời khóa biểu phổ biến hiện nay tại thị trường Việt Nam, tập trung vào các giải pháp phù hợp với trường tiểu học công lập. Khảo sát dựa trên tài liệu công khai và demo sản phẩm thực tế.
-
-\begin{table}[h!]
-	\centering
-	\caption{Phân tích các hệ thống quản lý thời khóa biểu phổ biến tại Việt Nam}
-	\label{tab:systems_comparison}
-	\begin{tabular}{|p{2.5cm}|p{1.5cm}|p{3.5cm}|p{3.5cm}|p{2.5cm}|}
-		\hline
-		\textbf{\centering Hệ thống} & \textbf{Loại hình} & \textbf{Ưu điểm} & \textbf{Hạn chế} & \textbf{Đánh giá sự phù hợp} \\
-		\hline
-		\textbf{VietSchool TKB} & Web + Mobile app & \begin{itemize}[leftmargin=*, nosep]
-		\item Xếp tự động theo ràng buộc
-		\item Xuất Excel/PDF
-		\item Hơn 2000 trường sử dụng
-		\end{itemize} & \begin{itemize}[leftmargin=*, nosep]
-		\item Phí license cao
-		\item Nhiều tính năng thừa (phổ thông)
-		\end{itemize} & Trung bình \\
-		\hline
-		\textbf{K12Online} & Web + Mobile app & \begin{itemize}[leftmargin=*, nosep]
-		\item Tra cứu online realtime
-		\item Thông báo thay đổi
-		\item Tích hợp SMAS
-		\end{itemize} & \begin{itemize}[leftmargin=*, nosep]
-		\item Hướng phổ thông
-		\item Phí subscription
-		\end{itemize} & Tốt \\
-		\hline
-		\textbf{TKB.com.vn} & Web & \begin{itemize}[leftmargin=*, nosep]
-		\item Xếp auto toàn trường
-		\item Có thể xếp theo nguyện vọng giáo viên
-		\item Nhanh với quy mô nhỏ
-		\end{itemize} & \begin{itemize}[leftmargin=*, nosep]
-		\item Không miễn phí
-		\item Ít tùy chỉnh tiểu học
-		\end{itemize} & Khá \\
-		\hline
-		\textbf{FTKB.vn} & Web & \begin{itemize}[leftmargin=*, nosep]
-		\item Thuật toán AI xếp lịch
-		\item Kiểm tra xung đột thông minh
-		\item Xếp tự động trong vài phút
-		\end{itemize} & \begin{itemize}[leftmargin=*, nosep]
-		\item Chi phí cao (1.5-3triệu/năm)
-		\end{itemize} & Trung bình \\
-		\hline
-		\textbf{Excel thủ công} & Desktop + Web & \begin{itemize}[leftmargin=*, nosep]
-		\item Miễn phí
-		\item Linh hoạt tùy chỉnh
-		\end{itemize} & \begin{itemize}[leftmargin=*, nosep]
-		\item Không tự động phát hiện xung đột
-		\item Tốn thời gian chỉnh sửa
-		\item Dữ liệu phân tán
-		\end{itemize} & \textbf{Phổ biến nhưng kém hiệu quả} \\
-		\hline
-	\end{tabular}
-\end{table}
-
-Qua khảo sát các hệ thống hiện có, có thể thấy hầu hết các phần mềm xếp thời khóa biểu hiện nay đều được thiết kế tổng quát cho nhiều bậc học, chưa tối ưu cho đặc thù của bậc tiểu học. Các phần mềm có đầy đủ tính năng đều yêu cầu chi phí bản quyền hàng năm, không phù hợp với ngân sách hạn chế của trường tiểu học công lập quy mô nhỏ. Do đó, đề tài xây dựng EduSchedule nhằm cung cấp một giải pháp web miễn phí, chuyên biệt cho bậc tiểu học, tập trung vào đúng các nghiệp vụ thực tế mà nhà trường cần.
-
-\section{Mô tả nghiệp vụ}
+Từ những nhận xét trên, đề tài xác định nhu cầu xây dựng một hệ thống web tập trung vào quy trình lập thời khóa biểu cho trường tiểu học. Hệ thống cần hỗ trợ quản lý các thông tin liên quan, phân công giảng dạy, kiểm tra xung đột và hiển thị thời khóa biểu dưới dạng lưới trực quan. Người phụ trách có thể chủ động sắp xếp trước một số tiết học, sau đó sử dụng chức năng tự động để phân bổ các tiết còn thiếu mà không làm thay đổi các tiết đã có. Kết quả xếp tự động cần được hiển thị để người phụ trách kiểm tra và xác nhận trước khi lưu. Ngoài ra, hệ thống cần hỗ trợ giáo viên tra cứu thời khóa biểu được công bố và cho phép xuất thời khóa biểu ra file Excel.
+\subsection{Mô tả nghiệp vụ}
 \label{section:2.2}
+
+% Vào đầu mỗi năm học, nhà trường tiến hành xây dựng thời khóa biểu cho các lớp nhằm đảm bảo hoạt động giảng dạy diễn ra theo đúng chương trình giáo dục và kế hoạch năm học. Công việc này thường do Ban Giám hiệu hoặc cán bộ phụ trách chuyên môn thực hiện dựa trên chương trình giảng dạy, đội ngũ giáo viên và các quy định của nhà trường.
+
+% Quá trình xây dựng thời khóa biểu bắt đầu từ việc xác định các lớp học sẽ được tổ chức trong năm học, các môn học cần giảng dạy và số tiết của từng môn theo chương trình giáo dục. Tiếp theo, nhà trường thực hiện phân công giảng dạy, xác định giáo viên phụ trách từng môn học của từng lớp.
+
+% Đối với trường tiểu học, việc phân công giảng dạy có một số đặc thù riêng. Thông thường, mỗi lớp được phân công một giáo viên chủ nhiệm phụ trách quản lý lớp và giảng dạy phần lớn các môn học văn hóa như Toán, Tiếng Việt, Đạo đức, Tự nhiên và Xã hội (tùy theo chương trình và quy định của từng trường). Các môn học chuyên biệt như Tiếng Anh, Tin học, Âm nhạc, Mỹ thuật và Giáo dục thể chất thường do giáo viên bộ môn đảm nhiệm. Một giáo viên bộ môn có thể được phân công giảng dạy nhiều lớp khác nhau, trong khi giáo viên chủ nhiệm chủ yếu giảng dạy lớp mình phụ trách.
+
+% Sau khi hoàn tất việc phân công giảng dạy, người phụ trách tiến hành sắp xếp các tiết học vào các khung thời gian trong tuần để xây dựng thời khóa biểu cho từng lớp. Trong quá trình này cần đảm bảo nhiều yêu cầu như: mỗi giáo viên không được giảng dạy nhiều lớp trong cùng một thời điểm; mỗi lớp chỉ học một môn trong một tiết học; các môn học được bố trí đủ số tiết theo quy định của chương trình; các tiết học trong cùng một buổi được sắp xếp liên tục, không xuất hiện khoảng trống giữa các tiết học; đồng thời đáp ứng các ràng buộc do nhà trường quy định.
+
+% Sau khi xây dựng được thời khóa biểu đáp ứng các yêu cầu bắt buộc, người phụ trách chuyên môn thường tiếp tục rà soát và điều chỉnh nhằm nâng cao chất lượng thời khóa biểu, bảo đảm cách phân bố các tiết học phù hợp với yêu cầu quản lý của nhà trường.
+
+% Cuối cùng, thời khóa biểu được rà soát lần cuối để phát hiện và xử lý các xung đột hoặc những điểm chưa phù hợp trước khi chính thức ban hành và đưa vào áp dụng trong hoạt động giảng dạy.
+% \section{Phân tích chức năng}
+% \label{section:2.2}
 
 Hệ thống EduSchedule hỗ trợ ban giám hiệu quản lý và xếp thời khoá biểu cho toàn trường tiểu học. Sau đây là mô tả chi tiết các nghiệp vụ chính trong hệ thống.
 
@@ -98,18 +50,17 @@ Hệ thống EduSchedule hỗ trợ ban giám hiệu quản lý và xếp thời
 \textit{Nghiệp vụ chi tiết}:
 \begin{itemize}[noitemsep]
     \item Thêm, cập nhật hoặc xoá thông tin giáo viên, bao gồm họ tên, loại giáo viên (chủ nhiệm hoặc bộ môn) và định mức số tiết dạy tối đa mỗi tuần.
-    \item Với giáo viên bộ môn, ghi nhận danh sách các môn học mà giáo viên có thể đảm nhận.
-    \item Theo dõi tổng số tiết đã được phân công của từng giáo viên; cảnh báo khi giáo viên sắp đạt hoặc đã vượt định mức.
+    \item Đánh dấu giáo viên không còn hoạt động (inactive) thay vì xoá, nhằm bảo toàn dữ liệu phân công và thời khoá biểu các kỳ trước; giáo viên inactive không xuất hiện trong các lựa chọn phân công mới.
 \end{itemize}
 
 \textbf{Quản lý lớp học}
 
-\textit{Nghiệp vụ}: Lưu trữ danh sách lớp học và gắn giáo viên chủ nhiệm phụ trách.
+\textit{Nghiệp vụ}: Lưu trữ danh sách lớp học theo từng năm học.
 
 \textit{Nghiệp vụ chi tiết}:
 \begin{itemize}[noitemsep]
-    \item Thêm, cập nhật hoặc xoá thông tin lớp học, bao gồm tên lớp và khối (khối 1 đến 5).
-    \item Phân công giáo viên chủ nhiệm cho từng lớp. Mỗi lớp chỉ có một giáo viên chủ nhiệm; việc gán này phải hoàn tất trước khi thực hiện phân công giảng dạy cho lớp đó.
+    \item Thêm, cập nhật hoặc xoá thông tin lớp học, bao gồm tên lớp và khối (khối 1 đến 5); mỗi lớp thuộc về một năm học cụ thể.
+    \item Gán giáo viên chủ nhiệm cho lớp; mỗi lớp có đúng một giáo viên chủ nhiệm trong một năm học.
 \end{itemize}
 
 \textbf{Quản lý môn học}
@@ -118,41 +69,64 @@ Hệ thống EduSchedule hỗ trợ ban giám hiệu quản lý và xếp thời
 
 \textit{Nghiệp vụ chi tiết}:
 \begin{itemize}[noitemsep]
-    \item Thêm, cập nhật hoặc xoá thông tin môn học, bao gồm tên môn, tên viết tắt và số tiết học yêu cầu mỗi tuần theo từng khối (khối 1 đến 5).
+    \item Thêm, cập nhật hoặc xoá thông tin môn học, bao gồm tên môn và số tiết yêu cầu mỗi tuần theo từng khối (khối 1 đến 5).
     \item Danh mục môn học là cơ sở để thực hiện phân công giảng dạy và kiểm tra số tiết khi xếp lịch.
+\end{itemize}
+
+\textbf{Quản lý phòng chức năng}
+
+\textit{Nghiệp vụ}: Lưu trữ danh sách phòng chức năng và liên kết với môn học tương ứng.
+
+\textit{Nghiệp vụ chi tiết}:
+\begin{itemize}[noitemsep]
+    \item Thêm, cập nhật hoặc xoá phòng chức năng (phòng máy tính, phòng thể dục\ldots); mỗi phòng gắn với đúng một môn học và có thông tin số lượng phòng hiện có.
+    \item Khi xếp thời khoá biểu, hệ thống kiểm tra số lớp đang dùng phòng cùng một buổi và tiết không vượt quá số lượng phòng; nếu vi phạm, hệ thống thông báo ngay lập tức để người dùng điều chỉnh.
+\end{itemize}
+
+\textbf{Quản lý năm học}
+
+\textit{Nghiệp vụ}: Tạo và quản lý năm học, làm khung tổ chức cho phân công giảng dạy và thời khoá biểu.
+
+\textit{Nghiệp vụ chi tiết}:
+\begin{itemize}[noitemsep]
+    \item Tạo năm học mới bằng cách chọn năm bắt đầu và nhập ngày bắt đầu của học kì 1 và học kì 2; hệ thống tự động tính ngày cho từng tuần học (HK1: 18 tuần, HK2: 17 tuần theo quy định Bộ GD\&ĐT).
+    \item Khi tạo năm học, hệ thống tự động khởi tạo hai thời khoá biểu (học kì 1 và học kì 2) cùng danh sách tuần học tương ứng.
+    \item Cho phép điều chỉnh ngày bắt đầu của từng tuần học; thay đổi tuần N tự động cập nhật cascade cho các tuần N+1 trở đi.
 \end{itemize}
 
 \textbf{Phân công giảng dạy}
 
-\textit{Nghiệp vụ}: Xác định giáo viên phụ trách từng môn học cho từng lớp trong học kỳ.
+\textit{Nghiệp vụ}: Xác định giáo viên phụ trách từng môn học cho từng lớp trong năm học.
 
 \textit{Nghiệp vụ chi tiết}:
 \begin{itemize}[noitemsep]
-    \item Phân công giáo viên bộ môn phụ trách các môn chuyên biệt (Tiếng Anh, Thể dục, Âm nhạc, Mỹ thuật\ldots) cho từng lớp theo khối.
-    \item Mỗi môn học của một lớp phải có đúng một giáo viên phụ trách; toàn bộ phân công phải hoàn tất trước khi tiến hành xếp thời khoá biểu.
-    \item Hệ thống kiểm tra và cảnh báo nếu tổng số tiết phân công của một giáo viên vượt quá định mức cho phép.
+    \item Gán giáo viên chủ nhiệm cho từng lớp; mỗi lớp phải có đúng một giáo viên chủ nhiệm trước khi tiến hành xếp thời khoá biểu.
+    \item Phân công giáo viên phụ trách từng môn học cho từng lớp; cả giáo viên chủ nhiệm lẫn giáo viên bộ môn đều có thể được phân công dạy bất kỳ môn học nào.
+    \item Tổng số tiết của mỗi giáo viên bằng tổng số tiết của tất cả các môn được phân công cho giáo viên đó; hệ thống hiển thị tổng này so với định mức và cảnh báo khi vượt định mức nhưng không chặn lưu.
 \end{itemize}
 
 \textbf{Xếp thời khoá biểu}
 
-\textit{Nghiệp vụ}: Phân bổ các tiết học vào khung giờ cụ thể trong tuần cho từng lớp, đảm bảo không có xung đột lịch dạy giữa các giáo viên.
+\textit{Nghiệp vụ}: Phân bổ các tiết học vào khung giờ cụ thể trong tuần, hỗ trợ hai phương thức: điều chỉnh thủ công trên giao diện lưới và xếp tự động bằng thuật toán.
 
 \textit{Nghiệp vụ chi tiết}:
 \begin{itemize}[noitemsep]
-    \item Phân bổ từng môn học vào một khung giờ cụ thể (thứ trong tuần và tiết trong ngày) cho từng lớp; mỗi khung giờ của một lớp chỉ được xếp một môn học duy nhất.
-    \item Kiểm tra xung đột lịch dạy: một giáo viên không thể dạy hai lớp khác nhau vào cùng một thời điểm; nếu xung đột xảy ra, tiết học cần được điều chỉnh sang khung giờ khác.
-    \item Ghi nhận tiết học vào thời khoá biểu sau khi xác nhận không có xung đột.
+    \item \textit{Xếp thủ công}: người dùng nhấn vào ô trống trên lưới để chọn môn cần xếp; hệ thống hiển thị danh sách môn còn lại của lớp kèm tên giáo viên và số tiết còn thiếu trong tuần; môn đã đủ tiết bị vô hiệu hoá.
+    \item \textit{Xếp tự động}: hệ thống sinh lịch cho các môn chưa được xếp, giữ nguyên các tiết đã xếp thủ công trước đó; người dùng xem xét kết quả và quyết định có áp dụng hay không.
+    \item Một giáo viên không thể dạy hai lớp khác nhau trong cùng một buổi và tiết; hệ thống phát hiện và thông báo xung đột ngay lập tức.
+    \item Số lớp sử dụng phòng chức năng cho cùng một môn trong cùng một buổi và tiết không được vượt quá số lượng phòng hiện có; hệ thống thông báo vi phạm để người dùng điều chỉnh.
+    \item Sau khi hoàn tất một tuần, người dùng có thể lưu riêng tuần đó hoặc áp dụng lịch đó cho tất cả các tuần tiếp theo trong kì.
 \end{itemize}
 
 \textbf{Xem và xuất thời khoá biểu}
 
-\textit{Nghiệp vụ}: Tra cứu thời khoá biểu và xuất file phục vụ in ấn, phân phát.
+\textit{Nghiệp vụ}: Tra cứu thời khoá biểu và xuất file phục vụ in ấn.
 
 \textit{Nghiệp vụ chi tiết}:
 \begin{itemize}[noitemsep]
-    \item Xem thời khoá biểu theo lớp, theo khối hoặc theo giáo viên.
-    \item Các ô đang có xung đột được đánh dấu màu đỏ để nhận biết nhanh vị trí cần điều chỉnh.
-    \item Xuất thời khoá biểu ra file Excel theo lớp hoặc theo giáo viên để in ấn và phân phát cho toàn trường.
+    \item Xem thời khoá biểu theo lớp, theo khối hoặc theo giáo viên; chọn tuần học cụ thể để xem.
+    \item Các ô đang có xung đột được đánh dấu trực quan để người dùng nhận biết và điều chỉnh.
+    \item Xuất thời khoá biểu ra file Excel để in ấn và phân phát cho toàn trường.
 \end{itemize}
 
 Biểu đồ hoạt động minh hoạ toàn bộ quy trình xếp thời khoá biểu từ khâu chuẩn bị đến khi hoàn thiện được thể hiện trong Hình~\ref{fig:activity_xep_tkb_admin}.
@@ -164,37 +138,82 @@ Biểu đồ hoạt động minh hoạ toàn bộ quy trình xếp thời khoá 
 	\label{fig:activity_xep_tkb_admin}
 \end{figure}
 
+% Tạm ẩn phần "Phân tích đầu vào của hệ thống" để tinh gọn Chương 2.
+% Giữ lại nội dung để tham khảo; xóa hai lệnh \iffalse và \fi nếu muốn
+% đưa phần này trở lại báo cáo.
+\iffalse
 \section{Phân tích đầu vào của hệ thống}
 \label{section:2.3}
 
-\subsection{Thông tin giáo viên (teacher)}
-\label{section:2.2.1}
-Dữ liệu giáo viên được nhập thủ công bởi Admin thông qua giao diện quản lý hoặc đọc từ tệp Excel có mẫu sẵn. Các thông tin chính bao gồm:
+\subsection{Năm học (SchoolYear)}
+\label{section:2.3.1}
+Năm học là đơn vị tổ chức cao nhất, làm ngữ cảnh cho toàn bộ dữ liệu lớp học, phân công và thời khoá biểu. Các thông tin chính bao gồm:
 \begin{itemize}[noitemsep]
-	\item Họ và tên (Full Name)
-	\item Loại giáo viên (Type): Giáo viên chủ nhiệm hoặc Giáo viên bộ môn
-	\item Số tiết tối đa mỗi tuần (Max Periods Per Week)
-	\item Danh sách môn dạy được (Subjects) — chỉ áp dụng cho giáo viên bộ môn
+	\item Năm bắt đầu (ví dụ: 2025 → năm học 2025--2026)
+	\item Ngày bắt đầu học kì 1 và học kì 2
+\end{itemize}
+Mỗi năm học chứa hai thời khoá biểu (học kì 1 và học kì 2) được khởi tạo tự động khi tạo năm học.
+
+\subsection{Thông tin giáo viên (Teacher)}
+\label{section:2.3.2}
+Dữ liệu giáo viên được nhập thủ công qua giao diện quản lý. Các thông tin chính bao gồm:
+\begin{itemize}[noitemsep]
+	\item Họ và tên
+	\item Loại giáo viên: chủ nhiệm hoặc bộ môn
+	\item Định mức số tiết tối đa mỗi tuần
+	\item Trạng thái hoạt động (active/inactive)
 \end{itemize}
 
-\subsection{Thông tin lớp học (Class)}
-\label{section:2.2.2}
-Dữ liệu về lớp học được nhập thủ công bởi Admin thông qua giao diện quản lý. Các thông tin chính bao gồm:
+\subsection{Thông tin lớp học (SchoolClass)}
+\label{section:2.3.3}
+Lớp học gắn với một năm học cụ thể. Các thông tin chính bao gồm:
 \begin{itemize}[noitemsep]
-	\item Tên lớp (Class Name): ví dụ 4A, 4B, 4C
-	\item Khối (Grade): từ 1 đến 5
-	\item Giáo viên chủ nhiệm (Homeroom Teacher): liên kết tới Teacher
+	\item Tên lớp (ví dụ: 4A, 4B)
+	\item Khối (từ 1 đến 5)
+	\item Giáo viên chủ nhiệm: liên kết tới Teacher
+	\item Năm học: liên kết tới SchoolYear
 \end{itemize}
 
 \subsection{Thông tin môn học (Subject)}
-\label{section:2.2.2}
-Dữ liệu về môn học được nhập thủ công bởi Admin thông qua giao diện quản lý. Các thông tin chính bao gồm:
+\label{section:2.3.4}
+Danh mục môn học dùng chung, không phân biệt năm học. Các thông tin chính bao gồm:
 \begin{itemize}[noitemsep]
-	\item Tên môn học (Subject Name): ví dụ Toán, Tiếng Việt, Tiếng Anh
-	\item Tên viết tắt (Short Name): ví dụ TV, TA, GDTC
-	\item Số tiết theo khối (Periods By Grade): ví dụ khối 1: 1 tiết/tuần, khối 2: 2 tiết/tuần
+	\item Tên môn học (ví dụ: Toán, Tiếng Việt, Tiếng Anh)
+	\item Số tiết theo khối (ví dụ: khối 1: 1 tiết/tuần, khối 4: 4 tiết/tuần)
 \end{itemize}
 
+\subsection{Phòng chức năng (SpecialRoom)}
+\label{section:2.3.5}
+Phòng chức năng được quản lý toàn cục, không phân biệt năm học. Các thông tin chính bao gồm:
+\begin{itemize}[noitemsep]
+	\item Tên phòng (ví dụ: Phòng máy tính 1, Phòng thể dục)
+	\item Môn học liên kết: mỗi phòng gắn với đúng một môn
+	\item Số lượng phòng hiện có
+\end{itemize}
+
+\subsection{Phân công giảng dạy (Assignment)}
+\label{section:2.3.6}
+Phân công xác định giáo viên phụ trách một môn học cho một lớp trong năm học. Các thông tin chính bao gồm:
+\begin{itemize}[noitemsep]
+	\item Lớp học, môn học, giáo viên phụ trách
+	\item Số tiết mỗi tuần theo phân công
+\end{itemize}
+Ràng buộc: mỗi cặp (lớp, môn, giáo viên) là duy nhất; phân công ngầm thuộc năm học thông qua lớp học.
+
+\subsection{Tuần học (Week) và Tiết học (Slot)}
+\label{section:2.3.7}
+Mỗi thời khoá biểu gồm nhiều tuần học. Tuần học lưu ngày bắt đầu (thứ Hai) và liên kết tới thời khoá biểu. Mỗi tiết học (Slot) thuộc một tuần và lưu các thông tin:
+\begin{itemize}[noitemsep]
+	\item Phân công tương ứng (liên kết tới Assignment — bao gồm lớp, môn, giáo viên)
+	\item Thứ trong tuần, buổi học (sáng/chiều), tiết trong buổi
+	\item Phòng chức năng sử dụng (nếu có)
+\end{itemize}
+\fi
+
+% Tạm ẩn phần "Đầu ra của hệ thống" vì nội dung bị trùng với các phần
+% mô tả nghiệp vụ, đặc tả use case và yêu cầu phi chức năng. Giữ lại nội dung
+% để tham khảo; xóa hai lệnh \iffalse và \fi nếu muốn đưa phần này trở lại.
+\iffalse
 \section{Đầu ra của hệ thống}
 \label{section:2.4}
 
@@ -209,194 +228,480 @@ Hệ thống hiển thị xung đột thời khóa biểu thông qua hai trạng
 	\item Khi đang thao tác xếp tiết mà tiết vừa chọn gây ra xung đột, ô đó lập tức chuyển sang màu đỏ và hệ thống hiển thị thông báo mô tả chi tiết thông tin.
 \end{itemize}
 
-\subsection{Cảnh báo vượt tải giáo viên (Overload Warning)}
-\label{subsection:2.4.3}
-Hệ thống tự động tính toán và hiển thị tổng số tiết đã phân công so với số tiết tối đa cho phép của từng giáo viên. Cụ thể:
-\begin{itemize}[noitemsep, topsep=0pt]
-	\item Hiển thị số tiết hiện tại trên tổng số tiết tối đa cho từng giáo viên
-	\item Cảnh báo màu vàng khi giáo viên sắp đạt ngưỡng tối đa cho phép
-	\item Cảnh báo màu đỏ khi giáo viên vượt quá số tiết cho phép
-\end{itemize}
-
 \subsection{File xuất thời khóa biểu (Export File)}
 \label{subsection:2.4.4}
 Hệ thống cho phép xuất thời khóa biểu ra file Excel theo mẫu chuẩn, phân chia theo thứ và tiết, tên giáo viên bộ môn được hiển thị rõ ràng. Tính năng hỗ trợ xuất theo lớp hoặc theo giáo viên tùy nhu cầu sử dụng.
+\fi
 
 \section{Tổng quan chức năng}
 \label{section:2.5}
 % Phần này tóm tắt các chức năng của phần mềm ở mức cao. Đặc tả chi tiết được trình bày trong phần tiếp theo.
 
-\subsection{Biểu đồ use case tổng quát}
+\subsection{Biểu đồ ca sử dụng tổng quát}
 \label{subsection:2.3.1}
 % Sinh viên vẽ biểu đồ use case tổng quan và giải thích các tác nhân tham gia là gì, nêu vai trò của từng tác nhân, và mô tả ngắn gọn các use case chính.
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ usecase tổng quát EduScheduling.jpg}
+	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ usecase tổng quát EduSchedule.jpg}
 	\caption{Biểu đồ Use Case hệ thống}
+    
 	\label{fig:usecase}
 \end{figure}
 
-\subsubsection{Các tác nhân tham gia}
-\begin{itemize}[noitemsep]
-	\item \textbf{Admin}: Quản trị viên hệ thống, có toàn quyền quản lý môn học, giáo viên, phân công giảng dạy và quản lý thời khóa biểu.
+Hình~\ref{fig:usecase} minh họa biểu đồ ca sử dụng tổng quát của hệ thống
+EduSchedule. Hệ thống có hai tác nhân chính là Người xếp thời khóa biểu và
+Người dùng vãng lai. Mỗi tác nhân tương tác với hệ thống theo phạm vi chức
+năng và quyền truy cập riêng.
 
-	\item \textbf{Guest}: Khách không cần đăng nhập, chỉ có thể tra cứu thời khóa biểu.
-\end{itemize}
+Người xếp thời khóa biểu là tác nhân trực tiếp thực hiện các nghiệp vụ quản lý
+và xây dựng thời khóa biểu của nhà trường. Sau khi đăng nhập, tác nhân này có
+thể quản lý năm học, giáo viên, lớp học, môn học và phòng chức năng; thực hiện
+phân công giảng dạy; xếp thời khóa biểu; công khai thời khóa biểu và xuất kết
+quả ra tệp Excel. Trong đó, phân công giảng dạy và xếp thời khóa biểu là hai
+nhóm chức năng trọng tâm. Các dữ liệu được quản lý là cơ sở để hệ thống kiểm
+tra ràng buộc và hỗ trợ người dùng xây dựng thời khóa biểu phù hợp.
 
+Người dùng vãng lai là giáo viên hoặc cá nhân có nhu cầu tra cứu thời khóa
+biểu đã được công khai. Tác nhân này không cần đăng nhập và không có quyền
+thay đổi dữ liệu của hệ thống. Việc tách riêng chức năng tra cứu giúp người dùng
+tiếp cận thời khóa biểu thuận tiện, đồng thời bảo đảm các chức năng quản lý và
+xếp lịch chỉ được thực hiện bởi người có trách nhiệm.
 
-\subsubsection{Các usecase chính}
+\subsection{Biểu đồ ca sử dụng phân rã phân công giảng dạy}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ phân rã Phân công giảng dạy.jpg}
+	\caption{Biểu đồ ca sử dụng phân rã phân công giảng dạy}
+	\label{fig:usecase_phan_cong_giang_day}
+\end{figure}
 
-\textbf{Use Case: Quản lý môn học}
+Hình~\ref{fig:usecase_phan_cong_giang_day} mô tả các chức năng thuộc nghiệp
+vụ phân công giảng dạy do Người xếp thời khóa biểu thực hiện. Nghiệp vụ này
+được chia thành hai trường hợp sử dụng là Phân công giáo viên chủ nhiệm và
+Phân công giáo viên bộ môn. Với chức năng Phân công giáo viên chủ nhiệm,
+người dùng lựa chọn giáo viên phụ trách một lớp trong năm học. Với chức năng
+Phân công giáo viên bộ môn, người dùng xác định giáo viên giảng dạy từng môn
+học cho từng lớp. Kết quả phân công là dữ liệu đầu vào quan trọng để xác định
+giáo viên phụ trách mỗi tiết học và kiểm tra xung đột giáo viên trong quá trình
+xếp thời khóa biểu.
 
-\begin{itemize}[noitemsep]
-    \item \textbf{Mô tả}: Admin nhập hoặc cập nhật thông tin môn học.
-    \item \textbf{Tác nhân tham gia}: Admin
-    \item \textbf{Mục tiêu}: Cập nhật danh mục môn học chính xác cho phân công giảng dạy.
-    \item \textbf{Các bước thực hiện}:
-    \begin{enumerate}
-        \item Admin đăng nhập hệ thống web.
-        \item Truy cập mục ``Quản lý môn học''.
-        \item Nhập/chỉnh sửa thông tin môn học (mã môn, tên, số tiết).
-        \item Lưu thay đổi.
-        \item System xác nhận và cập nhật cơ sở dữ liệu môn học.
-    \end{enumerate}
-\end{itemize}
+\subsection{Biểu đồ ca sử dụng phân rã xếp thời khoá biểu}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ phân rã Xếp thời khoá biểu.jpg}
+	\caption{Biểu đồ ca sử dụng phân rã xếp thời khóa biểu}
+	\label{fig:usecase_xep_thoi_khoa_bieu}
+\end{figure}
 
-\vspace{0.5cm}
-
-\textbf{Use Case: Quản lý giáo viên}
-
-\begin{itemize}[noitemsep]
-    \item \textbf{Mô tả}: Admin quản lý thông tin giáo viên (mã GV, họ tên, môn chuyên trách, định mức số tiết/tuần, chủ nhiệm).
-    \item \textbf{Tác nhân tham gia}: Admin
-    \item \textbf{Mục tiêu}: Lưu trữ thông tin giáo viên.
-    \item \textbf{Các bước thực hiện}:
-    \begin{enumerate}
-        \item Admin đăng nhập hệ thống.
-        \item Vào mục ``Quản lý giáo viên''.
-        \item Thêm/sửa thông tin GV (mã, tên, môn dạy, định mức tiết,...).
-        \item Lưu dữ liệu.
-        \item System cập nhật danh sách giáo viên.
-    \end{enumerate}
-\end{itemize}
-
-\vspace{0.5cm}
-
-\textbf{Use Case: Quản lý lớp học}
-
-\begin{itemize}[noitemsep]
-    \item \textbf{Mô tả}: Admin nhập thông tin lớp học (mã lớp, khối, số học sinh).
-    \item \textbf{Tác nhân tham gia}: Admin
-    \item \textbf{Mục tiêu}: Tạo danh mục lớp để phân công giảng dạy theo lớp.
-    \item \textbf{Các bước thực hiện}:
-    \begin{enumerate}
-        \item Admin đăng nhập hệ thống.
-        \item Chọn ``Quản lý lớp học''.
-        \item Nhập thông tin lớp (khối, tên lớp).
-        \item Lưu bản ghi.
-        \item System đồng bộ dữ liệu lớp học.
-    \end{enumerate}
-\end{itemize}
-
-\vspace{0.5cm}
-
-\textbf{Use Case: Phân công giảng dạy}
-
-\begin{itemize}[noitemsep]
-    \item \textbf{Mô tả}: Admin phân công giáo viên chủ nhiệm cho lớp và giáo viên bộ môn cho các môn học theo lớp.
-    \item \textbf{Tác nhân tham gia}: Admin
-    \item \textbf{Mục tiêu}: Hoàn tất phân công GV đảm bảo không vượt định mức 23 tiết/tuần (19 tiết nếu kiêm CN).
-    \item \textbf{Các bước thực hiện}:
-    \begin{enumerate}
-        \item Admin đăng nhập hệ thống.
-        \item Vào mục ``Phân công giảng dạy'' với 2 tab: 
-        \begin{itemize}[noitemsep]
-            \item[$-$] \textit{Phân công GV chủ nhiệm}: Chọn lớp $\rightarrow$ chọn giáo viên chủ nhiệm.
-            \item[$-$] \textit{Phân công bộ môn}: Chọn môn $\rightarrow$ khối $\rightarrow$ GV bộ môn.
-        \end{itemize}
-        \item System kiểm tra xung đột phân công chủ nhiệm.
-        \item Xác nhận và lưu toàn bộ phân công.
-    \end{enumerate}
-\end{itemize}
-
-\vspace{0.5cm}
-
-\textbf{Use Case: Quản lý thời khóa biểu}
-
-\begin{itemize}[noitemsep]
-    \item \textbf{Mô tả}: Admin/Giáo viên xem và tra cứu thời khóa biểu theo lớp hoặc giáo viên.
-    \item \textbf{Tác nhân tham gia}: Admin, Giáo viên, GV chủ nhiệm
-    \item \textbf{Mục tiêu}: Hiển thị TKB dạng bảng trực quan, kiểm tra xung đột.
-    \item \textbf{Các bước thực hiện}:
-    \begin{enumerate}
-        \item Người dùng chọn ``Xem thời khóa biểu''.
-        \item Chọn bộ lọc: Theo lớp/TKB cá nhân/Toàn trường.
-        \item System render bảng TKB (Thứ $\rightarrow$ Tiết $\rightarrow$ Môn/GV).
-        \item Hiển thị cảnh báo màu đỏ nếu có xung đột.
-        \item In/Export Excel (tùy chọn).
-    \end{enumerate}
-\end{itemize}
-
+Hình~\ref{fig:usecase_xep_thoi_khoa_bieu} mô tả hai phương thức xếp thời
+khóa biểu mà Người xếp thời khóa biểu có thể lựa chọn. Với phương thức Xếp
+thời khóa biểu thủ công, người dùng chủ động lựa chọn môn học và bố trí từng
+tiết vào các vị trí trên lưới thời khóa biểu; hệ thống kiểm tra và thông báo khi
+phát sinh vi phạm ràng buộc. Với phương thức Xếp thời khóa biểu tự động, hệ
+thống sử dụng dữ liệu phân công giảng dạy và các ràng buộc đã thiết lập để tạo
+phương án cho những tiết học chưa được sắp xếp, đồng thời giữ nguyên các tiết
+đã được người dùng bố trí trước đó. Kết quả tự động được hiển thị để người dùng
+kiểm tra và xác nhận trước khi áp dụng. Hai phương thức có thể được sử dụng
+kết hợp nhằm vừa hỗ trợ tự động hóa quá trình lập lịch, vừa bảo đảm người dùng
+có thể chủ động điều chỉnh thời khóa biểu theo nhu cầu thực tế.
 
 
 \section{Đặc tả chức năng}
 \label{section:2.6}
-Sinh viên lựa chọn từ 4 đến 7 use case quan trọng nhất của đồ án để đặc tả chi tiết. Mỗi đặc tả bao gồm ít nhất các thông tin sau: (i) Tên use case, (ii) Luồng sự kiện (chính và phát sinh), (iii) Tiền điều kiện, và (iv) Hậu điều kiện. Sinh viên chỉ vẽ bổ sung biểu đồ hoạt động khi đặc tả use case phức tạp.
-\subsection{Đặc tả use case A}
-\hfill
-\subsection{Đặc tả use case B}
-\hfill
+
+Phần này trình bày đặc tả các chức năng chính của hệ thống EduSchedule, bao gồm Đăng nhập, Phân công giảng dạy, Xếp thời khoá biểu và Tra cứu thời khoá biểu. Mỗi đặc tả gồm mã và tên ca sử dụng, tác nhân, tiền điều kiện, luồng sự kiện chính, luồng sự kiện thay thế và hậu điều kiện. Đặc tả các chức năng còn lại của hệ thống được trình bày tại Phụ lục~A.
+\subsection{Đặc tả ca sử dụng: Đăng nhập}
+
+Bảng~\ref{tab:uc_dang_nhap} đặc tả ca sử dụng đăng nhập, đối tượng áp dụng là Người xếp thời khóa biểu, với mục đích xác thực để truy cập các chức năng quản lý của hệ thống.
+
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Đăng nhập}
+\label{tab:uc_dang_nhap} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} &
+\multicolumn{1}{c|}{UC01} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} &
+\multicolumn{1}{c|}{Đăng nhập} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} &
+\multicolumn{3}{l|}{Người xếp thời khóa biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} &
+\multicolumn{3}{l|}{Không} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện chính} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+1. & Người dùng & Truy cập trang đăng nhập của hệ thống. \\
+\hline
+2. & Hệ thống & Hiển thị giao diện đăng nhập. \\
+\hline
+3. & Người dùng & Nhập tên đăng nhập, mật khẩu và nhấn nút ``Đăng nhập''. \\
+\hline
+4. & Hệ thống & Đăng nhập thành công và chuyển hướng tới trang chủ. \\
+\hline
+\end{tabular}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện thay thế} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+4a. & Hệ thống & Thông báo lỗi nếu tên đăng nhập hoặc mật khẩu không chính xác. \\
+\hline
+4b. & Hệ thống & Thông báo lỗi nếu người dùng chưa nhập đầy đủ tên đăng nhập hoặc mật khẩu. \\
+\hline
+\end{tabular}} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} &
+\multicolumn{3}{l|}{Không} \\
+\hline
+\end{longtable}
+
+\subsection{Đặc tả ca sử dụng: Phân công giáo viên chủ nhiệm}
+Bảng~\ref{tab:uc_phan_cong_chu_nhiem} đặc tả ca sử dụng phân công giáo viên chủ nhiệm, đối tượng áp dụng là Người xếp thời khóa biểu, với mục đích xác định giáo viên chủ nhiệm cho từng lớp trong năm học cụ thể.
+
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Phân công giáo viên chủ nhiệm}
+\label{tab:uc_phan_cong_chu_nhiem} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC02} & \multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Phân công giáo viên chủ nhiệm} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{
+\begin{enumerate}[leftmargin=*, noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
+    \item Người dùng đã đăng nhập thành công.
+    \item Đã tạo năm học; danh sách giáo viên và danh sách lớp học.
+\end{enumerate}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện chính} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+1. & Người dùng & Vào mục ``Phân công giảng dạy'', chọn tab ``Phân công Chủ nhiệm''. \\
+\hline
+2. & Người dùng & Chọn một lớp và chọn giáo viên chủ nhiệm từ danh sách; danh sách chỉ hiển thị giáo viên loại chủ nhiệm hiện chưa là GVCN của lớp nào khác trong năm học. \\
+\hline
+3. & Hệ thống & Lưu thông tin và cập nhật giao diện. \\
+\hline
+\end{tabular}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện thay thế} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+2a. & Người dùng & Thay vì chọn giáo viên mới, chọn xoá giáo viên chủ nhiệm hiện tại của lớp (chọn giá trị trống). \\
+\hline
+2b. & Hệ thống & Hiển thị hộp thoại xác nhận xoá GVCN của lớp; nếu người dùng xác nhận, hệ thống xoá giáo viên chủ nhiệm khỏi lớp và cập nhật giao diện. \\
+\hline
+\end{tabular}} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Giáo viên chủ nhiệm được gán cho lớp; dữ liệu được lưu vào cơ sở dữ liệu.} \\
+\hline
+\end{longtable}
+
+\subsection{Đặc tả ca sử dụng: Phân công giáo viên bộ môn}
+Bảng~\ref{tab:uc_phan_cong_bo_mon} đặc tả ca sử dụng phân công giáo viên bộ môn, đối tượng áp dụng là Người xếp thời khóa biểu, với mục đích xác định giáo viên phụ trách từng môn học cho từng lớp trong năm học cụ thể.
+
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Phân công giáo viên bộ môn}
+\label{tab:uc_phan_cong_bo_mon} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC03} & \multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Phân công giáo viên bộ môn} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{
+\begin{enumerate}[leftmargin=*, noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt]
+    \item Người dùng đã đăng nhập thành công.
+    \item Đã tạo năm học; danh sách giáo viên, lớp học và môn học đã được thiết lập.
+\end{enumerate}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện chính} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+1. & Người dùng & Vào mục ``Phân công giảng dạy'', chọn tab ``Phân công Chuyên môn''. \\
+\hline
+2. & Người dùng & Chọn hiển thị theo giáo viên hoặc theo lớp. \\
+\hline
+3. & Hệ thống & Hiển thị danh sách giáo viên hoặc lớp học tương ứng; \\
+\hline
+4. & Người dùng & Chọn một môn học của một lớp và chọn giáo viên phụ trách từ danh sách. \\
+\hline
+5. & Hệ thống & Lưu phân công và cập nhật giao diện. \\
+\hline
+6. & Hệ thống & Cập nhật tổng số tiết đã phân công của giáo viên đó so với định mức. \\
+\hline
+\end{tabular}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện thay thế} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+4a. & Hệ thống & Nếu môn học của lớp đã được phân công cho một giáo viên khác trước đó, hệ thống tự động thay thế bằng giáo viên mới được chọn ngay khi lưu, không hiển thị xác nhận trước khi ghi đè. \\
+\hline
+6a. & Hệ thống & Khi tổng số tiết đã phân công của giáo viên vượt định mức, số tiết hiển thị màu đỏ trong bảng ``Theo giáo viên''; hệ thống không chặn lưu. \\
+\hline
+\end{tabular}} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Bản ghi phân công được lưu và tổng số tiết phân công của giáo viên được cập nhật.} \\
+\hline
+\end{longtable}
+
+\subsection{Đặc tả ca sử dụng: Xếp thời khoá biểu thủ công}
+
+Bảng~\ref{tab:uc_xep_tkb_thu_cong} đặc tả ca sử dụng xếp thời khoá biểu thủ công, đối tượng áp dụng là Người xếp thời khoá biểu, với mục đích phân bổ từng môn học của một lớp vào một khung giờ cụ thể trên giao diện lưới thời khoá biểu.
+
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Xếp thời khoá biểu thủ công}
+\label{tab:uc_xep_tkb_thu_cong} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC04} & \multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Xếp thời khoá biểu thủ công} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{
+\begin{enumerate}[noitemsep, topsep=2pt]
+    \item Người dùng đã đăng nhập thành công.
+    \item Đã tạo năm học và thời khoá biểu tương ứng.
+    \item Các lớp học, môn học và phân công giảng dạy đã được thiết lập đầy đủ.
+\end{enumerate}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện chính} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+1. & Người dùng & Truy cập trang ``Thời khoá biểu'' và chọn năm học, học kì. \\
+\hline
+2. & Người dùng & Chọn bộ lọc theo lớp hoặc theo khối để hiển thị lưới TKB. \\
+\hline
+3. & Người dùng & Nhấn vào một ô trống trên lưới (xác định thứ, buổi và tiết). \\
+\hline
+4. & Hệ thống & Hiển thị danh sách tất cả các môn học tương ứng và số tiết chưa xếp của lớp đó. \\
+\hline
+5. & Người dùng & Chọn môn học cần xếp vào ô. \\
+\hline
+6. & Hệ thống & Kiểm tra giáo viên phụ trách môn đó có lịch trùng cùng buổi và tiết ở lớp khác không. \\
+\hline
+7. & Hệ thống & Lưu tiết và cập nhật giao diện lưới. \\
+\hline
+8. & Người dùng & Tiếp tục xếp các tiết còn lại cho đến khi đủ số tiết yêu cầu của từng môn. \\
+\hline
+\end{tabular}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện thay thế} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+3a. & Hệ thống & Nếu ô đã có tiết học, cho phép ghi đè bằng môn học mới (cập nhật); kiểm tra xung đột được thực hiện lại với môn mới. \\
+\hline
+4a & Hệ thống & Nếu môn học chưa được phân công giáo viên, hiển thị thông báo chưa được phân công. \\
+\hline
+4b & Hệ thống & Nếu môn học đã xếp đủ tiết, hiển thị thông báo đã đủ và không cho người dùng chọn môn đó. \\
+\hline
+5a. & Hệ thống & Nếu người dùng chọn môn chưa được phân công giáo viên, hiển thị thông báo cần phân công giáo viên và không cho phép xếp môn học vào ô đó. \\
+\hline
+7a. & Hệ thống & Nếu giáo viên đang dạy lớp khác vào tiết này, hiển thị thông báo xung đột cho phép người dùng chọn xoá phân công ở lớp khác để lưu phân công mới. \\
+\hline
+7b. & Hệ thống & Nếu môn học cần phòng chức năng nhưng không có phòng trống, hiển thị thông báo xung đột phòng và không cho phép xếp môn học vào ô đó. \\
+\end{tabular}} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Tiết học được lưu vào cơ sở dữ liệu với đầy đủ thông tin (thời khoá biểu, thứ, tiết, phân công). Giao diện lưới cập nhật ngay lập tức, phản ánh trạng thái mới nhất của thời khoá biểu.} \\
+\hline
+\end{longtable}
+
+\subsection{Đặc tả ca sử dụng: Xếp thời khoá biểu tự động}
+
+Bảng~\ref{tab:uc_xep_tkb_tu_dong} đặc tả ca sử dụng xếp thời khoá biểu tự động, đối tượng áp dụng là Người xếp thời khoá biểu, với mục đích tự động phân bổ các tiết học còn trống bằng thuật toán, giữ nguyên các tiết đã xếp thủ công.
+
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Xếp thời khoá biểu tự động}
+\label{tab:uc_xep_tkb_tu_dong} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC05} & \multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Xếp thời khoá biểu tự động} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{
+\begin{enumerate}[noitemsep, topsep=2pt]
+    \item Người dùng đã đăng nhập thành công.
+\end{enumerate}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện chính} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+1. & Người dùng & Truy cập trang ``Thời khoá biểu'' và chọn năm học, học kì, tuần cần xếp. \\
+\hline
+2. & Người dùng & Nhấn nút ``Tự động xếp TKB''. \\
+\hline
+3. & Hệ thống & Hiển thị màn hình chờ toàn trang trong khi thuật toán xử lý. \\
+\hline
+4. & Hệ thống & Chạy thuật toán xếp lịch tự động để phân bổ các tiết còn thiếu, giữ nguyên các tiết đã xếp trước đó. \\
+\hline
+5. & Hệ thống & Trả về danh sách tiết đã xếp ở trạng thái chưa lưu và danh sách tiết không thể xếp được (nếu có). \\
+\hline
+6. & Người dùng & Xem xét kết quả trên lưới thời khoá biểu. \\
+\hline
+7. & Người dùng & Nhấn ``Lưu tuần N (ngày)'' để lưu tuần đang chỉnh sửa, hoặc ``Áp dụng từ tuần N (ngày) trở đi'' để áp dụng kết quả cho tuần đó và các tuần tiếp theo. \\
+\hline
+\end{tabular}} \\
+\hline
+\multirow{1}{2.8cm}{Luồng sự kiện thay thế} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+2a. & Hệ thống & Nếu còn lớp hoặc môn học chưa có giáo viên phụ trách, hiển thị thông báo liệt kê danh sách và yêu cầu hoàn tất phân công trước; không gửi yêu cầu xếp tự động. \\
+\hline
+5a. & Hệ thống & Nếu có tiết không thể xếp được, vẫn hiển thị các tiết đã xếp ở trạng thái chưa lưu kèm thông báo cảnh báo số tiết đã xếp và số môn không xếp được; người dùng có thể lưu kết quả một phần và xử lý thủ công các tiết còn lại. \\
+\hline
+7a. & Người dùng & Nhấn nút đóng màn hình chỉnh sửa hoặc chuyển sang tuần khác khi còn thay đổi chưa lưu; hệ thống hiển thị hộp thoại xác nhận huỷ thay đổi. \\
+\hline
+7b. & Hệ thống & Nếu người dùng xác nhận huỷ, toàn bộ kết quả tự động bị loại bỏ, thời khoá biểu giữ nguyên trạng thái trước khi xếp; nếu chọn ở lại, kết quả chưa lưu vẫn được giữ nguyên trên giao diện. \\
+\hline
+\end{tabular}} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Các tiết học được lưu vào cơ sở dữ liệu. Giao diện lưới cập nhật phản ánh thời khoá biểu mới. Các tiết không xếp được vẫn để trống và có thể tiếp tục xếp thủ công.} \\
+\hline
+\end{longtable}
+
+\subsection{Đặc tả ca sử dụng: Tra cứu thời khoá biểu}
+
+Bảng~\ref{tab:uc_tra_cuu_tkb} đặc tả ca sử dụng tra cứu thời khoá biểu, đối tượng áp dụng là Người dùng vãng lai, với mục đích xem thời khoá biểu đã được công khai theo lớp, theo khối hoặc theo giáo viên mà không cần đăng nhập.
+
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Tra cứu thời khoá biểu}
+\label{tab:uc_tra_cuu_tkb} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC06} & \multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Tra cứu thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người dùng vãng lai} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Có ít nhất một thời khoá biểu đã được Người xếp thời khoá biểu công khai.} \\
+\hline
+\multirow{1}{2.8cm}{\textbf{Luồng sự kiện chính}} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+1. & Người dùng vãng lai & Truy cập trang tra cứu thời khoá biểu công khai. \\
+\hline
+2. & Hệ thống & Hiển thị các tiêu chí tra cứu gồm năm học, học kì, tuần học và chế độ xem theo lớp, theo khối hoặc theo giáo viên. \\
+\hline
+3. & Người dùng vãng lai & Lựa chọn năm học, học kì, tuần học và chế độ xem mong muốn. \\
+\hline
+4. & Người dùng vãng lai & Chọn lớp, khối hoặc giáo viên cần tra cứu tương ứng với chế độ xem đã chọn. \\
+\hline
+5. & Hệ thống & Hiển thị thời khoá biểu đã được công khai dưới dạng lưới; mỗi ô thể hiện môn học và giáo viên phụ trách. \\
+\hline
+6. & Người dùng vãng lai & Có thể thay đổi tiêu chí tra cứu hoặc chuyển tuần để xem thời khoá biểu khác. \\
+\hline
+\end{tabular}} \\
+\hline
+\multirow{1}{2.8cm}{\textbf{Luồng sự kiện thay thế}} &
+\multicolumn{3}{c|}{%
+\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\hline
+\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\hline
+4a. & Hệ thống & Nếu người dùng chưa chọn đối tượng cần tra cứu, yêu cầu người dùng chọn lớp, khối hoặc giáo viên. \\
+\hline
+5a. & Hệ thống & Nếu không có thời khoá biểu công khai phù hợp với tiêu chí đã chọn, hiển thị thông báo chưa có dữ liệu thời khoá biểu. \\
+\hline
+\end{tabular}} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Người dùng vãng lai xem được thời khoá biểu công khai theo tiêu chí đã chọn; không có dữ liệu nào trong hệ thống bị thay đổi.} \\
+\hline
+\end{longtable}
 
 \section{Yêu cầu phi chức năng}
 \label{section:2.7}
 
-\subsection{Hiệu năng hệ thống (Performance Requirements)}
-\begin{enumerate}[noitemsep]
-    \item Thời gian phản hồi của các API thông thường (quản lý danh mục, phân công, tra cứu thời khoá biểu) không vượt quá 2 giây trong điều kiện tải bình thường.
-    \item Kiểm tra xung đột khi xếp tiết phải trả kết quả ngay lập tức (dưới 1 giây) để không làm gián đoạn thao tác của Admin.
-    \item Hệ thống đáp ứng quy mô trường tiểu học công lập thông thường với tối đa 50 giáo viên, 30 lớp học và 10 môn học.
-\end{enumerate}
+\subsection{Hiệu năng hệ thống}
 
-\subsection{Tính bảo mật (Security Requirements)}
-\begin{enumerate}[noitemsep]
-    \item Mật khẩu người dùng phải được mã hoá bằng BCrypt trước khi lưu vào cơ sở dữ liệu; hệ thống không lưu mật khẩu dưới dạng văn bản thuần.
-    \item Xác thực sử dụng JWT; token được lưu trong httpOnly cookie để ngăn chặn tấn công XSS từ phía trình duyệt.
-    \item Toàn bộ giao tiếp giữa client và server phải được thực hiện qua HTTPS; frontend triển khai trên Vercel tự động đảm bảo TLS.
-    \item CORS được cấu hình chỉ chấp nhận request từ các origin được khai báo; các endpoint thao tác dữ liệu chỉ cho phép Admin có token hợp lệ truy cập.
-\end{enumerate}
+Các chức năng quản lý dữ liệu, phân công giảng dạy và tra cứu thời khoá biểu cần
+phản hồi trong thời gian không vượt quá 2 giây ở điều kiện tải thông thường.
+Việc kiểm tra xung đột khi người dùng xếp hoặc điều chỉnh một tiết học cần được
+thực hiện trong thời gian dưới 1 giây để không làm gián đoạn thao tác. Hệ thống
+được xây dựng cho quy mô một trường tiểu học với khoảng 50 giáo viên, 30 lớp
+học và 10 môn học. Đối với chức năng xếp thời khoá biểu tự động, hiệu năng
+được đánh giá dựa trên thời gian xử lý với các bộ dữ liệu có quy mô khác nhau
+về số lớp học, giáo viên, môn học và phân công giảng dạy; kết quả đo lường sẽ
+được trình bày trong phần kiểm thử hệ thống.
 
-\subsection{Khả năng tương thích (Compatibility Requirements)}
-\begin{enumerate}[noitemsep]
-    \item Hệ thống hoạt động hoàn toàn trên trình duyệt web, không yêu cầu cài đặt thêm phần mềm; tương thích với các trình duyệt phổ biến phiên bản mới nhất (Chrome, Edge, Firefox, Safari).
-    \item Giao diện được xây dựng theo nguyên tắc responsive, hiển thị ổn định trên màn hình máy tính để bàn và máy tính xách tay.
-\end{enumerate}
+\subsection{Tính bảo mật}
 
-\subsection{Tính khả dụng và độ tin cậy (Availability and Reliability)}
-\begin{enumerate}[noitemsep]
-    \item Frontend triển khai trên Vercel đảm bảo tỷ lệ hoạt động cao và tự động phục hồi khi gặp sự cố.
-    \item Cơ sở dữ liệu PostgreSQL đảm bảo tính toàn vẹn dữ liệu thông qua ràng buộc khoá ngoại; các thao tác xếp tiết và phân công được thực hiện nguyên tử (atomic), không để lại trạng thái không nhất quán.
-    \item Hệ thống phản hồi thông báo lỗi rõ ràng khi có yêu cầu không hợp lệ, tránh để người dùng ở trạng thái không xác định.
-\end{enumerate}
+Mật khẩu của người dùng phải được mã hoá bằng BCrypt trước khi lưu vào cơ sở
+dữ liệu và không được lưu dưới dạng văn bản thuần. Hệ thống sử dụng JWT để
+xác thực; token được lưu trong cookie có thuộc tính \texttt{httpOnly} nhằm hạn
+chế nguy cơ token bị truy cập bởi mã JavaScript phía trình duyệt. Trong môi
+trường triển khai thực tế, toàn bộ giao tiếp giữa trình duyệt, frontend và backend
+phải được thực hiện qua HTTPS. CORS chỉ chấp nhận yêu cầu từ các nguồn đã
+được khai báo, đồng thời các API thực hiện thao tác quản lý dữ liệu chỉ cho phép
+người dùng đã xác thực truy cập.
 
-\subsection{Khả năng bảo trì (Maintainability)}
-\begin{enumerate}[noitemsep]
-    \item Schema cơ sở dữ liệu được quản lý bằng Flyway; mọi thay đổi cấu trúc được theo dõi qua migration script có đánh số phiên bản.
-    \item Frontend và backend tách biệt hoàn toàn và triển khai độc lập; thay đổi ở một phía không ảnh hưởng đến quy trình build và deploy của phía còn lại.
-    \item Mã nguồn frontend sử dụng TypeScript, giúp phát hiện lỗi sớm trong quá trình phát triển và giảm thiểu lỗi runtime.
-\end{enumerate}
+\subsection{Khả năng tương thích}
 
-\subsection{Tính mở rộng (Scalability)}
-\begin{enumerate}[noitemsep]
-    \item Kiến trúc RESTful API cho phép tích hợp thêm client mới (mobile app, hệ thống khác) mà không cần thay đổi backend.
-    \item Cấu trúc dữ liệu có thể mở rộng để hỗ trợ quản lý nhiều năm học, nhiều học kỳ hoặc nhiều cơ sở trường trong tương lai.
-\end{enumerate}
+Hệ thống hoạt động trên trình duyệt web và không yêu cầu người dùng cài đặt
+thêm phần mềm. Giao diện cần hiển thị ổn định trên các phiên bản phổ biến gần
+đây của Chrome, Microsoft Edge, Firefox và Safari. Hệ thống được ưu tiên thiết
+kế cho máy tính để bàn và máy tính xách tay, đồng thời bố cục có khả năng điều
+chỉnh theo các kích thước màn hình thông dụng.
 
-\subsection{Khả năng sử dụng (Usability)}
-\begin{enumerate}[noitemsep]
-    \item Giao diện lưới thời khoá biểu theo cấu trúc bảng thứ–tiết quen thuộc; Admin không cần đào tạo kỹ thuật để thao tác.
-    \item Thông báo xung đột và cảnh báo vượt định mức hiển thị ngay trên giao diện, giúp người dùng phát hiện và xử lý vấn đề mà không cần tra cứu thêm.
-    \item Khách có thể tra cứu thời khoá biểu theo lớp hoặc theo giáo viên mà không cần tài khoản đăng nhập.
-\end{enumerate}
+\subsection{Tính khả dụng và độ tin cậy}
+
+Hệ thống cần duy trì khả năng truy cập ổn định trong điều kiện vận hành thông
+thường và hiển thị thông báo rõ ràng khi yêu cầu không hợp lệ hoặc không thể
+kết nối tới máy chủ. Cơ sở dữ liệu PostgreSQL sử dụng các ràng buộc khoá ngoại
+để bảo đảm mối liên hệ giữa các dữ liệu. Những thao tác cập nhật nhiều dữ liệu
+liên quan, đặc biệt là phân công giảng dạy và xếp thời khoá biểu, cần được xử lý
+trong giao dịch nhằm hạn chế trạng thái không nhất quán khi xảy ra lỗi. Trong
+môi trường triển khai thực tế, dữ liệu cần được sao lưu định kỳ và có khả năng
+phục hồi khi xảy ra sự cố.
+
+\subsection{Khả năng bảo trì và mở rộng}
+
+Frontend và backend được tổ chức thành hai thành phần độc lập, có thể xây dựng
+và triển khai riêng với điều kiện duy trì tính tương thích của hợp đồng API giữa
+hai phía. Mã nguồn được phân chia theo các nhóm chức năng và tầng xử lý nhằm
+hỗ trợ kiểm tra, sửa lỗi và bổ sung nghiệp vụ. Frontend sử dụng TypeScript để
+phát hiện sớm các lỗi kiểu dữ liệu, trong khi cấu trúc cơ sở dữ liệu được quản lý
+bằng Flyway để theo dõi các thay đổi qua từng phiên bản. Các API được xây dựng
+theo phong cách RESTful, tạo điều kiện để ứng dụng khác tái sử dụng những chức
+năng hiện có. Dữ liệu được tổ chức theo năm học, cho phép bổ sung năm học mới
+mà không làm thay đổi dữ liệu của các năm học trước.
+
+\subsection{Khả năng sử dụng}
+
+Giao diện thời khoá biểu sử dụng cấu trúc bảng theo thứ và tiết quen thuộc, các
+thao tác chính được trình bày trực quan nhằm giúp người dùng dễ tiếp cận. Hệ
+thống cung cấp thông báo kết quả sau mỗi thao tác và yêu cầu xác nhận đối với
+những hành động có thể làm thay đổi hoặc mất dữ liệu. Các vị trí xảy ra xung
+đột và trường hợp giáo viên vượt định mức được thể hiện trực tiếp trên giao diện,
+giúp người dùng nhanh chóng nhận biết và xử lý.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

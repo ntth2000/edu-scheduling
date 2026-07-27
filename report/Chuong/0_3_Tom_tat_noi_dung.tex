@@ -6,13 +6,13 @@
 \end{center}
 \vspace{1cm}
 
-Đề tài xây dựng hệ thống quản lý lịch học (Timetable Management System) nhằm giải quyết bài toán xếp thời khóa biểu phức tạp trong tiểu học. Hiện nay, việc xếp lịch học thường được thực hiện bằng tay, dễ xảy ra lỗi như giáo viên trùng tiết, lớp học cùng lúc học hai môn, hoặc không đủ số tiết theo yêu cầu. Các hình thức xử lý thủ công mất thời gian và kém hiệu quả. Một số giải pháp hiện tại chỉ xử lý một phần hoặc yêu cầu tính toán phức tạp.
+Đề tài "EduSchedule — Hệ thống hỗ trợ xếp thời khóa biểu cho trường tiểu học" được thực hiện nhằm giải quyết bài toán xếp thời khóa biểu tại các trường tiểu học công lập, nơi công việc này hiện vẫn thường được thực hiện thủ công bằng Microsoft Excel dựa trên kinh nghiệm cá nhân của người quản lý. Cách làm này tiềm ẩn nhiều rủi ro như giáo viên bị xếp trùng tiết, phải làm lại toàn bộ khi có thay đổi nhân sự và tốn nhiều thời gian kiểm tra các ràng buộc của thời khóa biểu.
 
-Đề tài lựa chọn xây dựng hệ thống web với kiến trúc backend-frontend tách biệt, sử dụng Spring Boot cho máy chủ và Next.js cho giao diện. Hướng tiếp cận này cho phép quản lý toàn bộ dữ liệu tập trung (giáo viên, lớp, môn học, phân công dạy) và tự động hóa quy trình xếp lịch theo các ràng buộc cứng. Hệ thống hỗ trợ hai loại người dùng: Admin quản lý dữ liệu và xếp lịch, còn giáo viên và học sinh có thể tra cứu lịch học công khai.
+Trên thị trường hiện nay, các phần mềm xếp thời khóa biểu thương mại tuy đầy đủ tính năng nhưng đòi hỏi chi phí bản quyền, không phù hợp với ngân sách của các trường tiểu học công lập quy mô nhỏ; trong khi Excel thủ công lại thiếu cơ chế phát hiện xung đột tự động. Chính vì vậy, đề tài hướng đến xây dựng một ứng dụng web miễn phí, cho phép ban giám hiệu xếp thời khóa biểu theo hai phương thức: thủ công trên giao diện lưới trực quan hoặc tự động bằng thuật toán, kết hợp cơ chế phát hiện xung đột theo thời gian thực.
 
-Giải pháp bao gồm các module chính: quản lý giáo viên, lớp, môn học, phân công giảng dạy, cấu hình lịch nghỉ, xếp thời khóa biểu (ở chế độ nháp hoặc công bố), và xuất báo cáo sang file Excel/PDF. Hệ thống đảm bảo các ràng buộc như giáo viên không trùng tiết, lớp không học đa môn đồng thời, đủ số tiết theo khối.
+Về mặt công nghệ, hệ thống được xây dựng theo kiến trúc client–server tách biệt, sử dụng Next.js cho phía frontend và Spring Boot (Java) cho phía backend, xác thực qua JWT, cùng cơ sở dữ liệu quan hệ PostgreSQL. Việc lựa chọn kiến trúc này đảm bảo hệ thống dễ triển khai, dễ bảo trì và có thể vận hành hoàn toàn trên các nền tảng miễn phí, không phát sinh chi phí cho nhà trường.
 
-Đóng góp chính của đề tài là xây dựng một hệ thống tích hợp, tự động hóa quá trình xếp lịch học, giảm sai sót thủ công, và cung cấp giao diện thân thiện cho tất cả người dùng. Kết quả đạt được bao gồm ứng dụng web hoàn chỉnh, API RESTful, cơ sở dữ liệu PostgreSQL, và tài liệu kỹ thuật chi tiết để hỗ trợ triển khai thực tế.
+Giá trị thực tiễn của đồ án là cung cấp cho ban giám hiệu trường tiểu học công lập một công cụ xếp thời khóa biểu chính xác, nhanh chóng và tiết kiệm công sức hơn so với phương pháp thủ công truyền thống, đồng thời loại bỏ rào cản chi phí của các giải pháp thương mại hiện có trên thị trường.
 \begin{flushright}
 Sinh viên thực hiện\\
 \begin{tabular}{@{}c@{}}

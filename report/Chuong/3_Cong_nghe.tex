@@ -1,37 +1,238 @@
 \documentclass[../DoAn.tex]{subfiles}
 \begin{document}
 
-Dựa trên các yêu cầu xác định ở Chương 2, hệ thống EduSchedule được xây dựng theo kiến trúc client–server tách biệt với các công nghệ sau.
+Dựa trên các yêu cầu chức năng và phi chức năng đã xác định ở Chương 2, hệ
+thống EduSchedule được xây dựng theo kiến trúc client--server, trong đó phần
+giao diện người dùng và phần xử lý nghiệp vụ phía máy chủ được phát triển độc
+lập và trao đổi dữ liệu thông qua các API. Việc lựa chọn công nghệ được cân
+nhắc dựa trên khả năng đáp ứng nghiệp vụ xếp thời khóa biểu, tính ổn định, khả
+năng bảo trì, mở rộng và mức độ phù hợp với môi trường phát triển ứng dụng
+web. Chương này trình bày các công nghệ chính được sử dụng để xây dựng hệ
+thống, bao gồm Java và Spring Boot cho phía máy chủ, Next.js cho giao diện
+người dùng, PostgreSQL cho việc lưu trữ dữ liệu, cùng các công cụ phục vụ quá trình triển
+khai và kiểm thử. Bên cạnh đó, thư viện Timefold Solver được sử dụng để hỗ trợ
+giải quyết bài toán xếp thời khóa biểu tự động dựa trên các ràng buộc đã xác
+định.
 
 \section{Công nghệ phát triển}
 \label{section:3.1}
 
-\subsection{Backend: Spring Boot}
+\subsection{Backend: Java và framework Spring Boot}
 \label{section:3.1.1}
 
-Spring Boot là framework Java xây dựng trên nền Spring Framework, cung cấp cơ chế tự động cấu hình giúp khởi tạo ứng dụng RESTful API nhanh chóng. Hệ thống sử dụng Java 17 kết hợp Spring Boot 4 để xây dựng toàn bộ tầng backend, bao gồm xử lý nghiệp vụ (kiểm tra xung đột, phân công giảng dạy), xác thực với Spring Security và JWT (thư viện JJWT), truy cập dữ liệu qua Spring Data JPA, và quản lý schema bằng Flyway.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.25\textwidth]{Hinhve/logo/java.png}
+    \caption{Logo ngôn ngữ lập trình Java}
+    \label{fig:logo_java}
+\end{figure}
 
-\subsection{Frontend: Next.js}
+Java là ngôn ngữ lập trình hướng đối tượng được thiết kế theo nguyên tắc biên
+dịch mã nguồn thành bytecode và thực thi thông qua máy ảo Java (Java Virtual
+Machine -- JVM). Nhờ cơ chế này, chương trình Java có thể hoạt động trên nhiều
+hệ điều hành khác nhau khi môi trường đó có JVM phù hợp. Java là ngôn ngữ có
+kiểu dữ liệu tĩnh, cho phép phát hiện nhiều lỗi liên quan đến kiểu dữ liệu ngay
+trong quá trình biên dịch và góp phần nâng cao tính an toàn của mã nguồn.
+
+Java hỗ trợ các đặc trưng của lập trình hướng đối tượng như đóng gói, kế thừa
+và đa hình. Những đặc trưng này cho phép mô hình hóa các đối tượng nghiệp vụ
+thành các lớp có trách nhiệm rõ ràng, đồng thời tạo điều kiện tái sử dụng và mở
+rộng mã nguồn. Bên cạnh đó, Java có cơ chế quản lý bộ nhớ tự động, thư viện
+chuẩn phong phú và hệ sinh thái phát triển lớn, phù hợp với việc xây dựng các
+ứng dụng phía máy chủ yêu cầu tính ổn định và khả năng bảo trì.
+
+Trong đề tài, Java 21 được sử dụng làm ngôn ngữ chính để phát triển phía máy
+chủ của EduSchedule. Các đối tượng nghiệp vụ như giáo viên, môn học, lớp học,
+phân công giảng dạy và thời khóa biểu được biểu diễn bằng các lớp Java. Ngôn
+ngữ này cũng được sử dụng để xây dựng các quy tắc kiểm tra xung đột, xử lý quá
+trình xếp thời khóa biểu tự động và kết nối các thành phần trong hệ sinh thái
+Spring Boot.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{Hinhve/logo/spring_boot.png}
+    \caption{Logo framework Spring Boot}
+    \label{fig:logo_spring_boot}
+\end{figure}
+
+Spring Boot là framework phát triển ứng dụng Java được xây dựng trên nền tảng
+Spring Framework. Công nghệ này cung cấp cơ chế tự động cấu hình, máy chủ web
+nhúng và hệ thống quản lý phụ thuộc, qua đó giảm khối lượng cấu hình ban đầu
+khi xây dựng ứng dụng. Spring Boot đặc biệt phù hợp với việc phát triển các dịch
+vụ web và RESTful API nhờ khả năng tổ chức ứng dụng thành các tầng rõ ràng,
+chẳng hạn như tầng điều khiển, tầng xử lý nghiệp vụ và tầng truy cập dữ liệu.
+
+Hệ sinh thái Spring cung cấp nhiều thành phần có thể tích hợp thống nhất trong
+cùng một ứng dụng. Spring Web MVC hỗ trợ tiếp nhận và xử lý yêu cầu HTTP;
+Spring Data JPA đơn giản hóa việc ánh xạ các đối tượng Java với dữ liệu trong
+cơ sở dữ liệu quan hệ; Spring Security cung cấp cơ chế xác thực và kiểm soát
+quyền truy cập. Ngoài ra, cơ chế Dependency Injection giúp giảm sự phụ thuộc
+trực tiếp giữa các thành phần, làm cho mã nguồn dễ tổ chức, kiểm thử và bảo trì
+hơn.
+
+Trong đề tài, Spring Boot 4.0.5 được sử dụng để xây dựng phía máy chủ của hệ
+thống EduSchedule. Các API đảm nhiệm việc quản lý năm học, môn
+học, giáo viên, lớp học, phòng chức năng, phân công giảng dạy và thời khóa
+biểu. Spring Security kết hợp với JSON Web Token và thư viện JJWT được sử
+dụng để xác thực người dùng và bảo vệ các tài nguyên cần đăng nhập. Spring
+Data JPA đảm nhiệm việc truy cập dữ liệu, trong khi Flyway quản lý các phiên
+bản thay đổi cấu trúc cơ sở dữ liệu. Việc lựa chọn Spring Boot giúp các thành
+phần nghiệp vụ của hệ thống được phân tách rõ ràng và thuận tiện cho việc mở
+rộng về sau.
+
+\subsection{Frontend: TypeScript và framework Next.js}
 \label{section:3.1.2}
 
-Next.js là framework React hỗ trợ Server-Side Rendering, định tuyến theo App Router và Route Handler — cho phép viết API endpoint ngay trong dự án frontend. Hệ thống sử dụng Next.js 16 với TypeScript, trong đó Route Handler xử lý đăng nhập và lưu JWT vào httpOnly cookie; middleware (proxy) kiểm soát phân quyền route; trang tra cứu thời khoá biểu công khai được render phía server.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.18\textwidth]{Hinhve/logo/typescript.png}
+    \caption{Logo TypeScript}
+    \label{fig:logo_typescript}
+\end{figure}
+
+TypeScript là ngôn ngữ lập trình được phát triển trên nền JavaScript và bổ sung
+hệ thống kiểu dữ liệu tĩnh. Mã nguồn TypeScript được biên dịch thành
+JavaScript trước khi thực thi trên trình duyệt hoặc môi trường máy chủ. Vì vậy,
+ngôn ngữ này vẫn sử dụng được hệ sinh thái JavaScript, đồng thời hỗ trợ phát
+hiện sớm các lỗi liên quan đến kiểu dữ liệu ngay trong quá trình phát triển.
+
+TypeScript cho phép khai báo kiểu cho biến, hàm, đối tượng và dữ liệu trao đổi
+giữa các thành phần. Đối với ứng dụng có nhiều kiểu dữ liệu nghiệp vụ, cơ chế
+này giúp mô tả rõ cấu trúc dữ liệu, hỗ trợ công cụ lập trình tự động gợi ý mã và
+giảm nguy cơ truyền sai dữ liệu giữa giao diện với API. Trong EduSchedule,
+TypeScript được sử dụng để định nghĩa các đối tượng như giáo viên, môn học,
+lớp học, phân công giảng dạy và các ô thời khóa biểu, qua đó giúp mã nguồn
+frontend dễ đọc và bảo trì hơn.
+
+Next.js là framework phát triển ứng dụng web dựa trên React, hỗ trợ xây dựng
+giao diện theo mô hình thành phần và cung cấp sẵn cơ chế định tuyến, tối ưu tài
+nguyên và kết xuất nội dung. Với App Router, cấu trúc đường dẫn của ứng dụng
+được tổ chức trực tiếp theo thư mục, giúp việc phân chia các trang và bố cục giao
+diện trở nên rõ ràng. Next.js đồng thời hỗ trợ cả kết xuất phía máy chủ và phía
+trình duyệt, cho phép lựa chọn phương thức phù hợp với từng loại trang. Giao
+diện được chia thành các component có khả năng tái sử dụng, giúp hạn chế mã
+lặp và thuận tiện khi thay đổi cách hiển thị.
+
+Trong hệ thống EduSchedule, Next.js 16.2.1 kết hợp với React 19 và TypeScript
+được sử dụng để xây dựng toàn bộ giao diện người dùng. Route Handler tiếp nhận
+yêu cầu đăng nhập từ giao diện, làm việc với API phía máy chủ và lưu token xác
+thực trong cookie có thuộc tính \texttt{httpOnly}. Cơ chế proxy kiểm soát việc
+truy cập các đường dẫn yêu cầu xác thực, trong khi trang tra cứu thời khóa biểu
+được cung cấp công khai cho người dùng vãng lai. Next.js phù hợp với đề tài vì
+cho phép xây dựng giao diện tương tác dưới dạng bảng và lưới thời khóa biểu,
+đồng thời duy trì cấu trúc mã nguồn có khả năng mở rộng.
 
 \subsection{Cơ sở dữ liệu: PostgreSQL}
 \label{section:3.1.3}
 
-PostgreSQL là hệ quản trị cơ sở dữ liệu quan hệ mã nguồn mở, hỗ trợ đầy đủ ràng buộc toàn vẹn tham chiếu và transaction ACID. Dữ liệu của hệ thống gồm các entity có quan hệ chặt chẽ (Teacher, SchoolClass, Subject, Assignment, Timetable), đòi hỏi mô hình quan hệ và ràng buộc khoá ngoại để đảm bảo nhất quán khi thêm, sửa, xoá.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\textwidth]{Hinhve/logo/postgresql.png}
+    \caption{Logo PostgreSQL}
+    \label{fig:logo_postgresql}
+\end{figure}
+
+PostgreSQL là hệ quản trị cơ sở dữ liệu quan hệ mã nguồn mở, sử dụng ngôn ngữ
+SQL để lưu trữ, truy vấn và quản lý dữ liệu. Dữ liệu được tổ chức thành các bảng
+và liên kết với nhau thông qua khóa chính, khóa ngoại cùng các ràng buộc toàn
+vẹn. PostgreSQL hỗ trợ transaction theo các thuộc tính ACID, giúp bảo đảm một
+nhóm thao tác dữ liệu được thực hiện đầy đủ hoặc được hoàn tác khi xảy ra lỗi.
+
+Hệ quản trị này còn cung cấp các cơ chế như chỉ mục, ràng buộc duy nhất và
+kiểm tra kiểu dữ liệu nhằm tăng hiệu quả truy vấn và hạn chế dữ liệu không hợp
+lệ. Đây là những đặc điểm cần thiết đối với bài toán xếp thời khóa biểu, bởi các
+dữ liệu về năm học, lớp học, môn học, giáo viên và phân công có mối liên hệ
+chặt chẽ. Một thay đổi không nhất quán ở một nhóm dữ liệu có thể ảnh hưởng
+trực tiếp đến việc tạo và hiển thị thời khóa biểu.
+
+Trong EduSchedule, PostgreSQL lưu trữ tài khoản người dùng, năm học, giáo
+viên, môn học, lớp học, phòng chức năng, phân công giảng dạy và các tiết học
+trong thời khóa biểu. Các quan hệ giữa những đối tượng này được bảo đảm bằng
+khóa ngoại và các ràng buộc duy nhất. Spring Data JPA được sử dụng làm lớp
+trung gian giữa các đối tượng Java và các bảng dữ liệu, còn Flyway quản lý các
+tệp migration để cấu trúc cơ sở dữ liệu có thể được cập nhật nhất quán giữa các
+môi trường.
+
+\subsection{Thư viện Timefold Solver}
+\label{section:3.1.4}
+
+Timefold Solver là thư viện mã nguồn mở hỗ trợ giải các bài toán tối ưu tổ hợp,
+trong đó có các bài toán lập lịch, phân công nguồn lực và định tuyến. Đối với
+những bài toán này, số lượng phương án có thể tăng rất nhanh theo kích thước dữ
+liệu nên việc liệt kê và kiểm tra toàn bộ phương án thường không khả thi.
+Timefold cho phép mô hình hóa bài toán bằng thực thể lập kế hoạch, biến lập kế
+hoạch, tập giá trị có thể lựa chọn và tập hợp các ràng buộc cần thỏa mãn.
+
+Chất lượng của một phương án được Timefold đánh giá thông qua điểm số. Các
+ràng buộc cứng thể hiện những điều kiện bắt buộc; phương án vi phạm các điều
+kiện này không được xem là hợp lệ. Các ràng buộc mềm được sử dụng để so sánh
+những phương án hợp lệ và lựa chọn phương án có cách bố trí phù hợp hơn. Thư
+viện cung cấp Constraint Streams để khai báo ràng buộc bằng mã Java, nhờ đó
+các quy tắc có thể được tổ chức riêng, kiểm thử và điều chỉnh mà không làm
+thay đổi toàn bộ quy trình xếp lịch.
+
+So với việc tự xây dựng thuật toán tìm kiếm từ đầu, Timefold Solver mang lại
+một số lợi thế phù hợp với đồ án. Thư viện được phát hành theo giấy phép mã
+nguồn mở Apache 2.0 nên không phát sinh chi phí bản quyền. Timefold cung cấp
+gói \texttt{timefold-solver-spring-boot-starter}, tự động cấu hình
+\texttt{SolverFactory} thành một Spring bean và cho phép tiêm trực tiếp vào
+các service của hệ thống mà không cần viết thêm mã khởi tạo thủ công. Cơ chế
+tính điểm gia tăng (incremental score calculation) chỉ tính lại phần điểm số
+bị ảnh hưởng sau mỗi bước di chuyển thay vì đánh giá lại toàn bộ phương án,
+giúp quá trình tìm kiếm cục bộ xử lý hiệu quả hơn với không gian phương án lớn
+của bài toán xếp thời khóa biểu. Thư viện cũng hỗ trợ sẵn cơ chế đánh dấu thực
+thể cố định (\textit{pinning}), cho phép giữ nguyên các tiết học đã được xếp
+thủ công trong khi solver chỉ tìm phương án cho những tiết còn lại, đúng với
+yêu cầu nghiệp vụ cốt lõi của chức năng xếp tự động trong EduSchedule mà không
+cần tự cài đặt cơ chế tương đương. Bên cạnh đó, Timefold cho phép giới hạn thời
+gian chạy của solver; hệ thống có thể cấu hình thời gian tối đa và luôn nhận
+được phương án tốt nhất tìm được trong khoảng thời gian đó, phù hợp với việc
+xử lý một yêu cầu HTTP đồng bộ cần phản hồi trong thời gian hợp lý.
+
+Trong đề tài, Timefold Solver 2.2.0 được tích hợp với Spring Boot để hỗ trợ
+chức năng xếp thời khóa biểu tự động. Mỗi tiết học được biểu diễn bởi một thực
+thể lập kế hoạch và được gán vào một khung thời gian trong tuần. Các ràng buộc
+cứng của hệ thống gồm không xếp trùng lớp, không xếp trùng giáo viên, không
+vượt quá số lượng phòng chức năng, không tạo khoảng trống giữa các tiết trong
+cùng một buổi và chỉ bố trí tiết buổi chiều khi buổi sáng của lớp đã được xếp
+đủ. Ràng buộc mềm được sử dụng để hạn chế ba tiết liên tiếp của cùng một môn
+học trong một buổi.
+
+Quá trình xếp tự động của EduSchedule kết hợp thuật toán tham lam với
+Timefold Solver. Thuật toán tham lam trước tiên tạo một phương án ban đầu đáp
+ứng các ràng buộc bắt buộc. Phương án này sau đó được chuyển cho Timefold để
+tiếp tục tìm kiếm và cải thiện điểm của các ràng buộc mềm. Những tiết đã tồn
+tại trong thời khóa biểu được đánh dấu cố định để không bị thay đổi trong quá
+trình tối ưu. Việc kết hợp hai phương pháp giúp hệ thống nhanh chóng tạo được
+phương án khả thi, đồng thời tiếp tục cải thiện cách phân bố các tiết học.
 
 
 \section{Công cụ triển khai và kiểm thử}
 \label{section:3.2}
 
-Hệ thống được triển khai và kiểm thử thông qua các công cụ miễn phí sau:
-\begin{itemize}[noitemsep]
-    \item \textbf{Vercel}: nền tảng hosting cho frontend Next.js, cung cấp HTTPS và CI/CD tự động từ Git repository.
-    \item \textbf{Docker}: đóng gói backend Spring Boot thành container, đảm bảo môi trường chạy nhất quán giữa development và production, triển khai trên nền tảng miễn phí.
-    \item \textbf{Postman}: công cụ kiểm thử API, dùng để kiểm tra và xác minh các endpoint backend trong quá trình phát triển.
-\end{itemize}
+Vercel là nền tảng triển khai ứng dụng web có khả năng tích hợp trực tiếp với
+dự án Next.js. Nền tảng hỗ trợ tự động xây dựng và triển khai phiên bản mới từ
+kho mã nguồn, đồng thời cung cấp HTTPS cho ứng dụng sau khi triển khai. Trong
+đề tài, Vercel được sử dụng để triển khai phần giao diện của EduSchedule, giúp
+quá trình cập nhật và kiểm tra ứng dụng trên môi trường Internet thuận tiện hơn.
 
-Chương này đã trình bày các công nghệ xây dựng hệ thống EduSchedule, bao gồm Spring Boot cho backend, Next.js cho frontend, PostgreSQL cho cơ sở dữ liệu, cùng Vercel, Docker và Postman cho triển khai và kiểm thử. Chương 4 tiếp theo sẽ trình bày thiết kế kiến trúc và quá trình hiện thực hoá hệ thống dựa trên nền tảng công nghệ này.
+Docker là nền tảng đóng gói ứng dụng và các thành phần phụ thuộc vào
+container. Cách đóng gói này tạo ra môi trường chạy thống nhất, hạn chế sự khác
+biệt về cấu hình giữa máy phát triển và máy chủ triển khai. Phần backend Spring
+Boot của EduSchedule được đóng gói bằng Docker để có thể khởi động cùng các
+cấu hình cần thiết trên môi trường triển khai.
+
+Postman là công cụ hỗ trợ gửi yêu cầu HTTP và kiểm tra phản hồi của API. Công
+cụ cho phép cấu hình tham số, nội dung yêu cầu, header xác thực và lưu các yêu
+cầu thành từng nhóm. Trong quá trình phát triển EduSchedule, Postman được sử
+dụng để kiểm tra các API quản lý dữ liệu, xác thực người dùng, phân công giảng
+dạy và thời khóa biểu trước khi kết nối hoàn chỉnh với giao diện.
+
+Chương này đã trình bày các công nghệ chính được sử dụng để xây dựng hệ
+thống EduSchedule, bao gồm Java và Spring Boot cho phía máy chủ, Next.js cho
+giao diện người dùng, PostgreSQL cho lưu trữ dữ liệu và Timefold Solver cho bài
+toán tối ưu thời khóa biểu. Các công cụ Vercel, Docker và Postman hỗ trợ quá
+trình triển khai và kiểm thử hệ thống. Chương 4 tiếp theo sẽ trình bày thiết kế
+và quá trình hiện thực hóa hệ thống trên cơ sở các công nghệ đã lựa chọn.
 
 \end{document}

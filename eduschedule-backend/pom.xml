@@ -117,11 +117,6 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>ai.timefold.solver</groupId>
-            <artifactId>timefold-solver-spring-boot-starter</artifactId>
-            <version>2.2.0</version>
-        </dependency>
     </dependencies>
 
     <build>

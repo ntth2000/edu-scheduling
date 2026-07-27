@@ -1,14 +1,87 @@
 \documentclass[../DoAn.tex]{subfiles}
 \begin{document}
 
-Chương này có độ dài tối thiểu 5 trang, tối đa không giới hạn.\footnote{Trong trường hợp phần này dưới 5 trang thì sinh viên nên gộp vào phần kết luận, không tách ra một chương riêng rẽ nữa.} Sinh viên cần trình bày tất cả những nội dung đóng góp mà mình thấy tâm đắc nhất trong suốt quá trình làm ĐATN. Đó có thể là một loạt các vấn đề khó khăn mà sinh viên đã từng bước giải quyết được, là giải thuật cho một bài toán cụ thể, là giải pháp tổng quát cho một lớp bài toán, hoặc là mô hình/kiến trúc hữu hiệu nào đó được sinh viên thiết kế.
+% ============================================================
+\section{Kết luận chung}
+\label{section:5.1}
 
-Chương này \textbf{là cơ sở quan trọng} để các thầy cô đánh giá sinh viên. Vì vậy, sinh viên cần phát huy tính sáng tạo, khả năng phân tích, phản biện, lập luận, tổng quát hóa vấn đề và tập trung viết cho thật tốt.
-Mỗi giải pháp hoặc đóng góp của sinh viên cần được trình bày trong một mục độc lập bao gồm ba mục con: (i) dẫn dắt/giới thiệu về bài toán/vấn đề, (ii) giải pháp, và (iii) kết quả đạt được (nếu có).
+Đề tài \textit{"Xây dựng hệ thống xếp thời khoá biểu tự động cho trường tiểu học — EduSchedule"} đã được nghiên cứu, phân tích và triển khai với mục tiêu xây dựng một công cụ hỗ trợ ban giám hiệu lập thời khoá biểu nhanh chóng, chính xác và không xảy ra xung đột lịch dạy.
 
-Sinh viên lưu ý \textbf{không trình bày lặp lại nội dung}. Những nội dung đã trình bày chi tiết trong các chương trước không được trình bày lại trong chương này. Vì vậy, với nội dung hay, mang tính đóng góp/giải pháp, sinh viên chỉ nên tóm lược/mô tả sơ bộ trong các chương trước, đồng thời tạo tham chiếu chéo tới đề mục tương ứng trong Chương 5 này. Chi tiết thông tin về đóng góp/giải pháp được trình bày trong mục đó.
+Hệ thống được thiết kế và phát triển trên nền tảng kiến trúc Client–Server tách biệt, kết hợp Spring Boot (backend) và Next.js (frontend) giao tiếp qua RESTful API, cho phép:
 
-Ví dụ, trong Chương 4, sinh viên có thiết kế được kiến trúc đáng lưu ý gì đó, là sự kết hợp của các kiến trúc MVC, MVP, SOA, v.v. Khi đó, sinh viên sẽ chỉ mô tả ngắn gọn kiến trúc đó ở Chương 4, rồi thêm các câu có dạng: ``Chi tiết về kiến trúc này sẽ được trình bày trong phần 5.1". 
+\begin{itemize}[noitemsep]
+    \item \textbf{Quản lý danh mục} giáo viên, lớp học, môn học một cách tập trung, có phân loại và trạng thái hoạt động.
+    \item \textbf{Phân công giảng dạy} với kiểm tra điều kiện hợp lệ: giáo viên chủ nhiệm chỉ được phân công một lớp, giáo viên bộ môn chỉ dạy các môn trong danh sách đăng ký.
+    \item \textbf{Xếp thời khoá biểu thủ công} trên giao diện dạng lưới kết hợp kiểm tra xung đột thời gian thực, ngăn chặn ngay khi giáo viên bị trùng tiết.
+    \item \textbf{Xem và xuất} thời khoá biểu ra file Excel để sử dụng trong thực tế.
+\end{itemize}
 
+Kết quả đạt được cho thấy hệ thống đáp ứng đầy đủ các yêu cầu chức năng đặt ra, giải quyết được điểm yếu chính của quy trình thủ công hiện tại: việc phát hiện và xử lý xung đột lịch dạy vốn phụ thuộc hoàn toàn vào kinh nghiệm và sự cẩn thận của người lập thời khoá biểu.
+
+% ============================================================
+\section{Phân tích quá trình thực hiện}
+\label{section:5.3}
+
+\subsection{Những điều đã làm được}
+
+Trong quá trình thực hiện, đề tài đã hoàn thành đầy đủ các nội dung chính sau:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Khảo sát nghiệp vụ} xếp thời khoá biểu thực tế, xác định rõ quy trình, dữ liệu đầu vào, đầu ra và các ràng buộc cứng cần đảm bảo.
+    \item \textbf{Thiết kế kiến trúc hệ thống} theo mô hình Client–Server tách biệt, kiến trúc phân tầng cho backend và mô hình BFF cho frontend.
+    \item \textbf{Xây dựng đầy đủ tài liệu UML}: use case, activity, package, class và sequence diagram.
+    \item \textbf{Triển khai đầy đủ các chức năng} nghiệp vụ: quản lý danh mục, phân công giảng dạy, xếp tiết với kiểm tra xung đột, xuất file Excel.
+    \item \textbf{Bảo mật hệ thống} với JWT trong httpOnly cookie, phân quyền tại Edge Runtime, mã hoá mật khẩu BCrypt.
+    \item \textbf{Kiểm thử} các chức năng cốt lõi với các trường hợp bao gồm cả luồng lỗi.
+    \item \textbf{Triển khai lên môi trường cloud} miễn phí: frontend trên Vercel, backend trên Render, cơ sở dữ liệu trên Render PostgreSQL.
+\end{enumerate}
+
+\subsection{Những điều chưa làm được}
+
+Bên cạnh các kết quả đạt được, đề tài còn một số hạn chế:
+
+\begin{enumerate}[noitemsep]
+    \item Chưa hỗ trợ \textbf{xếp tiết tự động}: hệ thống chỉ xếp thủ công với kiểm tra xung đột, chưa có thuật toán tự động sinh thời khoá biểu tối ưu theo ràng buộc.
+    \item Chưa có \textbf{phân quyền theo vai trò chi tiết}: hiện tại chỉ có một vai trò admin; chưa có vai trò giáo viên để xem lịch dạy của riêng mình.
+    \item Giao diện \textbf{chưa tối ưu cho thiết bị di động}: lưới thời khoá biểu phù hợp màn hình rộng, trải nghiệm trên điện thoại còn hạn chế.
+    \item Chưa có \textbf{tính năng thông báo}: hệ thống chưa tự động gửi thông báo cho giáo viên khi lịch dạy thay đổi.
+    \item Chưa hỗ trợ \textbf{quản lý theo năm học hoặc học kỳ}: mỗi thời khoá biểu hiện tại là một đơn vị độc lập.
+\end{enumerate}
+
+\subsection{Bài học kinh nghiệm}
+
+Qua quá trình nghiên cứu và thực hiện đề tài, một số bài học quan trọng được rút ra:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Khảo sát nghiệp vụ thực tế trước khi thiết kế} giúp xác định đúng ràng buộc quan trọng ngay từ đầu, tránh phải sửa lại thiết kế database sau khi đã triển khai.
+    \item \textbf{Tách biệt rõ trách nhiệm giữa các tầng} giúp dễ debug và bổ sung chức năng mà không ảnh hưởng phần khác của hệ thống.
+    \item \textbf{Kiểm thử sớm và thường xuyên} giúp phát hiện lỗi logic nghiệp vụ (như các trường hợp xung đột đặc biệt) trước khi tích hợp vào giao diện.
+    \item \textbf{Lựa chọn công nghệ phù hợp với quy mô dự án}: sử dụng nền tảng miễn phí (Vercel, Render) đủ đáp ứng nhu cầu thử nghiệm mà không phát sinh chi phí vận hành.
+    \item \textbf{Tài liệu hoá song song với phát triển} giúp duy trì sự nhất quán giữa thiết kế và cài đặt thực tế.
+\end{enumerate}
+
+% ============================================================
+\section{Hướng phát triển}
+\label{section:5.4}
+
+\subsection{Hoàn thiện sản phẩm}
+
+\begin{enumerate}[noitemsep]
+    \item Bổ sung \textbf{thuật toán xếp tiết tự động} dựa trên các ràng buộc cứng (không trùng giáo viên) và ràng buộc mềm (phân bố đều các môn trong tuần, tránh xếp môn khó vào cuối ngày) — giúp giảm thêm công sức thủ công cho người lập thời khoá biểu.
+    \item Phát triển \textbf{phân quyền đa vai trò}: thêm vai trò giáo viên để xem lịch dạy cá nhân, vai trò phụ huynh để tra cứu thời khoá biểu của lớp.
+    \item Cải tiến \textbf{giao diện responsive} để hỗ trợ đầy đủ trên thiết bị di động và máy tính bảng.
+    \item Thêm \textbf{tính năng thông báo} qua email hoặc giao diện khi thời khoá biểu được công bố hoặc có thay đổi.
+    \item Xây dựng \textbf{quản lý theo năm học và học kỳ}, cho phép lưu trữ lịch sử thời khoá biểu các năm trước để tham khảo.
+\end{enumerate}
+
+\subsection{Hướng đi mới}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Tích hợp trí tuệ nhân tạo (AI)} để gợi ý xếp tiết dựa trên dữ liệu lịch sử, học được từ các thời khoá biểu được đánh giá tốt trong các năm trước.
+    \item \textbf{Mở rộng sang cấp THCS và THPT} với các ràng buộc phức tạp hơn: phòng học chuyên dụng, nhiều ca học, nhiều giáo viên cùng bộ môn.
+    \item \textbf{Phát triển ứng dụng di động} (iOS/Android) để giáo viên và phụ huynh tra cứu thời khoá biểu tiện lợi hơn.
+    \item \textbf{Tích hợp với hệ thống quản lý trường học} (School Management System) để đồng bộ dữ liệu giáo viên, lớp học tự động thay vì nhập thủ công.
+    \item \textbf{Phân tích dữ liệu và báo cáo}: thống kê tải giảng dạy theo giáo viên, phân bố tiết theo khối lớp, hỗ trợ ban giám hiệu trong việc điều phối nguồn lực.
+\end{enumerate}
 
 \end{document}

@@ -3,69 +3,680 @@
 
 \section{Thiết kế kiến trúc}
 \subsection{Lựa chọn kiến trúc phần mềm}
-Mục này có độ dài từ một đến ba trang. Sinh viên cần lựa chọn kiến trúc phần mềm cho ứng dụng của mình như: kiến trúc ba lớp MVC, MVP, SOA, Microservice, v.v. rồi giải thích sơ bộ về kiến trúc đó (không giải thích chi tiết/dài dòng).
-Sử dụng kiến trúc phần mềm đã chọn ở trên, sinh viên mô tả kiến trúc cụ thể cho ứng dụng của mình. Gợi ý: sinh viên áp dụng lý thuyết chung vào hệ thống/sản phẩm của mình như thế nào, có thay đổi, bổ sung hoặc cải tiến gì không. Ví dụ, thành phần M trong kiến trúc lý thuyết MVC sẽ là những thành phần cụ thể nào (ví dụ: là interface I + class C1 + class C2, v.v.) trong kiến trúc phần mềm của sinh viên.
+
+\subsubsection{Kiến trúc tổng thể: Client–Server tách biệt}
+
+Hệ thống EduSchedule áp dụng kiến trúc \textbf{Client–Server tách biệt} (decoupled client–server), trong đó frontend và backend là hai ứng dụng độc lập, giao tiếp hoàn toàn qua RESTful API qua giao thức HTTP/HTTPS. Cách tổ chức này cho phép hai phía triển khai, cập nhật và mở rộng độc lập nhau mà không ảnh hưởng lẫn nhau.
+
+Hệ thống gồm ba thành phần chính:
+\begin{itemize}[noitemsep]
+    \item \textbf{Frontend}: ứng dụng Next.js chạy trên trình duyệt, hiển thị giao diện và gọi API.
+    \item \textbf{Backend}: ứng dụng Spring Boot cung cấp RESTful API, xử lý toàn bộ nghiệp vụ và bảo mật.
+    \item \textbf{Cơ sở dữ liệu}: PostgreSQL lưu trữ dữ liệu, chỉ được truy cập bởi backend.
+\end{itemize}
+
+\subsubsection{Kiến trúc backend: Layered Architecture}
+
+Backend áp dụng \textbf{kiến trúc phân tầng} (Layered Architecture) với ba tầng rõ ràng, mỗi tầng chỉ phụ thuộc vào tầng liền kề phía dưới.
+
+\textbf{Tầng Controller (API Layer)} — tiếp nhận HTTP request từ client, thực hiện validate dữ liệu đầu vào qua annotation, uỷ quyền xử lý cho tầng Service, và trả HTTP response. Tầng này không chứa logic nghiệp vụ. Trong hệ thống, tầng này gồm các class:
+\begin{itemize}[noitemsep]
+    \item AuthController: xử lý đăng nhập, cấp và làm mới JWT token.
+    \item TeacherController, SubjectController, SchoolClassController: CRUD danh mục giáo viên, môn học, lớp học.
+    \item AssignmentController: quản lý phân công giảng dạy.
+    \item SchoolYearController, TimetableController, WeekController: quản lý năm học, thời khoá biểu và tuần học.
+    \item SlotController: xếp và xoá tiết học.
+    \item SpecialRoomController: quản lý phòng chức năng.
+    \item ScheduleGeneratorController: nhận yêu cầu xếp tự động, trả kết quả dưới dạng draft chưa lưu.
+\end{itemize}
+
+\textbf{Tầng Service (Business Logic Layer)} — chứa toàn bộ logic nghiệp vụ của hệ thống: kiểm tra xung đột tiết dạy, xác nhận ràng buộc phân công, sinh thời khoá biểu tự động. Tầng này nhận tham số từ Controller qua DTO, gọi Repository để truy cập dữ liệu, và trả kết quả về dưới dạng DTO response. Các class chính:
+\begin{itemize}[noitemsep]
+    \item TeacherService, SubjectService, SchoolClassService: nghiệp vụ quản lý danh mục.
+    \item AssignmentService: kiểm tra tính hợp lệ khi phân công giáo viên chủ nhiệm và giáo viên bộ môn.
+    \item SchoolYearService, TimetableService, WeekService: quản lý năm học, khởi tạo thời khoá biểu và tuần học.
+    \item SlotService: xếp tiết, kiểm tra xung đột giáo viên và phòng chức năng.
+    \item SpecialRoomService: nghiệp vụ quản lý phòng chức năng.
+    \item ScheduleGeneratorService: thuật toán xếp tự động theo nhóm ưu tiên, trả kết quả draft.
+    \item JwtService: tạo, xác thực và làm mới JWT token.
+\end{itemize}
+
+\textbf{Tầng Data (Data Layer)} — gồm hai thành phần: Entity và Repository.
+\begin{itemize}[noitemsep]
+    \item \textit{Entity (Domain Model)}: các class Teacher, Subject, SchoolClass, Assignment, Timetable, Slot, User được annotate @Entity, ánh xạ trực tiếp tới các bảng trong cơ sở dữ liệu qua JPA.
+    \item \textit{Repository (Data Access)}: các interface kế thừa JpaRepository, được Spring tự động sinh implementation. Gồm TeacherRepository, SubjectRepository, SchoolClassRepository, AssignmentRepository, TimetableRepository, SlotRepository, UserRepository.
+\end{itemize}
+
+Ngoài ba tầng chính, backend có thêm hai thành phần hỗ trợ ngang (cross-cutting):
+\begin{itemize}[noitemsep]
+    \item \textbf{Package dto}: các class DTO (TeacherRequest, TeacherResponse, v.v.) làm lớp trung gian giữa Controller và client, tránh để lộ cấu trúc entity ra ngoài.
+    \item \textbf{Package config}: cấu hình Spring Security (BCrypt, JWT filter, CORS), không thuộc bất kỳ tầng nghiệp vụ nào.
+\end{itemize}
+
+\subsubsection{Kiến trúc frontend: Component-based kết hợp BFF}
+
+Frontend áp dụng kiến trúc \textbf{component-based} của React/Next.js, đồng thời bổ sung mô hình \textbf{BFF (Backend For Frontend)} thông qua Route Handler của Next.js.
+
+\textbf{Tầng Routing \& Page} (thư mục app/): định nghĩa các trang theo App Router của Next.js. Trang quản lý (dashboard) yêu cầu xác thực; trang tra cứu thời khoá biểu (/timetable) được render phía server và cho phép truy cập không cần đăng nhập.
+
+\textbf{BFF — Route Handler} (thư mục app/api/): các handler /api/auth/login và /api/auth/logout đóng vai trò trung gian giữa trình duyệt và backend. Khi đăng nhập, Route Handler gọi API Spring Boot, nhận JWT và lưu vào httpOnly cookie — trình duyệt không thể đọc token trực tiếp, giảm nguy cơ tấn công XSS.
+
+\textbf{Proxy middleware} (file src/proxy.ts): chạy ở Edge Runtime trước mỗi request, kiểm tra sự tồn tại của cookie access\_token để phân quyền truy cập route; không cần qua server.
+
+\textbf{Tầng Component} (thư mục components/): các component UI được tổ chức theo domain nghiệp vụ: teachers/, subjects/, classes/, assignments/, timetable/. Ngoài ra có layout/ chứa cấu trúc khung trang, shared/ chứa component dùng chung, và ui/ chứa các primitive component từ shadcn/ui.
+
+\textbf{Tầng Logic \& Tiện ích}: thư mục hooks/ chứa custom React hook tái sử dụng logic gọi API; thư mục lib/ chứa các hàm tiện ích dùng chung.
+
 
 \subsection{Thiết kế tổng quan}
-Sinh viên vẽ biểu đồ gói UML (UML package diagram), nêu rõ sự phụ thuộc giữa các gói (package). SV cần vẽ các gói sao cho chúng được phân theo các tầng rõ ràng, không được sắp đặt package lộn xộn trong hình vẽ. Sinh viên chú ý các quy tắc thiết kế (Các gói không phụ thuộc lẫn nhau, gói tầng dưới không phụ thuộc gói tầng trên, không phụ thuộc bỏ qua tầng, v.v.) và cần giải thích sơ lược về mục đích/nhiệm vụ của từng package. SV tham khảo ví dụ minh họa trong Hình \ref{fig:Fig1}
+\label{subsection:4.1.2}
+
+Biểu đồ gói UML tổng quan (Hình~\ref{fig:package_diagram}) thể hiện cấu trúc phân tầng của hệ thống EduSchedule gồm ba tầng chính xếp dọc và một nhóm cross-cutting concerns nằm ngang.
+
 \begin{figure}[H]
     \centering
-    \includegraphics{Hinhve/Picture1.png}
-    \caption{Ví dụ biểu đồ phụ thuộc gói}
-    \label{fig:Fig1}
+    \includegraphics[width=0.95\textwidth]{Hinhve/Kientruc/package_diagram.jpg}
+    \caption{Biểu đồ gói UML tổng quan hệ thống EduSchedule}
+    \label{fig:package_diagram}
 \end{figure}
+
+\textbf{Presentation Layer (frontend)} — tầng giao diện, gồm ba package:
+\begin{itemize}[noitemsep]
+    \item Pages: các trang được định tuyến theo App Router của Next.js, chịu trách nhiệm render giao diện và điều phối dữ liệu.
+    \item Components: các thành phần UI tái sử dụng, tổ chức theo domain nghiệp vụ (teachers, subjects, classes, assignments, timetable).
+    \item API Services: các hàm gọi REST API đến backend và Route Handler (BFF) xử lý xác thực, lưu JWT vào httpOnly cookie.
+\end{itemize}
+
+\textbf{Business Layer (backend)} — tầng nghiệp vụ, gồm hai package:
+\begin{itemize}[noitemsep]
+    \item Controller (REST API): tiếp nhận HTTP request, validate đầu vào và uỷ quyền cho Service.
+    \item Service: xử lý toàn bộ logic nghiệp vụ — kiểm tra xung đột tiết dạy, kiểm tra định mức giáo viên, xác nhận ràng buộc phân công.
+\end{itemize}
+
+\textbf{Data Layer} — tầng dữ liệu, gồm hai package và cơ sở dữ liệu:
+\begin{itemize}[noitemsep]
+    \item Repositories: các interface Spring Data JPA truy cập cơ sở dữ liệu.
+    \item Entities: các class ánh xạ tới bảng trong PostgreSQL qua JPA annotation.
+    \item PostgreSQL: hệ quản trị cơ sở dữ liệu, chỉ được truy cập qua tầng Repository.
+\end{itemize}
+
+\textbf{Cross Cutting} — các thành phần xuyên suốt, ảnh hưởng đến cả Business Layer và Data Layer:
+\begin{itemize}[noitemsep]
+    \item Config (CORS/BCrypt): cấu hình CORS cho phép frontend gọi API, mã hoá mật khẩu bằng BCrypt.
+    \item Spring Security + JWT: JWT filter chạy trước mọi request vào Controller, xác thực token và phân quyền truy cập.
+\end{itemize}
+
+
 \subsection{Thiết kế chi tiết gói}
-Sinh viên thiết kế và lần lượt vẽ biểu đồ thiết kế cho từng package, hoặc một nhóm các package liên quan để giải quyết một vấn đề gì đó. Khi vẽ thiết kế gói, sinh viên chỉ cần đưa tên lớp, không cần chỉ ra các thành viên phương thức và thuộc tính. SV tham khảo ví dụ minh họa trong Hình \ref{fig:Fig2}.
+\label{subsection:4.1.3}
 
-Sinh viên cần vẽ rõ ràng quan hệ giữa các lớp trong biểu đồ. Các quan hệ bao gồm: phụ thuộc (dependency), kết hợp (association), kết tập (aggregation), hợp thành (composition), kế thừa (inheritance), và thực thi (implementation). Các quan hệ này đều đã được minh họa trong \ref{fig:Fig2}.
-
-Sau khi vẽ hình minh họa, sinh viên cần giải thích ngắn gọn về thiết kế của mình. 
+Biểu đồ sau thể hiện quan hệ giữa các lớp trong nhóm package nghiệp vụ cốt lõi của backend, tập trung vào luồng xếp tiết và phân công giảng dạy.
 
 \begin{figure}[H]
     \centering
-    \includegraphics{Hinhve/Picture2.png}
-    \caption{Ví dụ thiết kế gói}
-    \label{fig:Fig2}
+    % TODO: Chèn biểu đồ lớp cho nhóm package service - repository - entity
+    \includegraphics[width=0.95\textwidth]{Hinhve/KienTruc/class_package_diagram.jpg}
+    \caption{Biểu đồ thiết kế gói nghiệp vụ backend}
+    \label{fig:class_package_diagram}
 \end{figure}
+
+Trong biểu đồ: SlotService và AssignmentService phụ thuộc (dependency) vào nhiều Repository để thực hiện nghiệp vụ. Assignment có quan hệ kết hợp (association) nhiều chiều với SchoolClass, Subject và Teacher. Slot hợp thành (composition) với Timetable và kết hợp với Assignment. Teacher và Subject có quan hệ nhiều–nhiều thông qua bảng trung gian teacher\_subjects.
 
 \section{Thiết kế chi tiết}
 \subsection{Thiết kế giao diện}
-Phần này có độ dài từ hai đến ba trang. Sinh viên đặc tả thông tin về màn hình mà ứng dụng của mình hướng tới, bao gồm độ phân giải màn hình, kích thước màn hình, số lượng màu sắc hỗ trợ, v.v. Tiếp đến, sinh viên đưa ra các thống nhất/chuẩn hóa của mình khi thiết kế giao diện như thiết kế nút, điều khiển, vị trí hiển thị thông điệp phản hồi, phối màu, v.v. Sau cùng sinh viên đưa ra một số hình ảnh minh họa thiết kế giao diện cho các chức năng quan trọng nhất. Lưu ý, sinh viên không nhầm lẫn giao diện thiết kế với giao diện của sản phẩm sau cùng.
-\subsection{Thiết kế lớp}
-Phần này có độ dài từ ba đến bốn trang. Sinh viên trình bày thiết kế chi tiết các thuộc tính và phương thức cho một số lớp chủ đạo/quan trọng nhất của ứng dụng (từ 2-4 lớp). Thiết kế chi tiết cho các lớp khác, nếu muốn trình bày, sinh viên đưa vào phần phụ lục.
+\label{subsection:4.2.1}
 
-Để minh họa thiết kế lớp, sinh viên thiết kế luồng truyền thông điệp giữa các đối tượng tham gia cho 2 đến 3 use case quan trọng nào đó bằng biểu đồ trình tự (hoặc biểu đồ giao tiếp).
+\textbf{Thông số màn hình mục tiêu.} Hệ thống EduSchedule là ứng dụng web hướng đến người dùng trên máy tính để bàn và máy tính xách tay. Độ phân giải tối thiểu được hỗ trợ là 1280×768 pixel; độ phân giải khuyến nghị là 1440×900 trở lên. Giao diện xây dựng theo nguyên tắc responsive với TailwindCSS, đảm bảo hiển thị ổn định ở các kích thước màn hình phổ biến từ 1024px trở lên. Hệ thống hỗ trợ hiển thị 16 triệu màu (truecolor) thông qua trình duyệt.
+
+\textbf{Chuẩn hoá giao diện.} Một số quy ước được áp dụng nhất quán trong toàn bộ giao diện:
+\begin{itemize}[noitemsep]
+    \item \textit{Phối màu}: nền trắng (\#ffffff), văn bản đen (\#0f172a), màu nhấn xanh dương (\#2563eb). Ô xung đột hiển thị nền đỏ (\#fee2e2) với viền đỏ (\#ef4444); ô cảnh báo vượt định mức hiển thị màu vàng cam.
+    \item \textit{Typography}: font hệ thống sans-serif, cỡ chữ cơ sở 14–16px. Tiêu đề section dùng cỡ 18–20px, font-weight 600.
+    \item \textit{Nút}: nút chính (primary) nền xanh, nút huỷ nền xám, nút xoá nền đỏ. Tất cả các nút có trạng thái hover và disabled rõ ràng.
+    \item \textit{Thông báo phản hồi}: toast notification xuất hiện ở góc trên chính giữa màn hình, hiển thị trong 3 giây. Màu xanh lá cho thành công, đỏ cho lỗi.
+    \item \textit{Bố cục}: sidebar cố định bên trái rộng 240px chứa menu điều hướng; vùng nội dung chính chiếm phần còn lại.
+    \item \textit{Lưới thời khoá biểu}: bảng có hàng là tiết (1–7), cột là thứ (Hai–Sáu). Mỗi ô có kích thước cố định, hiển thị tên môn và tên giáo viên.
+\end{itemize}
+
+Dưới đây là thiết kế một số giao diện chính của hệ thống EduSchedule, bao gồm dashboard tổng quan, trang quản lý giáo viên, và trang xếp thời khoá biểu.
+\begin{figure}[H]
+    \centering
+    
+    % --- Ảnh 1 ---
+    \begin{minipage}{0.95\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_tong_quan.png}
+        \caption{Giao diện tổng quan hệ thống EduSchedule}
+        \label{fig:ui_overview}
+    \end{minipage}
+
+    \vspace{0.5cm} % Khoảng cách giữa caption ảnh 1 và ảnh 2 (chỉnh số này nếu muốn khít hơn)
+
+    % --- Ảnh 2 ---
+    \begin{minipage}{0.95\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_giao_vien.png}
+        \caption{Giao diện giáo viên hệ thống EduSchedule}
+        \label{fig:ui_teacher}
+    \end{minipage}
+
+    \vspace{0.5cm}
+
+    % --- Ảnh 3 ---
+    \begin{minipage}{0.95\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_xep_tkb.png}
+        \caption{Giao diện xếp thời khoá biểu hệ thống EduSchedule}
+        \label{fig:ui_scheduler}
+    \end{minipage}
+
+\end{figure}
+
+\subsection{Thiết kế lớp}
+\label{subsection:4.2.2}
+
+Phần này trình bày thiết kế chi tiết hai lớp nghiệp vụ quan trọng nhất của hệ thống: SlotService và AssignmentService.
+
+\textbf{Lớp SlotService}
+
+\textit{Vai trò}: Xử lý toàn bộ nghiệp vụ xếp tiết học vào thời khoá biểu, bao gồm kiểm tra xung đột giáo viên và thao tác upsert slot.
+
+\textit{Thuộc tính (dependency injection)}:
+\begin{itemize}[noitemsep]
+    \item slotRepository: SlotRepository — truy vấn và lưu slot
+    \item timetableRepository: TimetableRepository — tra cứu thời khoá biểu
+    \item assignmentRepository: AssignmentRepository — tra cứu và tạo phân công
+    \item classRepository: SchoolClassRepository — tra cứu lớp học
+    \item subjectRepository: SubjectRepository — tra cứu môn học
+\end{itemize}
+
+\textit{Phương thức chính}:
+\begin{itemize}[noitemsep]
+    \item getAll(): List<SlotResponse> — lấy toàn bộ slot.
+    \item getByTimetable(timetableId): List<SlotResponse> — lấy slot theo thời khoá biểu.
+    \item saveOrUpdateSlot(request): SlotResponse — upsert slot vào ô (day, period): kiểm tra xung đột giáo viên, nếu có ném ngoại lệ; nếu không lưu slot và trả kết quả.
+    \item deleteSlot(id): void — xoá slot theo id.
+    \item resolveAssignment(request): Assignment — (private) xác định Assignment cho slot: nếu có assignmentId thì tra cứu trực tiếp; nếu chỉ có classId + subjectId thì tìm/tạo phân công với GVCN của lớp đó.
+\end{itemize}
+
+\textbf{Lớp AssignmentService}
+
+\textit{Vai trò}: Xử lý nghiệp vụ phân công giảng dạy, bao gồm phân công giáo viên chủ nhiệm và giáo viên bộ môn cho từng lớp–môn.
+
+\textit{Phương thức chính}:
+\begin{itemize}[noitemsep]
+    \item assignHomeroom(request): void — phân công GVCN: kiểm tra giáo viên có type CHU\_NHIEM; kiểm tra giáo viên chưa làm chủ nhiệm lớp khác; cập nhật homeroomTeacher của lớp.
+    \item assign(request): AssignmentResponse — phân công giáo viên cho môn–lớp: tạo hoặc cập nhật bản ghi Assignment.
+    \item getAll(year): List<AssignmentResponse> — lấy toàn bộ phân công, lọc theo năm học.
+    \item delete(id): void — xoá phân công.
+\end{itemize}
+
+Biểu đồ trình tự dưới đây minh hoạ luồng xử lý cho hai use case quan trọng.
+
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn biểu đồ trình tự UC "Xếp tiết học"
+    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_xeptiet.png}
+    \caption{Biểu đồ trình tự use case Xếp tiết học}
+    \label{fig:sd_xep_tiet}
+\end{figure}
+\vspace{-10pt}
+
+Trong UC Xếp tiết học: Admin gửi request chứa timetableId, day, period, assignmentId. SlotController chuyển tiếp sang SlotService.saveOrUpdateSlot(). Service tra cứu Timetable, resolve Assignment, kiểm tra xung đột giáo viên qua SlotRepository. Nếu xung đột, ném ngoại lệ trả về lỗi 400. Nếu không, lưu slot và trả SlotResponse về client.
+
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn biểu đồ trình tự UC "Phân công giảng dạy"
+    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_phancong.png}
+    \caption{Biểu đồ trình tự use case Phân công giảng dạy}
+    \label{fig:sd_phan_cong}
+\end{figure}
+\vspace{-10pt}
+
+Trong UC Phân công GVBM: Admin gửi request classId, subjectId, teacherId. AssignmentController gọi AssignmentService.assign(). Service kiểm tra giáo viên có trong danh sách môn dạy được; nếu không ném ngoại lệ. Nếu hợp lệ, tìm hoặc tạo Assignment rồi lưu và trả response.
+
 \subsection{Thiết kế cơ sở dữ liệu}
-Phần này có độ dài từ hai đến bốn trang. Sinh viên thiết kế, vẽ và giải thích biểu đồ thực thể liên kết (E-R diagram). Từ đó, sinh viên thiết kế cơ sở dữ liệu tùy theo hệ quản trị cơ sở dữ liệu mà mình sử dụng (SQL, NoSQL, Firebase, v.v.)
+\label{subsection:4.2.3}
+
+Cơ sở dữ liệu PostgreSQL của hệ thống gồm mười hai bảng, phản ánh trực tiếp từ các entity class trong backend. Thiết kế chi tiết được mô tả trong sơ đồ sau:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/database/dbdesign.png}
+    \caption{Thiết kế chi tiết cơ sở dữ liệu}
+    \label{fig:db_design}
+\end{figure}
+
+
+Từ sơ đồ ER, ta có thể thiết kế chi tiết cấu trúc bảng và ràng buộc cho từng bảng như sau:
+
+\subsubsection*{Bảng users}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng users}
+\label{table:db_users}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+username & VARCHAR(255) & NOT NULL, UNIQUE & Tên đăng nhập \\
+\hline
+password & VARCHAR(255) & NOT NULL & Mật khẩu (BCrypt hash) \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng teachers}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng teachers}
+\label{table:db_teachers}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+full\_name & VARCHAR(255) & NOT NULL & Họ và tên giáo viên \\
+\hline
+user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
+\hline
+type & VARCHAR(20) & NOT NULL & Loại: BO\_MON, CHU\_NHIEM, KHAC \\
+\hline
+max\_periods\_per\_week & INTEGER & NOT NULL & Số tiết tối đa mỗi tuần \\
+\hline
+is\_active & BOOLEAN & NOT NULL, DEFAULT true & Trạng thái hoạt động \\
+\hline
+created\_at & TIMESTAMP & NOT NULL & Thời điểm tạo bản ghi \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng subjects}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng subjects}
+\label{table:db_subjects}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
+\hline
+name & VARCHAR(100) & NOT NULL & Tên môn học \\
+\hline
+periods\_grade1 & INTEGER & NOT NULL & Số tiết/tuần khối 1 \\
+\hline
+periods\_grade2 & INTEGER & NOT NULL & Số tiết/tuần khối 2 \\
+\hline
+periods\_grade3 & INTEGER & NOT NULL & Số tiết/tuần khối 3 \\
+\hline
+periods\_grade4 & INTEGER & NOT NULL & Số tiết/tuần khối 4 \\
+\hline
+periods\_grade5 & INTEGER & NOT NULL & Số tiết/tuần khối 5 \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng teacher\_subjects}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng teacher\_subjects}
+\label{table:db_teacher_subjects}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+teacher\_id & BIGINT & PK, FK $\rightarrow$ teachers & Khoá ngoại giáo viên \\
+\hline
+subject\_id & BIGINT & PK, FK $\rightarrow$ subjects & Khoá ngoại môn học \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+Bảng trung gian thể hiện quan hệ nhiều–nhiều giữa giáo viên và các môn học họ có thể dạy.
+
+\subsubsection*{Bảng school\_years}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng school\_years}
+\label{table:db_school_years}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
+\hline
+start\_year & INTEGER & NOT NULL & Năm bắt đầu (VD: 2024) \\
+\hline
+\multicolumn{4}{|l|}{\textit{UNIQUE(user\_id, start\_year)}} \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng special\_rooms}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng special\_rooms}
+\label{table:db_special_rooms}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
+\hline
+name & VARCHAR(100) & NOT NULL & Tên phòng chức năng \\
+\hline
+subject\_id & BIGINT & FK $\rightarrow$ subjects, NULL & Môn học sử dụng phòng này \\
+\hline
+quantity & INTEGER & NOT NULL, DEFAULT 1 & Số lượng phòng hiện có \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng classes}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng classes}
+\label{table:db_classes}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+name & VARCHAR(10) & NOT NULL & Tên lớp (VD: 1A, 3B) \\
+\hline
+grade & INTEGER & NOT NULL & Khối lớp (1–5) \\
+\hline
+homeroom\_teacher\_id & BIGINT & FK $\rightarrow$ teachers, NULL & Giáo viên chủ nhiệm \\
+\hline
+school\_year\_id & BIGINT & FK $\rightarrow$ school\_years, NULL & Năm học \\
+\hline
+\multicolumn{4}{|l|}{\textit{UNIQUE(name, school\_year\_id)}} \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng assignments}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng assignments}
+\label{table:db_assignments}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+class\_id & BIGINT & NOT NULL, FK $\rightarrow$ classes & Lớp học được phân công \\
+\hline
+subject\_id & BIGINT & NOT NULL, FK $\rightarrow$ subjects & Môn học được phân công \\
+\hline
+teacher\_id & BIGINT & FK $\rightarrow$ teachers, NULL & Giáo viên được phân công \\
+\hline
+periods\_per\_week & INTEGER & NOT NULL, DEFAULT 0 & Số tiết/tuần được phân công \\
+\hline
+\multicolumn{4}{|l|}{\textit{UNIQUE(class\_id, subject\_id, teacher\_id)}} \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng timetables}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng timetables}
+\label{table:db_timetables}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+school\_year\_id & BIGINT & NOT NULL, FK $\rightarrow$ school\_years & Năm học \\
+\hline
+semester\_order & INTEGER & NOT NULL & Thứ tự học kì (1 hoặc 2) \\
+\hline
+\multicolumn{4}{|l|}{\textit{UNIQUE(school\_year\_id, semester\_order)}} \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng weeks}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng weeks}
+\label{table:db_weeks}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+timetable\_id & BIGINT & NOT NULL, FK $\rightarrow$ timetables & Thời khoá biểu chứa tuần này \\
+\hline
+week\_number & INTEGER & NOT NULL & Số thứ tự tuần trong học kì \\
+\hline
+start\_date & DATE & NULL & Ngày bắt đầu của tuần \\
+\hline
+\multicolumn{4}{|l|}{\textit{UNIQUE(timetable\_id, week\_number)}} \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\subsubsection*{Bảng slots}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Mô tả bảng slots}
+\label{table:db_slots}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+\hline
+id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
+\hline
+week\_id & BIGINT & NOT NULL, FK $\rightarrow$ weeks & Tuần học chứa tiết này \\
+\hline
+assignment\_id & BIGINT & FK $\rightarrow$ assignments, NULL & Phân công tương ứng \\
+\hline
+day & INTEGER & NOT NULL & Thứ trong tuần (2–6) \\
+\hline
+session & INTEGER & NOT NULL & Buổi học (1: sáng, 2: chiều) \\
+\hline
+period & INTEGER & NOT NULL & Tiết trong buổi (1–4 sáng, 1–3 chiều) \\
+\hline
+special\_room\_id & BIGINT & FK $\rightarrow$ special\_rooms, NULL & Phòng chức năng sử dụng \\
+\hline
+\multicolumn{4}{|l|}{\textit{UNIQUE(week\_id, assignment\_id, day, session, period)}} \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
 
 \section{Xây dựng ứng dụng}
 \subsection{Thư viện và công cụ sử dụng}
-Sinh viên liệt kê các công cụ, ngôn ngữ lập trình, API, thư viện, IDE, công cụ kiểm thử, v.v. mà mình sử dụng để phát triển ứng dụng. Mỗi công cụ phải được chỉ rõ phiên bản sử dụng. SV nên kẻ bảng mô tả tương tự như Bảng \ref{table:my_label}. Nếu có nhiều nội dung trình bày, sinh viên cần xoay ngang bảng.
+\label{subsection:4.3.1}
 
 \begin{table}[H]
-\centering{}
-    \begin{tabular}{lll}
-        \hline
-        \textbf{Mục đích} & \textbf{Công cụ}       & \textbf{Địa chỉ URL}    \\ \hline
-        IDE lập trình     & Eclipse Oxygen a64 bit & http://www.eclipse.org/ \\ \hline
-        v.v.              & v.v.                   & v.v.                    \\ \hline
-        \end{tabular}
-    \caption{Danh sách thư viện và công cụ sử dụng}
-    \label{fig:my_label}
+\centering
+\small
+\caption{Danh sách thư viện và công cụ sử dụng}
+\label{table:tools}
+\begin{tabular}{|p{3cm}|p{4cm}|p{2cm}|p{4.5cm}|}
+\hline
+\textbf{Mục đích} & \textbf{Công cụ / Thư viện} & \textbf{Phiên bản} & \textbf{Ghi chú} \\
+\hline
+\multicolumn{4}{|l|}{\textit{Backend}} \\
+\hline
+Ngôn ngữ lập trình & Java & 17 & LTS, được dùng trong Spring Boot \\
+\hline
+Framework backend & Spring Boot & 4.0.5 & Bao gồm Spring MVC, DI container \\
+\hline
+Bảo mật & Spring Security & (theo SB) & BCrypt, JWT filter, CORS \\
+\hline
+Truy cập dữ liệu & Spring Data JPA & (theo SB) & ORM qua Hibernate \\
+\hline
+JWT & JJWT & 0.13.0 & Tạo và xác thực JWT token \\
+\hline
+Quản lý schema DB & Flyway & (theo SB) & Migration script có đánh số version \\
+\hline
+CSDL & PostgreSQL & 17 & Hệ quản trị CSDL quan hệ \\
+\hline
+Code generation & Lombok & (theo SB) & Tự sinh getter, setter, builder \\
+\hline
+\multicolumn{4}{|l|}{\textit{Frontend}} \\
+\hline
+Framework frontend & Next.js & 16.2.1 & App Router, Route Handler, SSR \\
+\hline
+Thư viện UI & React & 19.2.4 & Component-based UI \\
+\hline
+Ngôn ngữ & TypeScript & 5 & Type-safe JavaScript \\
+\hline
+Styling & TailwindCSS & 4 & Utility-first CSS framework \\
+\hline
+Component library & shadcn/ui & 4.1.0 & Dựa trên Radix UI primitives \\
+\hline
+Validation & Zod & 4.3.6 & Schema validation cho form \\
+\hline
+Xuất Excel & xlsx (SheetJS) & 0.18.5 & Xuất thời khoá biểu ra file .xlsx \\
+\hline
+Toast notification & Sonner & 2.0.7 & Hiển thị thông báo phản hồi \\
+\hline
+\multicolumn{4}{|l|}{\textit{Công cụ phát triển và triển khai}} \\
+\hline
+IDE Backend & IntelliJ IDEA & 2024.x & JetBrains, phát triển Spring Boot \\
+\hline
+IDE Frontend & Visual Studio Code & 1.9x & Microsoft, phát triển Next.js \\
+\hline
+Kiểm thử API & Postman & 11.x & Gọi và kiểm tra REST API \\
+\hline
+Containerization & Docker & 27.x & Đóng gói backend thành image \\
+\hline
+Hosting Frontend & Vercel & --- & HTTPS tự động, CI/CD từ GitHub \\
+\hline
+Quản lý mã nguồn & Git / GitHub & --- & Version control, remote repository \\
+\hline
+\end{tabular}
 \end{table}
+\vspace{-8pt}
 
 \subsection{Kết quả đạt được}
-Sinh viên trước tiên mô tả kết quả đạt được của mình là gì, ví dụ như các sản phẩm được đóng gói là gì, bao gồm những thành phần nào, ý nghĩa, vai trò?
+\label{subsection:4.3.2}
 
-Sinh viên cần thống kê các thông tin về ứng dụng của mình như: số dòng code, số lớp, số gói, dung lượng toàn bộ mã nguồn, dung lượng của từng sản phẩm đóng gói, v.v. Tương tự như phần liệt kê về công cụ sử dụng, sinh viên cũng nên dùng bảng để mô tả phần thông tin thống kê này.
+Sản phẩm EduSchedule gồm hai thành phần độc lập được triển khai riêng biệt:
+\begin{itemize}[noitemsep]
+    \item \textbf{eduschedule-backend}: ứng dụng Spring Boot đóng gói thành Docker image, cung cấp RESTful API.
+    \item \textbf{eduschedule-frontend}: ứng dụng Next.js triển khai trên Vercel, phục vụ giao diện web.
+\end{itemize}
 
-\subsection{Minh họa các chức năng chính}
-Sinh viên lựa chọn và đưa ra màn hình cho các chức năng chính, quan trọng, và thú vị nhất. Mỗi giao diện cần phải có lời giải thích ngắn gọn. Khi giải thích, sinh viên có thể kết hợp với các chú thích ở trong hình ảnh giao diện.
+Hệ thống hiện thực đầy đủ các chức năng đã đặt ra trong phần phân tích yêu cầu: quản lý danh mục giáo viên, lớp học, môn học; phân công giảng dạy; xếp thời khoá biểu với kiểm tra xung đột thời gian thực; xem và xuất thời khoá biểu ra file Excel.
 
 \section{Kiểm thử}
-Phần này có độ dài từ hai đến ba trang. Sinh viên thiết kế các trường hợp kiểm thử cho hai đến ba chức năng quan trọng nhất. Sinh viên cần chỉ rõ các kỹ thuật kiểm thử đã sử dụng. Chi tiết các trường hợp kiểm thử khác, nếu muốn trình bày, sinh viên đưa vào phần phụ lục.
-Sinh viên sau cùng tổng kết về số lượng các trường hợp kiểm thử và kết quả kiểm thử. Sinh viên cần phân tích lý do nếu kết quả kiểm thử không đạt.
+\label{section:4.4}
+
+Hệ thống được kiểm thử theo phương pháp \textbf{kiểm thử hộp đen} (black-box testing), sử dụng kỹ thuật \textbf{phân hoạch tương đương} (equivalence partitioning) và \textbf{phân tích giá trị biên} (boundary value analysis). Công cụ kiểm thử sử dụng là Postman cho API backend và trình duyệt Chrome cho giao diện frontend.
+
+Bảng~\ref{table:tc_slot} trình bày các trường hợp kiểm thử cho chức năng Xếp tiết học — chức năng nghiệp vụ phức tạp nhất của hệ thống.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Các trường hợp kiểm thử chức năng Xếp tiết học}
+\label{table:tc_slot}
+\begin{tabular}{|c|p{3.5cm}|p{3cm}|p{3cm}|c|}
+\hline
+\textbf{TC} & \textbf{Mô tả} & \textbf{Đầu vào} & \textbf{Kết quả mong đợi} & \textbf{Kết quả} \\
+\hline
+TC01 & Xếp tiết hợp lệ, không xung đột & timetableId=1, day=2, period=1, assignmentId=5 & Trả 200 OK, slot được lưu & Đạt \\
+\hline
+TC02 & Giáo viên đã dạy lớp khác cùng tiết & Cùng giáo viên, cùng (day=2, period=1), lớp khác & Trả 400, thông báo xung đột & Đạt \\
+\hline
+TC03 & Xếp lại ô đã có (upsert) & day=2, period=1 đã tồn tại, assignmentId mới & Cập nhật slot cũ, trả 200 OK & Đạt \\
+\hline
+TC04 & Lớp chưa có GVCN, xếp tiết dùng classId+subjectId & classId có homeroomTeacher=null & Trả 400, thông báo chưa có GVCN & Đạt \\
+\hline
+TC05 & TimetableId không tồn tại & timetableId=9999 & Trả 400, thông báo không tìm thấy & Đạt \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Các trường hợp kiểm thử chức năng Phân công giảng dạy}
+\label{table:tc_assign}
+\begin{tabular}{|c|p{3.5cm}|p{3cm}|p{3cm}|c|}
+\hline
+\textbf{TC} & \textbf{Mô tả} & \textbf{Đầu vào} & \textbf{Kết quả mong đợi} & \textbf{Kết quả} \\
+\hline
+TC06 & Phân công GVBM hợp lệ & teacherId có subject Tiếng Anh, subjectId=Tiếng Anh & Trả 200 OK, assignment được lưu & Đạt \\
+\hline
+TC07 & GV không dạy được môn được phân công & teacherId không có subjectId trong danh sách môn dạy & Trả 400, thông báo GV không dạy môn này & Đạt \\
+\hline
+TC08 & Phân công GVCN cho lớp đã có GVCN khác & Teacher type=CHU\_NHIEM, lớp đã có GVCN & Cập nhật GVCN mới cho lớp & Đạt \\
+\hline
+TC09 & Phân công GV bộ môn làm GVCN & Teacher type=BO\_MON & Trả 400, thông báo không phải GVCN & Đạt \\
+\hline
+TC10 & GVCN đã chủ nhiệm lớp khác & Teacher đang làm GVCN lớp 1A, phân công thêm lớp 1B & Trả 400, thông báo đã là GVCN lớp khác & Đạt \\
+\hline
+\end{tabular}
+\end{table}
+\vspace{-8pt}
+
+Tổng cộng đã thực hiện 10 trường hợp kiểm thử cho hai chức năng cốt lõi, tất cả đều đạt kết quả như mong đợi. Các trường hợp kiểm thử còn lại cho chức năng quản lý danh mục và đăng nhập được trình bày trong Phụ lục~B.
+
 \section{Triển khai}
-Sinh viên trình bày mô hình và/hoặc cách thức triển khai thử nghiệm/thực tế. Ứng dụng của sinh viên được triển khai trên server/thiết bị gì, cấu hình như thế nào. Kết quả triển khai thử nghiệm nếu có (số lượng người dùng, số lượng truy cập, thời gian phản hồi, phản hồi người dùng, khả năng chịu tải, các thống kê, v.v.)
+\label{section:4.5}
+
+Hệ thống EduSchedule được triển khai thử nghiệm theo mô hình cloud-based miễn phí, tách biệt hoàn toàn giữa frontend và backend.
+
+\textbf{Frontend — Vercel.} Ứng dụng Next.js được triển khai trực tiếp từ repository GitHub lên Vercel. Mỗi lần push code lên nhánh main, Vercel tự động chạy build và deploy phiên bản mới (CI/CD). Vercel cung cấp HTTPS tự động qua TLS, CDN toàn cầu, và đảm bảo tỷ lệ uptime cao theo SLA của nền tảng. URL truy cập frontend được Vercel cấp theo dạng *.vercel.app.
+
+\textbf{Backend — Docker + Render.} Ứng dụng Spring Boot được đóng gói thành Docker image thông qua Dockerfile. Image chạy trên cổng 8080 bên trong container. Biến môi trường nhạy cảm (chuỗi kết nối database, JWT secret) được truyền vào container qua biến môi trường, không hardcode trong image. Backend được triển khai lên Render — nền tảng cloud hỗ trợ chạy Docker container miễn phí. Render tự động pull image từ Docker Hub, khởi chạy container và cấp URL dạng \textit{*.onrender.com}. Ở gói miễn phí, container tự tắt sau 15 phút không có request và khởi động lại khi có request tiếp theo (cold start).
+
+\textbf{Cơ sở dữ liệu — PostgreSQL.} Database PostgreSQL được cung cấp bởi dịch vụ Render PostgreSQL (gói miễn phí). Schema được Flyway tự động khởi tạo và migrate khi backend khởi động lần đầu, đảm bảo môi trường production đồng bộ với development.
+
+Kết chương: Chương này đã trình bày toàn bộ quá trình thiết kế và xây dựng hệ thống EduSchedule, từ kiến trúc phần mềm, thiết kế chi tiết các lớp và cơ sở dữ liệu, đến kết quả cài đặt, kiểm thử và triển khai. Chương 5 tiếp theo sẽ trình bày các giải pháp và đóng góp nổi bật của đề tài.
+
 
 \end{document}

@@ -1,96 +1,277 @@
 \documentclass[../DoAn.tex]{subfiles}
 \begin{document}
 
-\section*{Quy định chung}
-Dưới đây là một số quy định và hướng dẫn viết đồ án tốt nghiệp mà bắt buộc sinh viên phải đọc kỹ và tuân thủ nghiêm ngặt.
+Phụ lục này trình bày đặc tả các ca sử dụng còn lại của hệ thống EduSchedule.
+Các ca sử dụng chính đã được trình bày tại Mục~\ref{section:2.6}.
 
-Sinh viên cần đảm bảo tính thống nhất toàn báo cáo (font chữ, căn dòng hai bên, hình ảnh, bảng, margin trang, đánh số trang, v.v.). Để làm được như vậy, sinh viên chỉ cần sử dụng các định dạng theo đúng template ĐATN này. Khi paste nội dung văn bản từ tài liệu khác của mình, sinh viên cần chọn kiểu Copy là “Text Only” để định dạng văn bản của template không bị phá vỡ/vi phạm.
+\section{Đặc tả ca sử dụng Đăng xuất}
 
-Tuyệt đối cấm sinh viên đạo văn. Sinh viên cần ghi rõ nguồn cho tất cả những gì không tự mình viết/vẽ lên, bao gồm các câu trích dẫn, các hình ảnh, bảng biểu, v.v. Khi bị phát hiện, sinh viên sẽ không được phép bảo vệ ĐATN.
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Đăng xuất}
+\label{tab:app_uc_dang_xuat} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC07} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Đăng xuất} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{l|}{Người dùng đang đăng nhập vào hệ thống.} \\
+\hline
+\multirow{4}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Chọn chức năng ``Đăng xuất''. \\
+\cline{2-4}
+& 2. & Hệ thống & Thu hồi thông tin phiên đăng nhập và xoá token xác thực được lưu trên trình duyệt. \\
+\cline{2-4}
+& 3. & Hệ thống & Chuyển người dùng về trang đăng nhập. \\
+\hline
+\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 2a. & Hệ thống & Nếu phiên đăng nhập đã hết hạn, xoá thông tin xác thực còn lại và chuyển về trang đăng nhập. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{l|}{Người dùng không còn phiên làm việc hợp lệ trong hệ thống.} \\
+\hline
+\end{longtable}
 
-Tất cả các hình vẽ, bảng biểu, công thức, và tài liệu tham khảo trong ĐATN nhất thiết phải được SV giải thích và tham chiếu tới ít nhất một lần. Không chấp nhận các trường hợp sinh viên đưa ra hình ảnh, bảng biểu tùy hứng và không có lời mô tả/giải thích nào.
+\section{Đặc tả ca sử dụng Quản lý môn học}
 
-Sinh viên tuyệt đối không trình bày ĐATN theo kiểu viết ý hoặc gạch đầu dòng. ĐATN không phải là một slide thuyết trình. Sinh viên cần viết thành các đoạn văn và phân tích, diễn giải đầy đủ, rõ ràng. Câu văn cần đúng ngữ pháp, đầy đủ chủ ngữ, vị ngữ.
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Quản lý môn học}
+\label{tab:app_uc_quan_ly_mon_hoc} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC08} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Quản lý môn học} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{l|}{Người dùng đã đăng nhập thành công.} \\
+\hline
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập chức năng ``Quản lý môn học''. \\
+\cline{2-4}
+& 2. & Hệ thống & Hiển thị danh sách môn học và số tiết mỗi tuần theo từng khối. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn thêm mới, cập nhật hoặc xoá môn học. \\
+\cline{2-4}
+& 4. & Người dùng & Nhập hoặc điều chỉnh tên môn học và số tiết tương ứng của các khối, sau đó xác nhận thao tác. \\
+\cline{2-4}
+& 5. & Hệ thống & Kiểm tra dữ liệu, lưu thay đổi và cập nhật danh sách môn học. \\
+\hline
+\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu dữ liệu không hợp lệ hoặc tên môn học bị trùng, thông báo lỗi và không lưu thay đổi. \\
+\cline{2-4}
+& 5b. & Hệ thống & Khi xoá môn học đã có dữ liệu liên quan, yêu cầu người dùng xác nhận trước khi thực hiện. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Danh mục môn học được cập nhật theo thao tác hợp lệ của người dùng.} \\
+\hline
+\end{longtable}
 
-Khi thực sự cần liệt kê, sinh viên nên liệt kê theo phong cách khoa học với các ký tự La Mã. Ví dụ: (i) nội dung 1, (ii) nội dung 2, và (iii) nội dung 3.
+\section{Đặc tả ca sử dụng Quản lý giáo viên}
 
-\begin{itemize}
-    \item Đây là mục 1 – Chỉ dùng bullet khi thực sự cần thiết.
-    \item Đây là mục 2 – Cần thống nhất style bullet cho toàn bộ báo cáo.
-\end{itemize}
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Quản lý giáo viên}
+\label{tab:app_uc_quan_ly_giao_vien} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC09} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Quản lý giáo viên} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{l|}{Người dùng đã đăng nhập thành công.} \\
+\hline
+\multirow{7}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập chức năng ``Quản lý giáo viên''. \\
+\cline{2-4}
+& 2. & Hệ thống & Hiển thị danh sách giáo viên; cho phép tìm kiếm và lọc theo loại hoặc trạng thái. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn thêm mới hoặc cập nhật thông tin giáo viên. \\
+\cline{2-4}
+& 4. & Người dùng & Nhập họ tên, loại giáo viên, định mức số tiết mỗi tuần và xác nhận lưu. \\
+\cline{2-4}
+& 5. & Hệ thống & Kiểm tra dữ liệu, lưu thông tin và cập nhật danh sách. \\
+\cline{2-4}
+& 6. & Người dùng & Có thể thay đổi trạng thái hoạt động hoặc chọn xoá giáo viên. \\
+\hline
+\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu dữ liệu không hợp lệ, thông báo lỗi và yêu cầu người dùng kiểm tra lại. \\
+\cline{2-4}
+& 6a. & Hệ thống & Nếu giáo viên đã có phân công hoặc đang là giáo viên chủ nhiệm, không cho phép xoá và thông báo các dữ liệu liên quan. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Thông tin hoặc trạng thái giáo viên được cập nhật; giáo viên không hoạt động không được sử dụng trong phân công mới.} \\
+\hline
+\end{longtable}
 
-\section{Ngành học}
-Sinh viên lưu ý viết đúng ngành/chuyên ngành trên bìa và trên gáy theo đúng quy định của Trường. Dưới đây là cách phân chia ngành học (thay thế cho outline cũ):
+\section{Đặc tả ca sử dụng Quản lý năm học}
 
-\begin{itemize}
-    \item \textbf{Đối với kỹ sư chính quy:}
-    \begin{itemize}
-        \item Từ K61 trở về trước: Ngành Kỹ thuật phần mềm
-        \item Từ K62 trở về sau: Ngành Khoa học máy tính
-    \end{itemize}
-    \item \textbf{Đối với cử nhân:} Ngành Công nghệ thông tin
-    \item \textbf{Đối với chương trình EliteTech:}
-    \begin{itemize}
-        \item Chương trình Việt Nhật/KSTN: Ngành Công nghệ thông tin
-        \item Chương trình ICT Global: Ngành Information Technology
-        \item Chương trình DS\&AI: Ngành Khoa học dữ liệu
-    \end{itemize}
-\end{itemize}
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Quản lý năm học}
+\label{tab:app_uc_quan_ly_nam_hoc} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC10} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Quản lý năm học} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{l|}{Người dùng đã đăng nhập thành công.} \\
+\hline
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập chức năng quản lý năm học. \\
+\cline{2-4}
+& 2. & Hệ thống & Hiển thị danh sách năm học và các học kì tương ứng. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn tạo năm học mới và nhập năm bắt đầu cùng ngày bắt đầu của hai học kì. \\
+\cline{2-4}
+& 4. & Hệ thống & Tạo năm học, hai thời khoá biểu học kì và danh sách tuần học tương ứng. \\
+\cline{2-4}
+& 5. & Người dùng & Có thể điều chỉnh ngày bắt đầu của tuần học; hệ thống cập nhật các tuần tiếp theo. \\
+\hline
+\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 4a. & Hệ thống & Nếu năm học đã tồn tại hoặc ngày bắt đầu không hợp lệ, thông báo lỗi và không tạo dữ liệu. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Năm học cùng các học kì và tuần học liên quan được tạo hoặc cập nhật thành công.} \\
+\hline
+\end{longtable}
 
-\section{Đánh dấu (bullet) và đánh số (numbering)}
-LaTeX cung cấp hai môi trường liệt kê cơ bản:
-\begin{itemize}
-    \item \textbf{Itemize:} Kiểu liệt kê không thứ tự (dùng \verb|\begin{itemize}|).
-    \item \textbf{Enumerate:} Kiểu liệt kê có thứ tự (dùng \verb|\begin{enumerate}|).
-\end{itemize}
+\section{Đặc tả ca sử dụng Quản lý lớp học}
 
-\section{Cách thêm bảng}
-\begin{table}[ht]
-\centering
-\begin{tabular}{|c|c|c|c|} 
- \hline
- Cột 1 & Cột 2 & Cột 3 & Cột 4 \\ [0.5ex] 
- \hline\hline
- Dữ liệu & 6 & 87837 & 787 \\ 
- Dữ liệu & 7 & 78 & 5415 \\
- \hline
-\end{tabular}
-\caption{Bảng ví dụ minh họa.}
-\label{table:vidu}
-\end{table}
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Quản lý lớp học}
+\label{tab:app_uc_quan_ly_lop_hoc} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC11} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Quản lý lớp học} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{l|}{Người dùng đã đăng nhập và đã chọn năm học.} \\
+\hline
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập chức năng ``Quản lý lớp học''. \\
+\cline{2-4}
+& 2. & Hệ thống & Hiển thị danh sách lớp của năm học đã chọn. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn thêm mới, cập nhật hoặc xoá lớp học. \\
+\cline{2-4}
+& 4. & Người dùng & Nhập hoặc điều chỉnh tên lớp, khối và xác nhận thao tác. \\
+\cline{2-4}
+& 5. & Hệ thống & Kiểm tra dữ liệu, lưu thay đổi và cập nhật danh sách lớp. \\
+\hline
+\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu tên lớp bị trùng trong cùng năm học hoặc khối không hợp lệ, thông báo lỗi và không lưu. \\
+\cline{2-4}
+& 5b. & Hệ thống & Khi xoá lớp có dữ liệu liên quan, yêu cầu xác nhận trước khi xoá các phân công và tiết học liên quan. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Danh sách lớp của năm học được cập nhật theo thao tác hợp lệ của người dùng.} \\
+\hline
+\end{longtable}
 
-Bảng \ref{table:vidu} là ví dụ về cách tạo bảng. Chú ý: Nên sử dụng \url{https://www.tablesgenerator.com/} để tạo bảng nhanh hơn.
+\section{Đặc tả ca sử dụng Quản lý phòng chức năng}
 
-\section{Chèn hình ảnh}
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.6\linewidth]{Hinhve/IoT.png}
-\caption{Hình ảnh minh họa hệ thống IoT.}
-\label{fig:iot_append}
-\end{figure}
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Quản lý phòng chức năng}
+\label{tab:app_uc_quan_ly_phong} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC12} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Quản lý phòng chức năng} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{l|}{Người dùng đã đăng nhập; danh mục môn học đã được thiết lập.} \\
+\hline
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập chức năng ``Quản lý phòng chức năng''. \\
+\cline{2-4}
+& 2. & Hệ thống & Hiển thị danh sách phòng chức năng hiện có. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn thêm mới, cập nhật hoặc xoá phòng chức năng. \\
+\cline{2-4}
+& 4. & Người dùng & Nhập tên phòng, số lượng phòng và chọn môn học liên kết, sau đó xác nhận. \\
+\cline{2-4}
+& 5. & Hệ thống & Kiểm tra dữ liệu, lưu thay đổi và cập nhật danh sách. \\
+\hline
+\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu dữ liệu không hợp lệ hoặc phòng đang được sử dụng trong thời khoá biểu, thông báo lỗi và không thực hiện thao tác không hợp lệ. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Danh mục phòng chức năng được cập nhật và sẵn sàng phục vụ kiểm tra ràng buộc khi xếp lịch.} \\
+\hline
+\end{longtable}
 
-Hình \ref{fig:iot_append} là ví dụ về cách chèn ảnh. Chú thích của hình vẽ được đặt ngay dưới hình.
+\section{Đặc tả ca sử dụng Công khai thời khoá biểu}
 
-\section{Tài liệu tham khảo}
-Áp dụng cách liệt kê theo quy định của IEEE. Ví dụ sử dụng lệnh \verb|\cite{key}| để trích dẫn. Chỉ những tài liệu có trích dẫn mới xuất hiện trong danh mục tài liệu tham khảo ở cuối đồ án.
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Công khai thời khoá biểu}
+\label{tab:app_uc_cong_khai_tkb} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC13} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Công khai thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Người dùng đã đăng nhập và tồn tại thời khoá biểu cần công khai.} \\
+\hline
+\multirow{5}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Mở thời khoá biểu cần công khai. \\
+\cline{2-4}
+& 2. & Người dùng & Chọn chức năng ``Công khai thời khoá biểu''. \\
+\cline{2-4}
+& 3. & Hệ thống & Hiển thị yêu cầu xác nhận công khai. \\
+\cline{2-4}
+& 4. & Người dùng & Xác nhận thao tác. \\
+\cline{2-4}
+& 5. & Hệ thống & Cập nhật trạng thái công khai và thông báo hoàn tất. \\
+\hline
+\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 4a. & Người dùng & Huỷ xác nhận; hệ thống không thay đổi trạng thái thời khoá biểu. \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu thời khoá biểu không có dữ liệu, thông báo không thể công khai. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Thời khoá biểu được đánh dấu công khai và có thể được Người dùng vãng lai tra cứu.} \\
+\hline
+\end{longtable}
 
-\section{Cách viết phương trình}
-Một ví dụ về tạo phương trình \eqref{pt_vidu} như sau:
-\begin{equation}\label{pt_vidu}
-    F(x) = \int^a_b \frac{1}{3}x^3 \,dx
-\end{equation}
-Phương trình \ref{pt_vidu} là ví dụ về phương trình tích phân.
+\section{Đặc tả ca sử dụng Xuất thời khoá biểu}
 
-\section{Qui cách đóng quyển}
-Sử dụng keo nhiệt để dán gáy khi đóng quyển thay vì sử dụng băng dính và dập ghim. 
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.5\linewidth]{Hinhve/Bia.PNG}
-\caption{Qui cách đóng quyển đồ án.}
-\label{fig:Bia_huongdan}
-\end{figure} 
-
-Phần gáy ĐATN cần ghi các thông tin: Kỳ làm ĐATN - Ngành đào tạo - Họ và tên - MSSV.
+\begin{longtable}{|p{2.8cm}|p{1cm}|p{2.8cm}|p{6.3cm}|}
+\caption{Đặc tả ca sử dụng Xuất thời khoá biểu}
+\label{tab:app_uc_xuat_tkb} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Mã use case}} & \multicolumn{1}{c|}{UC14} &
+\multicolumn{1}{c|}{\textbf{Tên use case}} & \multicolumn{1}{c|}{Xuất thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Người dùng đã đăng nhập và thời khoá biểu cần xuất đã có dữ liệu.} \\
+\hline
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Mở thời khoá biểu và chọn năm học, học kì, tuần học cần xuất. \\
+\cline{2-4}
+& 2. & Người dùng & Chọn chế độ xem theo lớp, theo khối hoặc theo giáo viên và chọn đối tượng tương ứng. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn chức năng ``Xuất Excel''. \\
+\cline{2-4}
+& 4. & Hệ thống & Tổng hợp dữ liệu thời khoá biểu theo chế độ xem đã chọn. \\
+\cline{2-4}
+& 5. & Hệ thống & Tạo tệp \texttt{.xlsx} và tải tệp xuống trình duyệt. \\
+\hline
+\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 4a. & Hệ thống & Nếu không có dữ liệu phù hợp với tiêu chí đã chọn, thông báo chưa có dữ liệu để xuất. \\
+\hline
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Tệp Excel chứa thời khoá biểu theo tiêu chí đã chọn được tạo và tải xuống thiết bị của người dùng.} \\
+\hline
+\end{longtable}
 
 \end{document}

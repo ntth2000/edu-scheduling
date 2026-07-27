@@ -17,11 +17,11 @@
 
 % Gợi ý cách trình bày cho sinh viên: Xuất phát từ tình hình thực tế gì, dẫn đến vấn đề hoặc bài toán gì. Vấn đề hoặc bài toán đó, nếu được giải quyết, đem lại lợi ích gì, cho những ai, còn có thể được áp dụng vào các lĩnh vực khác nữa không. Sinh viên cần lưu ý phần này chỉ trình bày vấn đề, tuyệt đối không trình bày giải pháp.
 
-Trong mối cảnh chuyển đổi số ngày càng phát triển, các cơ sở giáo dục cũng đang đối mặt với nhu cầu cao về tự động quá các quy trình, thủ tục hành chính để tăng hiệu suất công việc, trong đó có quy trình sắp xếp thời khoá biểu. Tuy nhiên, hiện nay tại nhiều trường tiểu học công, việc sắp xếp thời khoá biểu vẫn được thực hiện thủ công bằng Microsoft Excel dựa trên kinh nghiệm cá nhân của người quản lí.
+Trong mối cảnh chuyển đổi số ngày càng phát triển, các cơ sở giáo dục tiểu học cũng đang đối mặt với nhu cầu cao về tự động hóa các quy trình, thủ tục hành chính để tăng hiệu suất công việc, trong đó có quy trình sắp xếp thời khoá biểu. Thời khóa biểu là cơ sở để nhà trường tổ chức hoạt động giảng dạy, phân công giáo viên và sử dụng cơ sở vật chất trong từng tuần. Để xây dựng một thời khóa biểu, người phụ trách không chỉ cần phân bổ các môn học vào từng tiết mà còn phải đồng thời xem xét số tiết yêu cầu của mỗi môn, giáo viên được phân công, lịch học của từng lớp và khả năng sử dụng các phòng chức năng.
 
-Quá trình xếp thủ công tiềm ẩn nhiều rủi ro như giáo viên bị xếp trùng lịch dạy mà không phát hiện kịp thời, mỗi khi có thay đổi nhân sự lại phải thực hiện lại toàn bộ từ đầu, và việc tối ưu hóa số buổi đến trường cho giáo viên đòi hỏi kiểm tra thủ công tốn nhiều thời gian. Đặc biệt với các trường tiểu học quy mô nhỏ, việc đầu tư vào các phần mềm xếp thời khóa biểu thương mại còn gặp hạn chế về chi phí.
+Tuy nhiên, hiện nay tại nhiều trường tiểu học, việc sắp xếp thời khoá biểu vẫn được thực hiện thủ công bằng bảng tính dựa trên kinh nghiệm cá nhân của người phụ trách. Mặc dù phương pháp này cho phép người lập lịch chủ động sắp xếp và điều chỉnh từng tiết học, quá trình thực hiện vẫn tồn tại nhiều hạn chế như khó kiểm soát đồng thời lịch dạy của giáo viên, lịch học của lớp, số tiết yêu cầu của từng môn và khả năng sử dụng phòng chức năng. Người phụ trách phải đối chiếu nhiều nguồn dữ liệu bằng tay nên mất nhiều thời gian và dễ bỏ sót các xung đột. Khi thông tin giáo viên hoặc phân công giảng dạy thay đổi, nhiều vị trí trong thời khóa biểu phải được rà soát và điều chỉnh lại, làm tăng khối lượng công việc và có thể phát sinh thêm các xung đột liên quan. Đặc biệt với các trường tiểu học quy mô nhỏ, việc đầu tư vào các phần mềm xếp thời khóa biểu thương mại còn gặp hạn chế về chi phí.
 
-Từ thực tế đó, đề tài "Xây dựng hệ thống hỗ trợ xếp thời khóa biểu tự động cho trường tiểu học (EduSchedule)" được thực hiện với mục tiêu xây dựng một ứng dụng web miễn phí, hỗ trợ quản lý và xếp thời khóa biểu chuyên biệt cho trường tiểu học, giúp phát hiện xung đột tự động và tối ưu lịch dạy cho giáo viên. Giải pháp này có thể giúp ban giám hiệu vận hành công tác xếp thời khóa biểu một cách chính xác, khoa học và tiết kiệm công sức hơn so với phương pháp thủ công truyền thống.
+Từ thực tế đó, đề tài "EduSchedule — Hệ thống hỗ trợ xếp thời khóa biểu cho trường tiểu học" được thực hiện nhằm xây dựng một ứng dụng web miễn phí, cho phép ban giám hiệu trường tiểu học xếp thời khóa biểu theo hai phương thức: thủ công trên giao diện lưới trực quan, hoặc tự động bằng thuật toán với kết quả do người dùng xem xét tính hợp lý và quyết định áp dụng. Hệ thống đồng thời phát hiện xung đột theo thời gian thực, giúp ban giám hiệu vận hành công tác xếp thời khóa biểu một cách chính xác và tiết kiệm công sức hơn so với phương pháp thủ công truyền thống.
 
 \section{Mục tiêu và phạm vi đề tài}
 \label{section:1.2}
@@ -30,64 +30,35 @@ Từ thực tế đó, đề tài "Xây dựng hệ thống hỗ trợ xếp th�
 % Dựa trên các phân tích và đánh giá ở trên, sinh viên khái quát lại các hạn chế hiện tại đang gặp phải. Trên cơ sở đó, sinh viên sẽ hướng tới giải quyết vấn đề cụ thể gì, khắc phục hạn chế gì, phát triển phần mềm \textbf{có các chức năng chính gì}, tạo nên đột phá gì, v.v.
 
 % Trong phần này, sinh viên lưu ý chỉ trình bày tổng quan, không đi vào chi tiết của vấn đề hoặc giải pháp. Nội dung chi tiết sẽ được trình bày trong các chương tiếp theo, đặc biệt là trong Chương 5.
-
-\subsection{Tổng quan về sản phẩm hiện tại và nhu cầu người dùng}
+\subsection{Mục tiêu}
 \label{section:1.2.1}
 
-Hiện nay, nhiều trường tiểu học công tại Việt Nam đang sử dụng một trong các giải pháp sau để tạo thời khoá biểu: thực hiện thủ công bằng bảng tính Excel, sử dụng phần mềm desktop như Asc Timetables hay website FTKB, VietSchool TKB, tkb.com.vn, smas.vn... Tuy nhiên mỗi giải pháp đều tồn tại những hạn chế nhất định.
-
-Các hệ thống thương mại như FTKB và VietSchool TKB tuy có đầy đủ tính năng nhưng yêu cầu chi phí bản quyền hàng năm, không phù hợp với ngân sách hạn chế của các trường tiểu học công lập quy mô nhỏ. Phần mềm desktop TKB yêu cầu cài đặt trên máy tính, gây bất tiện khi cần truy cập linh hoạt. Trong khi đó, Excel thủ công vẫn được nhiều trường sử dụng nhưng không có cơ chế phát hiện xung đột tiết học tự động và tốn nhiều thời gian điều chỉnh.
-
-Trong khi đó, nhu cầu thực tế của các trường tiểu học công lập vừa và nhỏ là một giải pháp quản lý thời khóa biểu miễn phí/mã nguồn mở, có giao diện web đơn giản, dễ sử dụng trên trình duyệt mà không cần cài đặt, đặc biệt đáp ứng việc kiểm soát và tối ưu số buổi đến trường như cung cấp dashboard trực quan, cảnh báo khi vượt ngưỡng quy định, hỗ trợ ban giám hiệu điều chỉnh lịch nhằm đạt được số buổi đến trường tối thiểu mà vẫn đảm bảo đủ tiết dạy theo phân công.
-
-Từ những yêu cầu trên, có thể thấy việc xây dựng một hệ thống quản lý thời khóa biểu trực tuyến chuyên biệt cho trường tiểu học công là một giải pháp cấp thiết và mang lại giá trị thực tế cao.
-
-\subsection{Mục tiêu đề tài}
-\label{section:1.2.2}
-
-\textbf{Mục tiêu tổng quát}: Đề tài hướng đến việc xây dựng một hệ thống website hỗ trợ xếp thời khóa biểu dành riêng cho trường tiểu học, giúp ban giám hiệu quản lý và xếp thời khóa biểu một cách chính xác, nhanh chóng, đồng thời cho phép giáo viên tra cứu lịch dạy cá nhân thuận tiện.
-
-\textbf{Mục tiêu cụ thể}:
+Mục tiêu tổng quát của đề tài là xây dựng một hệ thống web hỗ trợ lập thời khóa biểu cho trường tiểu học, đáp ứng các yêu cầu nghiệp vụ liên quan tới việc sắp xếp thời khoá biểu của ban giám hiệu và nhu cầu tra cứu thời khóa biểu của giáo viên.
+Để đạt được mục tiêu tổng quát trên, đề tài tập trung thực hiện các mục tiêu cụ thể sau:
 \begin{itemize}
-    \item Xây dựng hệ thống quản lý danh mục giáo viên, lớp học, môn học
-    \item Hỗ trợ phân công giảng dạy với kiểm tra tính hợp lệ tự động
-    \item Xây dựng giao diện xem và nhập thời khóa biểu dạng lưới trực quan
-    \item Tự động phát hiện và cảnh báo xung đột theo thời gian thực
-    \item Hỗ trợ kiểm soát số buổi đến trường của từng giáo viên
-    \item Cho phép export thời khóa biểu ra file Excel và PDF
-    \item Triển khai trên nền tảng miễn phí, không phát sinh chi phí cho nhà trường
+    \item \textbf{Nhóm chức năng quản lý và phân công giảng dạy:}
+    Xây dựng các chức năng quản lý năm học, giáo viên, lớp học, môn học và phòng chức năng; đồng thời hỗ trợ người phụ trách phân công giáo viên giảng dạy các môn học theo từng lớp.
+
+    \item \textbf{Nhóm chức năng lập thời khóa biểu:}
+    Xây dựng giao diện thời khóa biểu dạng lưới, hỗ trợ người phụ trách sắp xếp và điều chỉnh tiết học thủ công, kiểm tra các xung đột liên quan đến giáo viên, lớp học và phòng chức năng, đồng thời hỗ trợ tự động phân bổ các tiết còn thiếu vào những vị trí trống mà không làm thay đổi các tiết đã được sắp xếp trước.
+
+    \item \textbf{Nhóm chức năng tra cứu và xuất thời khóa biểu:}
+    Cho phép xem thời khóa biểu theo lớp, giáo viên hoặc khối; hỗ trợ giáo viên tra cứu thời khóa biểu được nhà trường công bố và cho phép người phụ trách xuất thời khóa biểu ra file Excel.
+
+    \item \textbf{Chất lượng và an toàn hệ thống:}
+    Xây dựng hệ thống web có giao diện trực quan, tổ chức mã nguồn theo kiến trúc client--server, triển khai cơ chế xác thực để bảo vệ các chức năng quản lý, đồng thời xây dựng các kịch bản kiểm thử cho những nghiệp vụ chính của hệ thống.
 \end{itemize}
 
 \subsection{Phạm vi đề tài}
-\label{section:1.2.3}
+\label{section:1.2.2}
 
-\subsubsection{Phạm vi nội dung}
-Đề tài tập trung xây dựng hệ thống với hai nhóm người dùng chính:
-\begin{itemize}
-    \item Admin (ban giám hiệu): toàn quyền quản lý danh mục, phân công và xếp thời khóa biểu
-    \item Guest (khách): xem thời khoá biểu theo lớp/tuần/giáo viên mà không cần đăng nhập vào hệ thống
-\end{itemize}
+Đề tài được thực hiện trong phạm vi hỗ trợ công tác lập thời khóa biểu cho một trường tiểu học, bao gồm các lớp từ khối 1 đến khối 5. Thời khóa biểu được quản lý theo từng năm học, kì học và từng tuần, với các thông tin liên quan đến giáo viên, lớp học, môn học, phòng chức năng và phân công giảng dạy.
 
-Các chức năng cốt lõi bao gồm: quản lý danh mục, phân công giảng dạy, nhập và xem thời khóa biểu dạng lưới, phát hiện xung đột tự động và export thời khóa biểu.
+Hệ thống phục vụ hai nhóm người dùng gồm người phụ trách lập thời khóa biểu và người dùng vãng lai. Người phụ trách có quyền quản lý thông tin và thực hiện các nghiệp vụ liên quan đến lập thời khóa biểu. Người dùng vãng lai, chủ yếu là giáo viên, chỉ có quyền tra cứu thời khóa biểu được nhà trường công bố và không được phép thay đổi dữ liệu của hệ thống.
 
-\subsubsection{Phạm vi kỹ thuật}
-Đề tài sử dụng các công nghệ sau:
-\begin{itemize}
-    \item \textbf{Frontend}: Next.js 16, TypeScript, TailwindCSS, shadcn/ui, xác thực bằng JWT lưu trong httpOnly cookie.
-    \item \textbf{Backend}: Java 17, Spring Boot 4, Spring Security, Spring Data JPA, Flyway, JWT (JJWT), RESTful API.
-    \item \textbf{Cơ sở dữ liệu}: PostgreSQL.
-    \item \textbf{Export}: SheetJS (xlsx) xuất thời khoá biểu ra file Excel.
-    \item \textbf{Triển khai}: Frontend trên Vercel, backend bằng Docker container, đều trên nền tảng miễn phí.
-\end{itemize}
+Trong phạm vi xếp lịch, hệ thống hỗ trợ người dùng kết hợp giữa sắp xếp thủ công và xếp tự động. Các tiết đã được sắp xếp trước được giữ cố định, còn chức năng xếp tự động chỉ xử lý những tiết còn thiếu. Kết quả tự động tạo ra cần được người phụ trách kiểm tra và xác nhận trước khi lưu chính thức.
 
-\subsubsection{Giới hạn của đề tài}
-\begin{itemize}
-    \item Hệ thống chưa hỗ trợ xếp thời khoá biểu tự động hoàn toàn; việc phân công tiết học vào từng ô lịch vẫn do admin thực hiện thủ công qua giao diện lưới, hệ thống chỉ tự động phát hiện và cảnh báo xung đột.
-    \item Đề tài không quản lý phòng học (chưa có entity phòng học trong hệ thống), do đó chưa hỗ trợ kiểm tra xung đột theo phòng.
-    \item Hệ thống được thiết kế dành riêng cho mô hình trường tiểu học công lập (khối 1–5), chưa phù hợp để áp dụng trực tiếp cho trường trung học hoặc các cơ sở đa cấp.
-    \item Chức năng export hiện chỉ hỗ trợ định dạng Excel; export PDF chưa được triển khai trong phiên bản hiện tại.
-    \item Hệ thống chưa có tính năng nhắc lịch, gửi thông báo hay đồng bộ lịch với ứng dụng bên ngoài.
-\end{itemize}
+Đề tài chưa hỗ trợ tài khoản riêng cho giáo viên, học sinh và phụ huynh; gửi thông báo, nhắc lịch hoặc đồng bộ với các ứng dụng lịch bên ngoài. Hệ thống chỉ áp dụng cho trường tiểu học và không bảo đảm luôn tìm được phương án xếp đầy đủ khi các ràng buộc đầu vào không thể được thỏa mãn đồng thời.
 
 \section{Định hướng giải pháp}
 \label{section:1.3}
@@ -95,11 +66,21 @@ Các chức năng cốt lõi bao gồm: quản lý danh mục, phân công giả
 
 % Sinh viên lưu ý không giải thích hoặc phân tích chi tiết công nghệ/thuật toán trong phần này. Sinh viên chỉ cần nêu tên định hướng công nghệ/thuật toán, mô tả ngắn gọn trong một đến hai câu và giải thích nhanh lý do lựa chọn.
 
-Để giải quyết các vấn đề đã nêu, đề tài định hướng xây dựng một ứng dụng web theo kiến trúc client–server tách biệt. Phía frontend sử dụng Next.js – framework React hiện đại hỗ trợ render phía máy chủ và định tuyến dựa trên hệ thống file, phù hợp để xây dựng giao diện tương tác. Phía backend sử dụng Spring Boot (Java 17) theo mô hình RESTful API, đảm bảo khả năng mở rộng và bảo mật qua Spring Security với xác thực JWT. Cơ sở dữ liệu quan hệ PostgreSQL được lựa chọn để lưu trữ thông tin giáo viên, lớp học, môn học, phân công giảng dạy và thời khoá biểu.
+Trên cơ sở các mục tiêu đã xác định, đề tài lựa chọn định hướng xây dựng một ứng dụng web theo mô hình kiến trúc client--server, tách biệt giữa tầng giao diện người dùng và tầng xử lý nghiệp vụ phía máy chủ, giao tiếp thông qua các API theo phong cách RESTful. Định hướng này giúp hệ thống dễ mở rộng, bảo trì và phù hợp với yêu cầu quản lý, lập thời khóa biểu trên nền tảng web.
 
-Hệ thống hỗ trợ quy trình quản lý thời khoá biểu hoàn chỉnh từ nhập liệu danh mục cơ bản, phân công giảng dạy thủ công, đến hiển thị bảng thời khoá biểu theo lớp/giáo viên với cảnh báo xung đột ngay lập tức trên giao diện web responsive, thân thiện.
+\begin{itemize}
+    \item \textbf{Về phía máy chủ (backend):}
+    Sử dụng Java 21 cùng framework Spring Boot để xây dựng các API và xử lý nghiệp vụ quản lý năm học, giáo viên, lớp học, môn học, phòng chức năng, phân công giảng dạy và thời khóa biểu. Spring Data JPA được sử dụng để tương tác với cơ sở dữ liệu PostgreSQL, trong khi Spring Security kết hợp với JWT đảm nhiệm việc xác thực và bảo vệ các chức năng quản lý.
 
-Các quy trình nghiệp vụ chính như kiểm tra vượt định mức tiết dạy và phát hiện trùng giáo viên được tự động hóa, giúp tiết kiệm thời gian xếp lịch thủ công và phù hợp với trường tiểu học công lập quy mô nhỏ mà không đòi hỏi cài đặt hay đào tạo phức tạp.
+    \item \textbf{Về phía giao diện (frontend):}
+    Sử dụng Next.js, TypeScript và Tailwind CSS để xây dựng giao diện tương tác. Hệ thống cung cấp giao diện thời khóa biểu dạng lưới, cho phép người phụ trách xem, sắp xếp và điều chỉnh tiết học, đồng thời hỗ trợ hiển thị thời khóa biểu theo lớp, giáo viên hoặc khối.
+
+    \item \textbf{Về chức năng xếp thời khóa biểu tự động:}
+    Sử dụng phương pháp khởi tạo lịch kết hợp với Timefold Solver để phân bổ các tiết học còn thiếu vào những vị trí trống theo các ràng buộc về giáo viên, lớp học và phòng chức năng. Các tiết đã được người dùng sắp xếp trước được giữ cố định trong quá trình xếp tự động. Kết quả được hiển thị để người phụ trách kiểm tra, điều chỉnh và xác nhận trước khi lưu.
+
+    \item \textbf{Về tra cứu và xuất thời khóa biểu:}
+    Hệ thống hỗ trợ giáo viên tra cứu thời khóa biểu được nhà trường công bố với tư cách người dùng vãng lai. Bên cạnh đó, thư viện SheetJS được sử dụng để xuất thời khóa biểu theo lớp, giáo viên hoặc khối ra file Excel.
+\end{itemize}
 
 \section{Bố cục đồ án}
 \label{section:1.4}
@@ -119,13 +100,13 @@ Các quy trình nghiệp vụ chính như kiểm tra vượt định mức tiế
 
 Phần còn lại của báo cáo đồ án tốt nghiệp này được tổ chức như sau.
 
-Chương 2 trình bày quá trình khảo sát và phân tích yêu cầu hệ thống. Dựa trên thực trạng xếp thời khóa biểu tại các trường tiểu học công lập, chương này xác định các tác nhân, phân tích use case và đặc tả chi tiết các chức năng cốt lõi của hệ thống EduSchedule, đồng thời làm rõ các yêu cầu phi chức năng cần đáp ứng.
+Chương 2 trình bày quá trình khảo sát và phân tích yêu cầu hệ thống. Dựa trên thực trạng xếp thời khóa biểu tại các trường tiểu học công lập, chương này xác định các tác nhân, phân tích use case và đặc tả chi tiết các chức năng cốt lõi của hệ thống, đồng thời làm rõ các yêu cầu phi chức năng cần đáp ứng.
 
 Chương 3 giới thiệu các công nghệ được sử dụng để xây dựng hệ thống, bao gồm Next.js và React phía frontend, Spring Boot và Spring Security phía backend, PostgreSQL làm hệ quản trị cơ sở dữ liệu quan hệ, cùng các thư viện hỗ trợ xác thực và xuất dữ liệu. Chương này phân tích lý do lựa chọn từng công nghệ trong bối cảnh yêu cầu của đề tài.
 
-Chương 4 trình bày thiết kế kiến trúc tổng thể của hệ thống theo mô hình client–server tách biệt, thiết kế cơ sở dữ liệu, thiết kế API RESTful và giao diện người dùng. Bên cạnh đó, chương này mô tả quá trình triển khai các chức năng chính và đánh giá kết quả thông qua kiểm thử chức năng.
+Chương 4 trình bày quá trình thiết kế, xây dựng và đánh giá hệ thống. Nội dung bao gồm thiết kế kiến trúc tổng thể, thiết kế giao diện, thiết kế lớp và cơ sở dữ liệu; quá trình hiện thực các chức năng; giải pháp xếp thời khóa biểu thủ công và tự động; kiểm thử chức năng; cùng phương thức triển khai sản phẩm.
 
-Chương 5 tập trung vào các giải pháp và đóng góp nổi bật của đồ án, bao gồm cơ chế phát hiện xung đột tiết học theo thời gian thực, giải pháp kiểm soát số buổi đến trường của giáo viên trên giao diện lưới tương tác, và cách tiếp cận triển khai hệ thống không phát sinh chi phí cho nhà trường.
+Chương 5 tập trung vào các giải pháp và đóng góp nổi bật của đồ án, bao gồm tính năng xếp thời khóa biểu tự động kết hợp điều chỉnh thủ công trên giao diện lưới tương tác, cơ chế phát hiện xung đột tiết học theo thời gian thực, và cách tiếp cận triển khai hệ thống không phát sinh chi phí cho nhà trường.
 
 Chương 6 đưa ra kết luận về mức độ hoàn thành các mục tiêu đề ra, đánh giá những kết quả đạt được và hạn chế còn tồn tại, đồng thời đề xuất các hướng phát triển tiếp theo nhằm nâng cao tính hoàn thiện và khả năng ứng dụng thực tế của hệ thống.
 
