@@ -1,17 +1,14 @@
-import { type TeacherType, type TeacherStatus, type AssignmentStatus } from "./enums";
-
-export type { TeacherType };
+import { type AssignmentStatus } from "./enums";
 
 export interface Teacher {
   id: number;
   code: string;
   name: string;
-  type: TeacherType;
   position: string;
   subjects: string[];
   maxPeriods: number;
   currentPeriods: number;
-  status: TeacherStatus;
+  scheduled: boolean;
 }
 
 export interface Subject {

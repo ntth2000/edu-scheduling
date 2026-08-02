@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -12,27 +11,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Save, Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { type SubjectResponse } from "@/lib/api";
-import { Teacher, TeacherType } from "@/lib/types";
+import { Teacher } from "@/lib/types";
 
 const teacherSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập họ và tên"),
-  type: z.enum(["CHU_NHIEM", "BO_MON"]),
   maxPeriods: z.number().min(1, "Số tiết phải lớn hơn 0"),
-  subjects: z.array(z.string()).default([]),
-}).refine((data) => {
-  if (data.type === "BO_MON") {
-    return data.subjects && data.subjects.length > 0;
-  }
-  return true;
-}, {
-  message: "Vui lòng chọn ít nhất một môn dạy",
-  path: ["subjects"],
 });
 
 interface TeacherModalProps {
@@ -43,25 +30,19 @@ interface TeacherModalProps {
   onSave: (data: Partial<Teacher>) => Promise<void>;
 }
 
-export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave }: TeacherModalProps) {
+export function TeacherModal({ open, onOpenChange, teacher, onSave }: TeacherModalProps) {
   const [name, setName] = useState("");
-  const [type, setType] = useState<TeacherType>("CHU_NHIEM");
   const [maxPeriods, setMaxPeriods] = useState(23);
-  const [subjects, setSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (teacher) {
       setName(teacher.name);
-      setType(teacher.type);
       setMaxPeriods(teacher.maxPeriods);
-      setSubjects(teacher.subjects);
     } else {
       setName("");
-      setType("CHU_NHIEM");
       setMaxPeriods(23);
-      setSubjects([]);
     }
     setErrors({});
     setLoading(false);
@@ -71,7 +52,7 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
     e.preventDefault();
     if (loading) return;
 
-    const result = teacherSchema.safeParse({ name, type, maxPeriods, subjects });
+    const result = teacherSchema.safeParse({ name, maxPeriods });
     if (!result.success) {
       const newErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -88,9 +69,8 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
     try {
       await onSave({
         name,
-        type,
         maxPeriods,
-        subjects: type === "BO_MON" ? subjects : [],
+        subjects: teacher?.subjects ?? [],
       });
       toast.success(teacher ? "Đã cập nhật thông tin giáo viên" : "Đã thêm giáo viên mới");
     } catch (error) {
@@ -131,27 +111,6 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
           </Field>
 
           <Field>
-            <FieldLabel>Loại giáo viên <span className="text-red-600">*</span></FieldLabel>
-            <RadioGroup
-              value={type}
-              onValueChange={(val) => {
-                setType(val as TeacherType);
-                setErrors({});
-              }}
-              className="flex gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="CHU_NHIEM" id="type-gvcn" />
-                <FieldLabel htmlFor="type-gvcn">GVCN</FieldLabel>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="BO_MON" id="type-bomon" />
-                <FieldLabel htmlFor="type-bomon">Bộ môn</FieldLabel>
-              </div>
-            </RadioGroup>
-          </Field>
-
-          <Field>
             <FieldLabel>Số tiết tối đa/tuần <span className="text-red-600">*</span></FieldLabel>
             <div className="relative">
               <Input
@@ -175,28 +134,6 @@ export function TeacherModal({ open, onOpenChange, teacher, allSubjects, onSave 
               </div>
             )}
           </Field>
-
-          {(type === "BO_MON" || type === "KHAC") && (
-            <Field>
-              <FieldLabel>Môn dạy {type === "BO_MON" && <span className="text-red-600">*</span>}</FieldLabel>
-              <MultiSelect
-                options={allSubjects.map(s => ({ label: s.name, value: s.name }))}
-                selected={subjects}
-                onChange={(selected) => {
-                  setSubjects(selected);
-                  if (errors.subjects) setErrors(prev => ({ ...prev, subjects: "" }));
-                }}
-                placeholder="Chọn các môn học..."
-                className={cn(errors.subjects && "border-destructive")}
-              />
-              {errors.subjects && (
-                <div className="flex items-center gap-2 text-destructive text-xs mt-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{errors.subjects}</span>
-                </div>
-              )}
-            </Field>
-          )}
 
           <DialogFooter className="gap-2 pt-4">
             <Button

@@ -30,6 +30,12 @@ public class SchoolYearController {
                 .body(schoolYearService.create(request, currentUsername()));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        schoolYearService.delete(id, currentUsername());
+        return ResponseEntity.noContent().build();
+    }
+
     private String currentUsername() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }

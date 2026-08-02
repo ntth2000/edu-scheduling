@@ -3,7 +3,6 @@ package com.eduschedule.service;
 import com.eduschedule.dto.request.ClassRequest;
 import com.eduschedule.dto.response.ClassResponse;
 import com.eduschedule.entity.*;
-import com.eduschedule.entity.enums.TeacherType;
 import com.eduschedule.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -84,6 +83,13 @@ public class SchoolClassService {
             teacher = findTeacherAndValidate(request.getHomeroomTeacherId(), id);
         }
 
+        if (schoolClass.getSchoolYear() != null
+                && classRepository.existsByNameAndSchoolYearIdAndIdNot(
+                        request.getName(), schoolClass.getSchoolYear().getId(), id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Lớp '" + request.getName() + "' đã tồn tại trong năm học này");
+        }
+
         schoolClass.setName(request.getName());
         schoolClass.setGrade(request.getGrade());
         schoolClass.setHomeroomTeacher(teacher);
@@ -121,10 +127,6 @@ public class SchoolClassService {
     private Teacher findTeacherAndValidate(Long teacherId, Long currentClassId) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên với id: " + teacherId));
-
-        if (teacher.getType() != TeacherType.CHU_NHIEM) {
-            throw new RuntimeException("Chỉ giáo viên chủ nhiệm mới có thể được phân công chủ nhiệm lớp.");
-        }
 
         // Check if teacher is already homeroom teacher of another class
         classRepository.findByHomeroomTeacherId(teacherId).ifPresent(c -> {

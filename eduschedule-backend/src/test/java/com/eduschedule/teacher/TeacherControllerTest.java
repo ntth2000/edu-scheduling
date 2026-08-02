@@ -78,24 +78,95 @@ class TeacherControllerTest {
         return objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
     }
 
-    // GV-01: Tạo GV chủ nhiệm
+    private Long createSchoolYear(Cookie auth) throws Exception {
+        int startYear = 2000 + (int) (counter.incrementAndGet() % 90);
+        var result = mockMvc.perform(post("/api/school-years")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("startYear", startYear))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    private Long createClass(Cookie auth, String name, int grade, Long schoolYearId) throws Exception {
+        return createClass(auth, name, grade, schoolYearId, null);
+    }
+
+    private Long createClass(Cookie auth, String name, int grade, Long schoolYearId, Long homeroomTeacherId) throws Exception {
+        var body = new java.util.HashMap<String, Object>();
+        body.put("name", name);
+        body.put("grade", grade);
+        body.put("schoolYearId", schoolYearId);
+        body.put("homeroomTeacherId", homeroomTeacherId);
+        var result = mockMvc.perform(post("/api/classes")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    private Long createAssignment(Cookie auth, Long classId, Long subjectId, Long teacherId) throws Exception {
+        var result = mockMvc.perform(post("/api/assignments")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("classId", classId, "subjectId", subjectId, "teacherId", teacherId))))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    private Long getWeek1Id(Cookie auth, Long schoolYearId) throws Exception {
+        var timetablesResult = mockMvc.perform(get("/api/timetables?schoolYearId=" + schoolYearId).cookie(auth))
+                .andReturn();
+        var timetables = objectMapper.readTree(timetablesResult.getResponse().getContentAsString());
+        long timetableId = -1;
+        for (var t : timetables) {
+            if (t.get("semesterOrder").asInt() == 1) {
+                timetableId = t.get("id").asLong();
+                break;
+            }
+        }
+        var weeksResult = mockMvc.perform(get("/api/weeks?timetableId=" + timetableId).cookie(auth))
+                .andReturn();
+        var weeks = objectMapper.readTree(weeksResult.getResponse().getContentAsString());
+        for (var w : weeks) {
+            if (w.get("weekNumber").asInt() == 1) {
+                return w.get("id").asLong();
+            }
+        }
+        throw new IllegalStateException("Week 1 not found");
+    }
+
+    private void createSlot(Cookie auth, Long weekId, Long assignmentId, int day, int session, int period) throws Exception {
+        mockMvc.perform(post("/api/slots")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("weekId", weekId, "assignmentId", assignmentId,
+                                        "day", day, "session", session, "period", period))))
+                .andExpect(status().isOk());
+    }
+
+    // GV-01: Tạo giáo viên
     @Test
-    void GV_01_createHomeroomTeacher() throws Exception {
+    void GV_01_createTeacher() throws Exception {
         Cookie auth = loginAndGetCookie();
 
         mockMvc.perform(post("/api/teachers")
                         .cookie(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("fullName", "Nguyễn Văn A", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20))))
+                                Map.of("fullName", "Nguyễn Văn A", "maxPeriodsPerWeek", 20))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.fullName").value("Nguyễn Văn A"))
-                .andExpect(jsonPath("$.type").value("CHU_NHIEM"))
-                .andExpect(jsonPath("$.isActive").value(true));
+                .andExpect(jsonPath("$.fullName").value("Nguyễn Văn A"));
     }
 
-    // GV-02: Tạo GV bộ môn kèm môn dạy
+    // GV-02: Tạo GV kèm môn dạy
     @Test
     void GV_02_createSubjectTeacherWithSubjects() throws Exception {
         Cookie auth = loginAndGetCookie();
@@ -105,10 +176,9 @@ class TeacherControllerTest {
                         .cookie(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("fullName", "Nguyễn Thị B", "type", "BO_MON",
+                                Map.of("fullName", "Nguyễn Thị B",
                                         "maxPeriodsPerWeek", 20, "subjectIds", List.of(subjectId)))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.type").value("BO_MON"))
                 .andExpect(jsonPath("$.subjects").isArray())
                 .andExpect(jsonPath("$.subjects.length()").value(1));
     }
@@ -118,69 +188,87 @@ class TeacherControllerTest {
     void GV_03_updateTeacher() throws Exception {
         Cookie auth = loginAndGetCookie();
         Long id = createTeacher(auth,
-                Map.of("fullName", "Nguyễn Văn C", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20));
+                Map.of("fullName", "Nguyễn Văn C", "maxPeriodsPerWeek", 20));
 
         mockMvc.perform(put("/api/teachers/" + id)
                         .cookie(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("fullName", "Nguyễn Văn C Mới", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 18))))
+                                Map.of("fullName", "Nguyễn Văn C Mới", "maxPeriodsPerWeek", 18))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Nguyễn Văn C Mới"))
                 .andExpect(jsonPath("$.maxPeriodsPerWeek").value(18));
     }
 
-    // GV-04: Toggle GV inactive → chỉ đổi isActive, KHÔNG xoá slots/assignments
+    // GV-04: Xoá GV đã được phân công nhưng chưa xếp TKB → xoá thành công,
+    // phân công liên quan cũng bị xoá theo.
     @Test
-    void GV_04_toggleInactive_noDelete() throws Exception {
+    void GV_04_deleteTeacherWithUnscheduledAssignment_cascadesAssignment() throws Exception {
         Cookie auth = loginAndGetCookie();
-        Long id = createTeacher(auth,
-                Map.of("fullName", "Nguyễn Văn D", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20));
+        Long subjectId = getOrCreateSubjectId(auth);
+        Long teacherId = createTeacher(auth,
+                Map.of("fullName", "Nguyễn Văn D",
+                        "maxPeriodsPerWeek", 20, "subjectIds", List.of(subjectId)));
+        Long schoolYearId = createSchoolYear(auth);
+        Long classId = createClass(auth, "GV04A", 1, schoolYearId);
+        createAssignment(auth, classId, subjectId, teacherId);
 
-        mockMvc.perform(patch("/api/teachers/" + id + "/toggle-status").cookie(auth))
+        mockMvc.perform(delete("/api/teachers/batch")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(List.of(teacherId))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.teacher.isActive").value(false))
-                .andExpect(jsonPath("$.deletedSlots").value(0))
-                .andExpect(jsonPath("$.deletedAssignments").value(0));
+                .andExpect(jsonPath("$.deletedTeachers").value(1))
+                .andExpect(jsonPath("$.deletedAssignments").value(1));
+
+        mockMvc.perform(get("/api/teachers").cookie(auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + teacherId + ")]").isEmpty());
     }
 
-    // GV-05: Toggle GV lại active
+    // GV-05: Xoá GV đã có tiết được xếp trong TKB → bị chặn, không xoá.
     @Test
-    void GV_05_toggleBackActive() throws Exception {
+    void GV_05_deleteScheduledTeacher_isBlocked() throws Exception {
         Cookie auth = loginAndGetCookie();
-        Long id = createTeacher(auth,
-                Map.of("fullName", "Nguyễn Văn E", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20));
+        Long subjectId = getOrCreateSubjectId(auth);
+        Long teacherId = createTeacher(auth,
+                Map.of("fullName", "Nguyễn Văn E",
+                        "maxPeriodsPerWeek", 20, "subjectIds", List.of(subjectId)));
+        Long schoolYearId = createSchoolYear(auth);
+        Long classId = createClass(auth, "GV05A", 1, schoolYearId);
+        Long assignmentId = createAssignment(auth, classId, subjectId, teacherId);
+        Long weekId = getWeek1Id(auth, schoolYearId);
+        createSlot(auth, weekId, assignmentId, 2, 1, 1);
 
-        mockMvc.perform(patch("/api/teachers/" + id + "/toggle-status").cookie(auth))
-                .andExpect(jsonPath("$.teacher.isActive").value(false));
+        mockMvc.perform(delete("/api/teachers/batch")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(List.of(teacherId))))
+                .andExpect(status().isConflict());
 
-        mockMvc.perform(patch("/api/teachers/" + id + "/toggle-status").cookie(auth))
+        mockMvc.perform(get("/api/teachers").cookie(auth))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.teacher.isActive").value(true));
+                .andExpect(jsonPath("$[?(@.id == " + teacherId + ")]").isNotEmpty());
     }
 
-    // GV-06: GV inactive vẫn xuất hiện trong list với isActive=false
+    // GV-06: Xoá GV đang là GVCN của một lớp → bị chặn, không xoá.
     @Test
-    void GV_06_inactiveTeacherHasActiveFalse() throws Exception {
+    void GV_06_deleteHomeroomTeacher_isBlocked() throws Exception {
         Cookie auth = loginAndGetCookie();
-        Long id = createTeacher(auth,
-                Map.of("fullName", "Nguyễn Văn F", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20));
+        Long teacherId = createTeacher(auth,
+                Map.of("fullName", "Nguyễn Văn F", "maxPeriodsPerWeek", 20));
+        Long schoolYearId = createSchoolYear(auth);
+        createClass(auth, "GV06A", 1, schoolYearId, teacherId);
 
-        mockMvc.perform(patch("/api/teachers/" + id + "/toggle-status").cookie(auth));
+        mockMvc.perform(delete("/api/teachers/batch")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(List.of(teacherId))))
+                .andExpect(status().isConflict());
 
-        var result = mockMvc.perform(get("/api/teachers").cookie(auth))
+        mockMvc.perform(get("/api/teachers").cookie(auth))
                 .andExpect(status().isOk())
-                .andReturn();
-
-        var teachers = objectMapper.readTree(result.getResponse().getContentAsString());
-        boolean found = false;
-        for (var t : teachers) {
-            if (t.get("id").asLong() == id) {
-                assert !t.get("isActive").asBoolean() : "GV phải có isActive=false";
-                found = true;
-            }
-        }
-        assert found : "GV inactive vẫn phải xuất hiện trong danh sách";
+                .andExpect(jsonPath("$[?(@.id == " + teacherId + ")]").isNotEmpty());
     }
 
     // GV-07: Xoá batch nhiều GV
@@ -188,9 +276,9 @@ class TeacherControllerTest {
     void GV_07_batchDelete() throws Exception {
         Cookie auth = loginAndGetCookie();
         Long id1 = createTeacher(auth,
-                Map.of("fullName", "Nguyễn Văn G1", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20));
+                Map.of("fullName", "Nguyễn Văn G1", "maxPeriodsPerWeek", 20));
         Long id2 = createTeacher(auth,
-                Map.of("fullName", "Nguyễn Văn G2", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20));
+                Map.of("fullName", "Nguyễn Văn G2", "maxPeriodsPerWeek", 20));
 
         mockMvc.perform(delete("/api/teachers/batch")
                         .cookie(auth)

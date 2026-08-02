@@ -11,8 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { Save } from "lucide-react";
+import { Save, AlertCircle } from "lucide-react";
+import { z } from "zod";
 import { Subject } from "@/lib/types";
+
+const subjectSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên môn học"),
+  periodsByGrade: z
+    .array(z.number().min(0, "Số tiết phải >= 0").max(15, "Số tiết không quá 15"))
+    .length(5),
+});
 
 interface SubjectModalProps {
   open: boolean;
@@ -24,6 +32,8 @@ interface SubjectModalProps {
 export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectModalProps) {
   const [name, setName] = useState("");
   const [periodsByGrade, setPeriodsByGrade] = useState<[number, number, number, number, number]>([0, 0, 0, 0, 0]);
+  const [nameError, setNameError] = useState("");
+  const [periodErrors, setPeriodErrors] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (subject) {
@@ -33,10 +43,32 @@ export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectMod
       setName("");
       setPeriodsByGrade([0, 0, 0, 0, 0]);
     }
+    setNameError("");
+    setPeriodErrors({});
   }, [subject, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const result = subjectSchema.safeParse({ name, periodsByGrade });
+    if (!result.success) {
+      let newNameError = "";
+      const newPeriodErrors: Record<number, string> = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0] === "name") {
+          newNameError = issue.message;
+        } else if (issue.path[0] === "periodsByGrade" && typeof issue.path[1] === "number") {
+          const idx = issue.path[1];
+          if (!newPeriodErrors[idx]) newPeriodErrors[idx] = issue.message;
+        }
+      });
+      setNameError(newNameError);
+      setPeriodErrors(newPeriodErrors);
+      return;
+    }
+
+    setNameError("");
+    setPeriodErrors({});
     onSave({ name, periodsByGrade });
   };
 
@@ -48,14 +80,23 @@ export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectMod
             {subject ? "Chỉnh sửa môn học" : "Thêm môn học mới"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <Field>
             <FieldLabel>Tên môn học <span className="text-red-600">*</span></FieldLabel>
             <Input
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError("");
+              }}
+              aria-invalid={!!nameError}
             />
+            {nameError && (
+              <div className="flex items-center gap-2 text-destructive text-xs mt-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{nameError}</span>
+              </div>
+            )}
           </Field>
 
           <Field>
@@ -73,12 +114,26 @@ export function SubjectModal({ open, onOpenChange, subject, onSave }: SubjectMod
                       const newP = [...periodsByGrade] as [number, number, number, number, number];
                       newP[i] = Number(e.target.value);
                       setPeriodsByGrade(newP);
+                      if (periodErrors[i]) {
+                        setPeriodErrors((prev) => {
+                          const next = { ...prev };
+                          delete next[i];
+                          return next;
+                        });
+                      }
                     }}
+                    aria-invalid={!!periodErrors[i]}
                     className="text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none appearance-none"
                   />
                 </div>
               ))}
             </div>
+            {Object.keys(periodErrors).length > 0 && (
+              <div className="flex items-center gap-2 text-destructive text-xs mt-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{Object.values(periodErrors)[0]}</span>
+              </div>
+            )}
           </Field>
 
           <DialogFooter className="gap-2 pt-4">

@@ -1,0 +1,44 @@
+@startuml class_slot
+skinparam classAttributeIconSize 0
+skinparam classFontStyle Bold
+hide circle
+hide empty members
+
+class SlotService {
+  + getAll(): List<SlotResponse>
+  + getByTimetable(timetableId): List<SlotResponse>
+  + saveOrUpdateSlot(request): SlotResponse
+  + deleteSlot(id): void
+  - resolveAssignment(request): Assignment
+}
+
+class ScheduleGeneratorService {
+  + generate(weekId): AutoScheduleResult
+}
+
+class Slot {
+  - id: Long
+  - week: Week
+  - assignment: Assignment
+  - day: int
+  - session: int
+  - period: int
+  - specialRoom: SpecialRoom
+}
+
+class Week {
+  - id: Long
+  - weekNumber: int
+  - startDate: Date
+}
+
+class Assignment
+
+SlotService ..> Assignment : resolve
+SlotService --> Slot : tạo / cập nhật
+ScheduleGeneratorService ..> Assignment : đọc
+ScheduleGeneratorService --> Slot : tạo hàng loạt
+Slot "*" -- "1" Week
+Slot "*" -- "0..1" Assignment
+
+@enduml

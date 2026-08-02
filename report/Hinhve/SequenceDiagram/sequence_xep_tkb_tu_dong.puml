@@ -1,0 +1,58 @@
+@startuml
+title Biểu đồ trình tự - Xếp thời khóa biểu tự động
+
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện\nthời khóa biểu" as TimetableUI
+control "Điều khiển\nxếp tự động" as ScheduleController
+entity "Phân công\ngiảng dạy" as Assignment
+entity "Tuần học" as Week
+entity "Tiết học" as Slot
+entity "Phòng\nchức năng" as Room
+control "Bộ xếp lịch\ntự động" as Solver
+
+User -> TimetableUI: Mở thời khóa biểu và chọn tuần cần xếp
+User -> TimetableUI: Chọn "Tự động xếp TKB"
+TimetableUI -> ScheduleController: Yêu cầu xếp thời khóa biểu tự động
+ScheduleController -> Assignment: Kiểm tra phân công giảng dạy
+Assignment --> ScheduleController: Danh sách phân công
+
+alt Còn môn học chưa được phân công giáo viên
+    ScheduleController --> TimetableUI: Danh sách lớp và môn chưa được phân công
+    TimetableUI --> User: Thông báo và yêu cầu hoàn tất phân công
+else Dữ liệu phân công đầy đủ
+    TimetableUI --> User: Hiển thị màn hình chờ
+    ScheduleController -> Week: Yêu cầu thông tin tuần được chọn
+    Week --> ScheduleController: Thông tin tuần
+    ScheduleController -> Slot: Yêu cầu các tiết học đã được xếp
+    Slot --> ScheduleController: Danh sách tiết học đã xếp
+    ScheduleController -> Room: Yêu cầu thông tin phòng chức năng
+    Room --> ScheduleController: Danh sách phòng chức năng
+    ScheduleController -> ScheduleController: Xác định các tiết còn thiếu;\ngiữ cố định các tiết đã xếp
+    ScheduleController -> Solver: Yêu cầu tạo phương án từ dữ liệu\nvà các ràng buộc
+    Solver -> Solver: Tạo và tối ưu phương án
+    Solver --> ScheduleController: Các tiết được xếp và\ncác tiết không thể xếp
+    ScheduleController --> TimetableUI: Kết quả ở trạng thái chưa lưu
+
+    alt Không thể xếp được tiết nào
+        TimetableUI --> User: Hiển thị nguyên nhân không thể xếp
+    else Có kết quả xếp tự động
+        TimetableUI --> User: Hiển thị kết quả trên lưới;\ncảnh báo các tiết chưa thể xếp nếu có
+
+        alt Người dùng lưu tuần đang chỉnh sửa
+            User -> TimetableUI: Chọn Lưu tuần N
+        else Người dùng áp dụng cho các tuần tiếp theo
+            User -> TimetableUI: Chọn Áp dụng từ tuần N trở đi
+        end
+        TimetableUI -> ScheduleController: Yêu cầu lưu kết quả theo phạm vi đã chọn
+        ScheduleController -> Slot: Lưu các tiết học theo phạm vi đã chọn
+        Slot --> ScheduleController: Kết quả lưu
+        ScheduleController --> TimetableUI: Thời khóa biểu đã được cập nhật
+        TimetableUI --> User: Thông báo lưu thành công
+    end
+end
+
+@enduml

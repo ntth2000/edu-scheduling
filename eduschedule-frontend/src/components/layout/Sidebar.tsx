@@ -13,6 +13,7 @@ import {
   DoorOpen,
   CalendarCheck,
   Plus,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,11 +33,15 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { schoolYearApi, type SchoolYearResponse } from "@/lib/api";
 import { CreateSchoolYearDialog } from "@/components/school-year/CreateSchoolYearDialog";
+import { ManageSchoolYearsDialog } from "@/components/school-year/ManageSchoolYearsDialog";
+
+const MANAGE_YEARS_VALUE = "__manage__";
 
 const GLOBAL_ITEMS = [
   { label: "Giáo viên", href: "/teachers", icon: Users },
@@ -63,6 +68,7 @@ export default function AppSidebar() {
     return saved ? Number(saved) : null;
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
 
   useEffect(() => {
     schoolYearApi.getAll().then((years) => {
@@ -112,6 +118,20 @@ export default function AppSidebar() {
     setSelectedYearId(year.id);
     sessionStorage.setItem("selectedYearId", String(year.id));
     router.push(`/classes?year=${year.name}`);
+  };
+
+  const handleYearDeleted = (id: number) => {
+    setSchoolYears((prev) => {
+      const next = prev.filter((y) => y.id !== id);
+      setSelectedYearId((prevSelected) => {
+        if (prevSelected !== id) return prevSelected;
+        const fallback = next[0]?.id ?? null;
+        if (fallback) sessionStorage.setItem("selectedYearId", String(fallback));
+        else sessionStorage.removeItem("selectedYearId");
+        return fallback;
+      });
+      return next;
+    });
   };
 
   const selectedYear = schoolYears.find((y) => y.id === selectedYearId) ?? null;
@@ -164,6 +184,10 @@ export default function AppSidebar() {
               <Select
                 value={String(selectedYear.id)}
                 onValueChange={(v) => {
+                  if (v === MANAGE_YEARS_VALUE) {
+                    setIsManageDialogOpen(true);
+                    return;
+                  }
                   const newYearId = Number(v);
                   setSelectedYearId(newYearId);
                   sessionStorage.setItem("selectedYearId", String(newYearId));
@@ -187,6 +211,11 @@ export default function AppSidebar() {
                       {y.name}
                     </SelectItem>
                   ))}
+                  <SelectSeparator />
+                  <SelectItem value={MANAGE_YEARS_VALUE} className="text-slate-500">
+                    <Settings className="h-4 w-4" />
+                    <span>Quản lý năm học</span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -248,6 +277,13 @@ export default function AppSidebar() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onCreated={handleCreated}
+      />
+
+      <ManageSchoolYearsDialog
+        open={isManageDialogOpen}
+        onOpenChange={setIsManageDialogOpen}
+        schoolYears={schoolYears}
+        onDeleted={handleYearDeleted}
       />
     </Sidebar>
   );

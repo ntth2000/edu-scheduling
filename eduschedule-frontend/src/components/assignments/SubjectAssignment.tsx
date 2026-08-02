@@ -300,7 +300,7 @@ export function SubjectAssignment({
                           (t) => t.id === cls.homeroomTeacherId
                         );
                         const nonHomeroomTeachers = teachers.filter(
-                          (t) => t.type !== "CHU_NHIEM"
+                          (t) => t.homeroomClassName == null
                         );
                         return (
                           <div

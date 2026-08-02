@@ -68,7 +68,7 @@ export function AssignmentPage({ year }: { year: string | null }) {
     }))
     .sort((a, b) => a.grade - b.grade || a.className.localeCompare(b.className, "vi"));
 
-  const gvcnTeachers = teachers.filter((t) => t.type === "CHU_NHIEM");
+  const gvcnTeachers = teachers;
 
   const handleHomeroomAssign = async (classId: number, teacherId: number | null) => {
     const cls = classes.find((c) => c.id === classId);

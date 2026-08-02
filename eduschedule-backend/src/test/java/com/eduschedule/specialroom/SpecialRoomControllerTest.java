@@ -17,7 +17,7 @@ class SpecialRoomControllerTest extends BaseControllerTest {
                         .cookie(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "name", "Tin học Test",
+                                "name", "Tin học",
                                 "periodsGrade1", 1, "periodsGrade2", 1, "periodsGrade3", 1,
                                 "periodsGrade4", 1, "periodsGrade5", 1
                         ))))

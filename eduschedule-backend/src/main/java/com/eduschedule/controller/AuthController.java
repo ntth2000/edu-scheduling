@@ -62,16 +62,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         Optional<User> userOpt = userRepository.findByUsername(request.getUsername());
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Tên đăng nhập chưa được đăng ký"));
-        }
-        User user = userOpt.get();
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Tên đăng nhập hoặc mật khẩu không đúng"));
         }
+        User user = userOpt.get();
 
         // Invalidate any existing refresh tokens for this user
         refreshTokenRepository.deleteByUser(user);

@@ -5,83 +5,168 @@
 \section{Kết luận chung}
 \label{section:5.1}
 
-Đề tài \textit{"Xây dựng hệ thống xếp thời khoá biểu tự động cho trường tiểu học — EduSchedule"} đã được nghiên cứu, phân tích và triển khai với mục tiêu xây dựng một công cụ hỗ trợ ban giám hiệu lập thời khoá biểu nhanh chóng, chính xác và không xảy ra xung đột lịch dạy.
+Đề tài \textit{``Xây dựng hệ thống xếp thời khoá biểu tự động cho trường tiểu
+học -- EduSchedule''} đã xây dựng được một ứng dụng web hỗ trợ Người xếp thời
+khoá biểu thực hiện các công việc từ thiết lập dữ liệu đầu vào, phân công giảng
+dạy, xếp và điều chỉnh thời khoá biểu đến công khai kết quả cho người dùng vãng
+lai. Hệ thống được phát triển theo mô hình Client--Server, sử dụng Spring Boot
+cho phía máy chủ, Next.js cho phía giao diện và PostgreSQL để lưu trữ dữ liệu.
 
-Hệ thống được thiết kế và phát triển trên nền tảng kiến trúc Client–Server tách biệt, kết hợp Spring Boot (backend) và Next.js (frontend) giao tiếp qua RESTful API, cho phép:
+Các giải pháp và đóng góp nổi bật của đề tài gồm:
 
 \begin{itemize}[noitemsep]
-    \item \textbf{Quản lý danh mục} giáo viên, lớp học, môn học một cách tập trung, có phân loại và trạng thái hoạt động.
-    \item \textbf{Phân công giảng dạy} với kiểm tra điều kiện hợp lệ: giáo viên chủ nhiệm chỉ được phân công một lớp, giáo viên bộ môn chỉ dạy các môn trong danh sách đăng ký.
-    \item \textbf{Xếp thời khoá biểu thủ công} trên giao diện dạng lưới kết hợp kiểm tra xung đột thời gian thực, ngăn chặn ngay khi giáo viên bị trùng tiết.
-    \item \textbf{Xem và xuất} thời khoá biểu ra file Excel để sử dụng trong thực tế.
+    \item \textbf{Mô hình hoá bài toán xếp thời khoá biểu tiểu học theo ràng
+    buộc}: hệ thống xác định các ràng buộc bắt buộc về lớp học, giáo viên, phòng
+    chức năng, số tiết và cấu trúc buổi học; đồng thời sử dụng ràng buộc mềm để
+    đánh giá cách phân bố các tiết trong phương án.
+    \item \textbf{Kết hợp thuật toán tham lam với Timefold Solver}: thuật toán
+    tham lam tạo phương án khởi tạo, sau đó Timefold Solver tiếp tục cải thiện
+    phương án theo các ràng buộc mềm. Khi không thể xếp toàn bộ, hệ thống vẫn
+    trả về các tiết đã xếp được cùng danh sách tiết chưa thể bố trí để người dùng
+    tiếp tục xử lý.
+    \item \textbf{Kết hợp xếp thủ công và xếp tự động}: các tiết do người dùng
+    bố trí trước được giữ nguyên, chức năng tự động chỉ phân bổ những tiết còn
+    thiếu. Kết quả được hiển thị ở trạng thái chưa lưu để người dùng xem xét,
+    điều chỉnh và lựa chọn phạm vi áp dụng.
+    \item \textbf{Kiểm soát tính nhất quán của thời khoá biểu}: hệ thống kiểm
+    tra xung đột giáo viên, lớp học và phòng chức năng trong quá trình xếp; đồng
+    thời phát hiện và làm nổi bật các tiết không còn phù hợp khi thông tin phân
+    công giảng dạy thay đổi.
+    \item \textbf{Hỗ trợ đầy đủ vòng đời của thời khoá biểu}: dữ liệu được tổ
+    chức theo năm học, học kì và tuần; người dùng có thể lưu riêng một tuần hoặc
+    áp dụng từ tuần đang chỉnh sửa cho các tuần tiếp theo, xuất thời khoá biểu
+    và công khai bằng đường dẫn chứa UID để người dùng vãng lai tra cứu.
 \end{itemize}
 
-Kết quả đạt được cho thấy hệ thống đáp ứng đầy đủ các yêu cầu chức năng đặt ra, giải quyết được điểm yếu chính của quy trình thủ công hiện tại: việc phát hiện và xử lý xung đột lịch dạy vốn phụ thuộc hoàn toàn vào kinh nghiệm và sự cẩn thận của người lập thời khoá biểu.
+Kết quả thực hiện cho thấy EduSchedule đã đáp ứng được các nghiệp vụ chính đặt
+ra trong phạm vi đề tài. Hệ thống không thay thế hoàn toàn vai trò của người lập
+lịch mà cung cấp công cụ hỗ trợ tạo phương án, phát hiện sai lệch và giảm khối
+lượng kiểm tra thủ công. Cách tiếp cận này phù hợp với đặc điểm thực tế của bài
+toán, trong đó người phụ trách vẫn cần xem xét và điều chỉnh kết quả theo điều
+kiện tổ chức cụ thể của nhà trường.
 
 % ============================================================
 \section{Phân tích quá trình thực hiện}
-\label{section:5.3}
+\label{section:5.2}
 
 \subsection{Những điều đã làm được}
 
-Trong quá trình thực hiện, đề tài đã hoàn thành đầy đủ các nội dung chính sau:
+Trong quá trình thực hiện, đề tài đã hoàn thành các nội dung chính sau:
 
-\begin{enumerate}[noitemsep]
-    \item \textbf{Khảo sát nghiệp vụ} xếp thời khoá biểu thực tế, xác định rõ quy trình, dữ liệu đầu vào, đầu ra và các ràng buộc cứng cần đảm bảo.
-    \item \textbf{Thiết kế kiến trúc hệ thống} theo mô hình Client–Server tách biệt, kiến trúc phân tầng cho backend và mô hình BFF cho frontend.
-    \item \textbf{Xây dựng đầy đủ tài liệu UML}: use case, activity, package, class và sequence diagram.
-    \item \textbf{Triển khai đầy đủ các chức năng} nghiệp vụ: quản lý danh mục, phân công giảng dạy, xếp tiết với kiểm tra xung đột, xuất file Excel.
-    \item \textbf{Bảo mật hệ thống} với JWT trong httpOnly cookie, phân quyền tại Edge Runtime, mã hoá mật khẩu BCrypt.
-    \item \textbf{Kiểm thử} các chức năng cốt lõi với các trường hợp bao gồm cả luồng lỗi.
-    \item \textbf{Triển khai lên môi trường cloud} miễn phí: frontend trên Vercel, backend trên Render, cơ sở dữ liệu trên Render PostgreSQL.
-\end{enumerate}
+\begin{itemize}[noitemsep]
+    \item Khảo sát và mô tả nghiệp vụ xếp thời khoá biểu tại trường tiểu học,
+    xác định các dữ liệu đầu vào, quy trình phân công giảng dạy và các ràng buộc
+    cần bảo đảm khi bố trí tiết học.
+    \item Phân tích yêu cầu, xây dựng các ca sử dụng và biểu đồ trình tự cho
+    những chức năng trọng tâm; thiết kế kiến trúc Client--Server, mô hình lớp và
+    cơ sở dữ liệu phù hợp với kết quả phân tích.
+    \item Xây dựng chức năng quản lý năm học, học kì, tuần học, môn học, giáo
+    viên, lớp học và phòng chức năng; hỗ trợ phân công giáo viên chủ nhiệm và
+    giáo viên bộ môn làm dữ liệu đầu vào cho quá trình xếp lịch.
+    \item Xây dựng chức năng xếp và điều chỉnh thời khoá biểu thủ công trên
+    giao diện dạng lưới, kiểm tra số tiết còn thiếu và phát hiện các trường hợp
+    xung đột liên quan đến giáo viên hoặc phòng chức năng.
+    \item Xây dựng chức năng xếp thời khoá biểu tự động bằng cách kết hợp thuật
+    toán tham lam với Timefold Solver, giữ nguyên các tiết đã xếp trước và trả về
+    kết quả chưa lưu để người dùng kiểm tra.
+    \item Xây dựng cơ chế lưu thời khoá biểu theo tuần hoặc áp dụng từ một tuần
+    cho các tuần tiếp theo; hỗ trợ xuất dữ liệu và công khai thời khoá biểu qua
+    đường dẫn để người dùng vãng lai tra cứu.
+    \item Triển khai cơ chế xác thực bằng JWT, mã hoá mật khẩu bằng BCrypt và
+    kiểm thử các chức năng cốt lõi với cả luồng chính và các trường hợp dữ liệu
+    không hợp lệ.
+\end{itemize}
 
 \subsection{Những điều chưa làm được}
 
 Bên cạnh các kết quả đạt được, đề tài còn một số hạn chế:
 
-\begin{enumerate}[noitemsep]
-    \item Chưa hỗ trợ \textbf{xếp tiết tự động}: hệ thống chỉ xếp thủ công với kiểm tra xung đột, chưa có thuật toán tự động sinh thời khoá biểu tối ưu theo ràng buộc.
-    \item Chưa có \textbf{phân quyền theo vai trò chi tiết}: hiện tại chỉ có một vai trò admin; chưa có vai trò giáo viên để xem lịch dạy của riêng mình.
-    \item Giao diện \textbf{chưa tối ưu cho thiết bị di động}: lưới thời khoá biểu phù hợp màn hình rộng, trải nghiệm trên điện thoại còn hạn chế.
-    \item Chưa có \textbf{tính năng thông báo}: hệ thống chưa tự động gửi thông báo cho giáo viên khi lịch dạy thay đổi.
-    \item Chưa hỗ trợ \textbf{quản lý theo năm học hoặc học kỳ}: mỗi thời khoá biểu hiện tại là một đơn vị độc lập.
-\end{enumerate}
+\begin{itemize}[noitemsep]
+    \item Chưa thực hiện đo lường đầy đủ thời gian xếp tự động và chất lượng
+    phương án trên nhiều bộ dữ liệu có quy mô khác nhau. Vì vậy, đề tài chưa đưa
+    ra được kết luận định lượng về khả năng mở rộng của bộ xếp lịch.
+    \item Kết quả xếp tự động phụ thuộc vào tính đầy đủ của dữ liệu phân công
+    và tập ràng buộc đã cấu hình. Trong trường hợp dữ liệu không có phương án
+    thoả mãn toàn bộ yêu cầu, hệ thống chỉ trả về kết quả một phần và người dùng
+    vẫn cần xử lý các tiết còn lại bằng phương pháp thủ công.
+    \item Các ràng buộc và trọng số hiện được cấu hình cố định trong hệ thống,
+    chưa có giao diện cho phép từng trường điều chỉnh theo kế hoạch giáo dục và
+    mức độ ưu tiên riêng.
+    \item Hệ thống mới có một vai trò người dùng quản lý chính và người dùng
+    vãng lai tra cứu; chưa hỗ trợ tài khoản giáo viên với thời khoá biểu cá nhân
+    hoặc các quyền truy cập chi tiết.
+    \item Giao diện lưới thời khoá biểu được ưu tiên cho máy tính để bàn, chưa
+    tối ưu hoàn toàn cho điện thoại; hệ thống cũng chưa gửi thông báo tự động khi
+    thời khoá biểu được công khai hoặc thay đổi.
+    \item Sản phẩm chưa được thử nghiệm trong thời gian dài tại một trường tiểu
+    học thực tế và chưa được đánh giá dưới tải đồng thời lớn.
+\end{itemize}
 
 \subsection{Bài học kinh nghiệm}
 
 Qua quá trình nghiên cứu và thực hiện đề tài, một số bài học quan trọng được rút ra:
 
-\begin{enumerate}[noitemsep]
-    \item \textbf{Khảo sát nghiệp vụ thực tế trước khi thiết kế} giúp xác định đúng ràng buộc quan trọng ngay từ đầu, tránh phải sửa lại thiết kế database sau khi đã triển khai.
-    \item \textbf{Tách biệt rõ trách nhiệm giữa các tầng} giúp dễ debug và bổ sung chức năng mà không ảnh hưởng phần khác của hệ thống.
-    \item \textbf{Kiểm thử sớm và thường xuyên} giúp phát hiện lỗi logic nghiệp vụ (như các trường hợp xung đột đặc biệt) trước khi tích hợp vào giao diện.
-    \item \textbf{Lựa chọn công nghệ phù hợp với quy mô dự án}: sử dụng nền tảng miễn phí (Vercel, Render) đủ đáp ứng nhu cầu thử nghiệm mà không phát sinh chi phí vận hành.
-    \item \textbf{Tài liệu hoá song song với phát triển} giúp duy trì sự nhất quán giữa thiết kế và cài đặt thực tế.
-\end{enumerate}
+\begin{itemize}[noitemsep]
+    \item Việc khảo sát và mô hình hoá đúng nghiệp vụ có vai trò quan trọng hơn
+    việc lựa chọn thuật toán sớm, bởi một ràng buộc bị bỏ sót có thể làm cho
+    phương án sinh ra không sử dụng được trong thực tế.
+    \item Chất lượng dữ liệu môn học, giáo viên, lớp học và phân công giảng dạy
+    ảnh hưởng trực tiếp đến khả năng tạo thời khoá biểu; do đó cần kiểm tra dữ
+    liệu đầu vào trước khi thực hiện xếp tự động.
+    \item Việc tách ràng buộc bắt buộc và ràng buộc mềm giúp hệ thống phân biệt
+    giữa tính hợp lệ của phương án và mức độ phù hợp của cách phân bố tiết học,
+    đồng thời thuận lợi hơn khi kiểm thử và điều chỉnh.
+    \item Kết hợp thao tác thủ công với bộ xếp lịch tự động phù hợp hơn so với
+    việc tự động hoá hoàn toàn, vì người dùng vẫn có thể giữ các tiết quan trọng
+    và can thiệp khi điều kiện thực tế thay đổi.
+    \item Tài liệu hoá và kiểm thử song song với quá trình phát triển giúp phát
+    hiện sớm sự không thống nhất giữa yêu cầu, thiết kế và cách hệ thống thực sự
+    xử lý nghiệp vụ.
+\end{itemize}
 
 % ============================================================
 \section{Hướng phát triển}
-\label{section:5.4}
+\label{section:5.3}
 
 \subsection{Hoàn thiện sản phẩm}
 
-\begin{enumerate}[noitemsep]
-    \item Bổ sung \textbf{thuật toán xếp tiết tự động} dựa trên các ràng buộc cứng (không trùng giáo viên) và ràng buộc mềm (phân bố đều các môn trong tuần, tránh xếp môn khó vào cuối ngày) — giúp giảm thêm công sức thủ công cho người lập thời khoá biểu.
-    \item Phát triển \textbf{phân quyền đa vai trò}: thêm vai trò giáo viên để xem lịch dạy cá nhân, vai trò phụ huynh để tra cứu thời khoá biểu của lớp.
-    \item Cải tiến \textbf{giao diện responsive} để hỗ trợ đầy đủ trên thiết bị di động và máy tính bảng.
-    \item Thêm \textbf{tính năng thông báo} qua email hoặc giao diện khi thời khoá biểu được công bố hoặc có thay đổi.
-    \item Xây dựng \textbf{quản lý theo năm học và học kỳ}, cho phép lưu trữ lịch sử thời khoá biểu các năm trước để tham khảo.
-\end{enumerate}
+Trước hết, đề tài cần xây dựng các bộ dữ liệu kiểm thử với quy mô khác nhau để
+đo thời gian xử lý, số tiết xếp thành công và điểm ràng buộc của từng phương án.
+Kết quả đo lường sẽ là cơ sở để điều chỉnh cấu hình và đánh giá khả năng mở rộng
+của bộ xếp lịch. Bên cạnh đó, hệ thống cần bổ sung giao diện cấu hình ràng buộc
+và mức độ ưu tiên, cho phép từng trường lựa chọn các tiêu chí phù hợp với kế
+hoạch giáo dục thực tế.
+
+Về chức năng người dùng, hệ thống cần hoàn thiện cơ chế phân quyền với tài khoản
+giáo viên, hỗ trợ xem thời khoá biểu cá nhân và giới hạn các thao tác quản lý
+theo đúng vai trò. Giao diện cũng cần được cải thiện để tương thích tốt hơn với
+điện thoại và máy tính bảng. Chức năng thông báo qua thư điện tử hoặc trực tiếp
+trên hệ thống có thể được bổ sung để thông tin kịp thời khi thời khoá biểu được
+công khai hoặc có thay đổi.
+
+Để nâng cao độ tin cậy, đề tài cần mở rộng phạm vi kiểm thử tự động, bổ sung cơ
+chế ghi nhật ký, sao lưu và phục hồi dữ liệu. Sản phẩm cũng cần được triển khai
+thử nghiệm tại trường tiểu học trong một khoảng thời gian đủ dài để thu thập
+phản hồi, phát hiện những trường hợp nghiệp vụ chưa được bao quát và đánh giá
+độ ổn định trong quá trình sử dụng thực tế.
 
 \subsection{Hướng đi mới}
 
-\begin{enumerate}[noitemsep]
-    \item \textbf{Tích hợp trí tuệ nhân tạo (AI)} để gợi ý xếp tiết dựa trên dữ liệu lịch sử, học được từ các thời khoá biểu được đánh giá tốt trong các năm trước.
-    \item \textbf{Mở rộng sang cấp THCS và THPT} với các ràng buộc phức tạp hơn: phòng học chuyên dụng, nhiều ca học, nhiều giáo viên cùng bộ môn.
-    \item \textbf{Phát triển ứng dụng di động} (iOS/Android) để giáo viên và phụ huynh tra cứu thời khoá biểu tiện lợi hơn.
-    \item \textbf{Tích hợp với hệ thống quản lý trường học} (School Management System) để đồng bộ dữ liệu giáo viên, lớp học tự động thay vì nhập thủ công.
-    \item \textbf{Phân tích dữ liệu và báo cáo}: thống kê tải giảng dạy theo giáo viên, phân bố tiết theo khối lớp, hỗ trợ ban giám hiệu trong việc điều phối nguồn lực.
-\end{enumerate}
+Trong tương lai, EduSchedule có thể được tích hợp với hệ thống quản lý nhà
+trường để đồng bộ dữ liệu giáo viên, lớp học, môn học và kế hoạch giáo dục. Việc
+tích hợp này giúp giảm khối lượng nhập liệu ban đầu, hạn chế dữ liệu trùng lặp
+và bảo đảm thông tin sử dụng để xếp thời khoá biểu luôn được cập nhật.
+
+Hệ thống cũng có thể phát triển thêm chức năng thống kê và báo cáo về khối lượng
+giảng dạy, mức sử dụng phòng chức năng và cách phân bố tiết học. Các thông tin
+này sẽ hỗ trợ nhà trường đánh giá phương án thời khoá biểu và điều phối nguồn
+lực phù hợp hơn.
+
+Một hướng nghiên cứu khác là khai thác dữ liệu thời khoá biểu của các năm trước
+để gợi ý phương án hoặc mức ưu tiên cho bộ xếp lịch. Các gợi ý này vẫn cần được
+kết hợp với cơ chế kiểm tra ràng buộc để bảo đảm tính hợp lệ của kết quả. Ngoài
+ra, hệ thống có thể được mở rộng cho cấp trung học cơ sở và trung học phổ thông,
+nơi có các nghiệp vụ phức tạp hơn như nhiều giáo viên cùng bộ môn, phòng học
+chuyên dụng và khung thời gian học linh hoạt.
 
 \end{document}

@@ -1,0 +1,1 @@
+ALTER TABLE teachers DROP COLUMN IF EXISTS is_active;

@@ -4,7 +4,6 @@ import com.eduschedule.dto.request.AssignmentRequest;
 import com.eduschedule.dto.request.HomeroomAssignmentRequest;
 import com.eduschedule.dto.response.AssignmentResponse;
 import com.eduschedule.entity.*;
-import com.eduschedule.entity.enums.TeacherType;
 import com.eduschedule.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -65,12 +64,6 @@ public class AssignmentService {
     public void assignHomeroom(HomeroomAssignmentRequest request) {
         SchoolClass schoolClass = findClass(request.getClassId());
         Teacher teacher = findTeacher(request.getTeacherId());
-
-        if (teacher.getType() != TeacherType.CHU_NHIEM) {
-            throw new RuntimeException(
-                    "Giáo viên " + teacher.getFullName() +
-                            " không phải GVCN");
-        }
 
         Long schoolYearId = schoolClass.getSchoolYear().getId();
         if (classRepository.existsByHomeroomTeacherIdAndSchoolYearIdAndIdNot(

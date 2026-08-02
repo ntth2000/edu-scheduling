@@ -16,6 +16,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 specialRoomCapacity(factory),
                 noGapWithinSession(factory),
                 minimizeTeacherSessions(factory),
+                teacherMaxSessionsPerWeek(factory),
                 noThreeConsecutiveSameSubject(factory),
 //                noSameSubjectMorningAndAfternoon(factory),
 //                teacherMaxConsecutivePeriods(factory),
@@ -132,6 +133,18 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 .groupBy(Lesson::getTeacherId, l -> l.getTimeslot().getDay(), l -> l.getTimeslot().getSession())
                 .penalize(HardSoftScore.ofSoft(ScheduleConfig.W1))
                 .asConstraint("Minimize teacher sessions");
+    }
+
+    // SC7: soft cap on how many sessions ("buổi") a teacher comes to school per week.
+    // No penalty at or below MAX_TEACHER_SESSIONS_SOFT; each session beyond it adds W7 (linear).
+    private Constraint teacherMaxSessionsPerWeek(ConstraintFactory factory) {
+        return factory.forEach(Lesson.class)
+                .groupBy(Lesson::getTeacherId,
+                        ConstraintCollectors.toSet(l -> l.getTimeslot().getDay() + "_" + l.getTimeslot().getSession()))
+                .filter((teacherId, sessions) -> sessions.size() > ScheduleConfig.MAX_TEACHER_SESSIONS_SOFT)
+                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W7),
+                        (teacherId, sessions) -> sessions.size() - ScheduleConfig.MAX_TEACHER_SESSIONS_SOFT)
+                .asConstraint("Teacher max sessions per week (soft cap)");
     }
 
     // SC2: no 3 consecutive periods of the same subject, same class, same session.

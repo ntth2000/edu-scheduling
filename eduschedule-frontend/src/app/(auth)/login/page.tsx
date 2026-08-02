@@ -20,8 +20,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (!username.trim() || !password.trim()) {
+      setError("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -58,7 +64,7 @@ export default function LoginPage() {
         <p className="font-normal text-[14px] leading-[20px] text-[#424754]">Chào mừng bạn quay lại! Vui lòng đăng nhập vào tài khoản của bạn.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <Label className="font-semibold text-[16px] leading-[24px] text-[#191b23]" htmlFor="username">Tên đăng nhập</Label>
           <div className="relative flex items-center">
@@ -67,7 +73,6 @@ export default function LoginPage() {
               id="username"
               name="username"
               type="text"
-              required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full pl-12 pr-4 h-[56px] rounded-xl border-[#c2c6d6] bg-[#f9f9ff] focus-visible:ring-2 focus-visible:ring-[#005ac2] focus-visible:border-[#005ac2] border transition-all text-[#191b23] placeholder:text-[#727785] font-normal text-[14px] leading-[20px]"
@@ -86,7 +91,6 @@ export default function LoginPage() {
               id="password"
               name="password"
               type={showPassword ? "text" : "password"}
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-12 pr-12 h-[56px] rounded-xl border-[#c2c6d6] bg-[#f9f9ff] focus-visible:ring-2 focus-visible:ring-[#005ac2] focus-visible:border-[#005ac2] border transition-all text-[#191b23] placeholder:text-[#727785] font-normal text-[14px] leading-[20px]"

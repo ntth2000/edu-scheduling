@@ -35,8 +35,6 @@ public class Teacher {
     @Column(nullable = false)
     private Integer maxPeriodsPerWeek;
 
-    private Boolean isActive = true;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
 

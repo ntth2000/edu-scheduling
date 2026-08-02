@@ -1,0 +1,12 @@
+{
+  "name": "eduschedule-autotest",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Standalone Playwright scripts for manual-test-checklist use cases. One file per test case, grouped by usecase folder.",
+  "scripts": {
+    "test": "node run-all.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

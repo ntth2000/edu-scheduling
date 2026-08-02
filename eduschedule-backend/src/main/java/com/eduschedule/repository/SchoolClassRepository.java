@@ -19,7 +19,11 @@ public interface SchoolClassRepository extends JpaRepository<SchoolClass, Long> 
 
     List<SchoolClass> findAllBySchoolYearId(Long schoolYearId);
 
+    boolean existsBySchoolYearId(Long schoolYearId);
+
     boolean existsByNameAndSchoolYearId(String name, Long schoolYearId);
+
+    boolean existsByNameAndSchoolYearIdAndIdNot(String name, Long schoolYearId, Long excludeClassId);
 
     List<SchoolClass> findAllBySchoolYearUserId(Long userId);
 }

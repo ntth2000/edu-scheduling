@@ -2,7 +2,6 @@ package com.eduschedule.controller;
 
 import com.eduschedule.dto.request.TeacherRequest;
 import com.eduschedule.dto.response.BatchDeleteCascadeResponse;
-import com.eduschedule.dto.response.TeacherCascadeResponse;
 import com.eduschedule.dto.response.TeacherResponse;
 import com.eduschedule.service.TeacherService;
 import jakarta.validation.Valid;
@@ -42,12 +41,6 @@ public class TeacherController {
             @PathVariable Long id,
             @Valid @RequestBody TeacherRequest request) {
         return ResponseEntity.ok(teacherService.update(id, request));
-    }
-
-    // PATCH /api/teachers/{id}/toggle-status
-    @PatchMapping("/{id}/toggle-status")
-    public ResponseEntity<TeacherCascadeResponse> toggleStatus(@PathVariable Long id) {
-        return ResponseEntity.ok(teacherService.toggleStatus(id));
     }
 
     // DELETE /api/teachers/batch

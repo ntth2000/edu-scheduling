@@ -14,6 +14,7 @@
 \usepackage{amsbsy} % Hỗ trợ các kí hiệu in đậm
 \usepackage{times} % Chọn font Time New Romans
 \usepackage{array} % Tạo bảng array
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage{enumitem} % Cho phép thay đổi kí hiệu của list
 \usepackage{subfiles} % Chèn các file nhỏ, giúp chia các chapter ra nhiều file hơn
 \usepackage{titlesec} % Giúp chỉnh sửa các tiêu đề, đề mục như chương, phần,..
@@ -25,6 +26,7 @@
 \usepackage{capt-of} % Cho phép sử dụng caption lớn đối với landscape page
 \usepackage{multirow} % Merge cells
 \usepackage{longtable} % Bảng dài tự ngắt trang
+\usepackage{needspace} % Hạn chế tiêu đề và bảng bị tách không hợp lý giữa hai trang
 \usepackage{fancyhdr} % Cho phép tùy biến header và footer
 % \usepackage[natbib,backend=biber,style=ieee]{biblatex} % Giúp chèn tài liệu tham khảo
 \usepackage{appendix}
@@ -50,7 +52,7 @@
 % ===================================================
 
 \renewcommand{\bibname}{Danh_sach_tai_lieu_tham_khao} 
-\usepackage[backend=bibtex,style=ieee]{biblatex}  %backend=biber is 'better'
+\usepackage[backend=biber,style=ieee]{biblatex}
 
 \renewcommand\appendixname{PHỤ LỤC}
 \renewcommand\appendixpagename{PHỤ LỤC}
@@ -302,28 +304,28 @@
 
 
 % ===================================================
-% ===== TÀI LIỆU THAM KHẢO (tạm comment, bổ sung sau) =====
-% \newpage
-% \renewcommand\bibname{TÀI LIỆU THAM KHẢO}
-% \printbibliography
-% \phantomsection\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
+% ===== TÀI LIỆU THAM KHẢO =====
+\newpage
+\renewcommand\bibname{TÀI LIỆU THAM KHẢO}
+\printbibliography
+\phantomsection\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
 
-% ===== PHỤ LỤC (tạm comment, bổ sung sau) =====
-% \appendixpage
-% \appendices
-% \addappheadtotoc
+% ===== PHỤ LỤC =====
+\appendixpage
+\appendices
+\addappheadtotoc
 
-% \titleformat{\chapter}[hang]{\centering\bfseries}{ \thechapter.\ }{0pt}{}[]
-% \titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+\titleformat{\chapter}[hang]{\centering\bfseries}{ \thechapter.\ }{0pt}{}[]
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
 
-% \titlecontents{chapter}
-%     [0.0cm]             % left margin
-%     {\bfseries\vspace{0.3cm}}                  % above code
-%     {{\bfseries{\scshape} \thecontentslabel.\ }} % numbered format
-%     {}         % unnumbered format
-%     {\titlerule*[0.3pc]{.}\contentspage}         % filler-page-format, e.g dots
-% \chapter{HƯỚNG DẪN VIẾT ĐỒ ÁN TỐT NGHIỆP}
-% \subfile{Chuong/Phu_luc_A}
+\titlecontents{chapter}
+    [0.0cm]
+    {\bfseries\vspace{0.3cm}}
+    {{\bfseries{\scshape} \thecontentslabel.\ }}
+    {}
+    {\titlerule*[0.3pc]{.}\contentspage}
+\chapter{ĐẶC TẢ USE CASE}
+\subfile{Chuong/Phu_luc_A}
 % \newpage
 % \chapter{ĐẶC TẢ USE CASE}
 % \subfile{Chuong/Phu_luc_B}

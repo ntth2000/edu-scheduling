@@ -123,8 +123,8 @@ export function ClassTable({ year }: { year: string | null }) {
           prev.map((c) => (c.id === editingClass.id ? mapClass(updated) : c))
         );
         toast.success("Đã cập nhật thông tin lớp học");
-      } catch {
-        toast.error("Không thể lưu lớp học");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Không thể lưu lớp học");
       }
     } else {
       let successCount = 0;

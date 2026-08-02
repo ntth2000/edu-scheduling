@@ -5,19 +5,17 @@ import { type Teacher } from "@/lib/types";
 import { TeacherModal } from "./TeacherModal";
 import {
   Pencil,
-  Filter,
   Download,
   UserX,
   UserPlus,
   FileUp,
-  UserMinus,
-  UserCheck,
   Trash2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { TypographyH3, TypographyH4, TypographyP } from "../ui/typography";
 import {
   Table,
@@ -46,7 +44,6 @@ import {
 import { CustomPagination } from "../shared/CustomPagination";
 import { usePagination } from "@/hooks/usePagination";
 import * as XLSX from "xlsx";
-import { TeacherFilterModal, type TeacherFilter } from "./TeacherFilterModal";
 
 export function TeacherTable() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -54,9 +51,8 @@ export function TeacherTable() {
   const [loading, setLoading] = useState(true);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [teacherToToggle, setTeacherToToggle] = useState<Teacher | null>(null);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filter, setFilter] = useState<TeacherFilter>({ names: [], types: [], subjects: [], statuses: [] });
+  const [deleteTarget, setDeleteTarget] = useState<{ ids: number[]; names: string[] } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Import progress state
@@ -80,12 +76,25 @@ export function TeacherTable() {
       return next;
     });
 
-  const handleBatchDelete = async () => {
-    if (selectedIds.size === 0) return;
+  const openDeleteConfirm = (targets: Teacher[]) => {
+    if (targets.length === 0) return;
+    const scheduledNames = targets.filter((t) => t.scheduled).map((t) => t.name);
+    if (scheduledNames.length > 0) {
+      toast.error(
+        `Giáo viên ${scheduledNames.join(", ")} đã được xếp trong thời khoá biểu nên không thể xoá.`
+      );
+      return;
+    }
+    setDeleteTarget({ ids: targets.map((t) => t.id), names: targets.map((t) => t.name) });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     setIsBatchDeleting(true);
     try {
-      const result = await teacherApi.deleteBatch(Array.from(selectedIds));
-      setTeachers((prev) => prev.filter((t) => !selectedIds.has(t.id)));
+      const result = await teacherApi.deleteBatch(deleteTarget.ids);
+      const deletedIds = new Set(deleteTarget.ids);
+      setTeachers((prev) => prev.filter((t) => !deletedIds.has(t.id)));
 
       const parts: string[] = [`Đã xóa ${result.deletedTeachers} giáo viên`];
       if (result.deletedAssignments > 0) parts.push(`${result.deletedAssignments} phân công môn học`);
@@ -93,23 +102,25 @@ export function TeacherTable() {
       if (result.unsetHomeroomClasses.length > 0) parts.push(`gỡ chủ nhiệm lớp ${result.unsetHomeroomClasses.join(", ")}`);
       toast.success(parts.join(", "));
 
-      setSelectedIds(new Set());
-    } catch {
-      toast.error("Không thể xóa giáo viên");
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        deletedIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Không thể xóa giáo viên");
     } finally {
       setIsBatchDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
-  const activeFilterCount = filter.names.length + filter.types.length + filter.subjects.length + filter.statuses.length;
-
-  const filteredTeachers = teachers.filter((t) => {
-    if (filter.names.length > 0 && !filter.names.includes(t.name)) return false;
-    if (filter.types.length > 0 && !filter.types.includes(t.type)) return false;
-    if (filter.subjects.length > 0 && !filter.subjects.some((s) => t.subjects.includes(s))) return false;
-    if (filter.statuses.length > 0 && !filter.statuses.includes(t.status)) return false;
-    return true;
-  });
+  const filteredTeachers = teachers
+    .filter((t) => {
+      if (searchTerm.trim() && !t.name.toLowerCase().includes(searchTerm.trim().toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "vi"));
 
   const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(filteredTeachers, 20);
 
@@ -136,8 +147,8 @@ export function TeacherTable() {
   };
 
   const downloadTemplate = () => {
-    const headers = ["Họ tên (*)", "Loại GV (*) [CHU_NHIEM/BO_MON]", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
-    const sample = ["Nguyễn Văn A", "CHU_NHIEM", "23", "Toán, Tiếng Việt"];
+    const headers = ["Họ tên (*)", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
+    const sample = ["Nguyễn Văn A", "23", "Toán, Tiếng Việt"];
     const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
     ws["!cols"] = headers.map(() => ({ wch: 32 }));
     const wb = XLSX.utils.book_new();
@@ -170,15 +181,14 @@ export function TeacherTable() {
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
       const fullName = String(row[0] ?? "").trim();
-      const type = String(row[1] ?? "").trim() as "CHU_NHIEM" | "BO_MON";
-      const maxPeriodsPerWeek = parseInt(String(row[2] ?? "23"), 10) || 23;
-      const subjectNames = String(row[3] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const maxPeriodsPerWeek = parseInt(String(row[1] ?? "23"), 10) || 23;
+      const subjectNames = String(row[2] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
       const subjectIds = subjectNames
         .map((name) => subjectList.find((s) => s.name === name)?.id)
         .filter((id): id is number => id !== undefined);
 
       try {
-        const created = await teacherApi.create({ fullName, type, maxPeriodsPerWeek, subjectIds });
+        const created = await teacherApi.create({ fullName, maxPeriodsPerWeek, subjectIds });
         setTeachers((prev) => [...prev, mapTeacher(created)]);
         successCount++;
       } catch {
@@ -210,30 +220,6 @@ export function TeacherTable() {
       .finally(() => setLoading(false));
   }, []);
 
-  const confirmToggleStatus = async () => {
-    if (!teacherToToggle) return;
-    try {
-      const result = await teacherApi.toggleStatus(teacherToToggle.id);
-      setTeachers((prev) =>
-        prev.map((t) => (t.id === teacherToToggle.id ? mapTeacher(result.teacher) : t))
-      );
-
-      if (teacherToToggle.status === "active") {
-        // Deactivated — show cascade info
-        const parts: string[] = [`Đã vô hiệu hoá giáo viên ${teacherToToggle.name}`];
-        if (result.deletedAssignments > 0) parts.push(`Đã xoá ${result.deletedAssignments} phân công môn học`);
-        if (result.deletedSlots > 0) parts.push(`Đã xoá ${result.deletedSlots} tiết trong TKB`);
-        if (result.unsetHomeroomClasses.length > 0) parts.push(`Đã gỡ chủ nhiệm lớp ${result.unsetHomeroomClasses.join(", ")}`);
-        toast.success(parts.join(". "));
-      } else {
-        toast.success(`Đã kích hoạt giáo viên ${teacherToToggle.name}`);
-      }
-    } catch {
-      toast.error("Không thể thay đổi trạng thái giáo viên");
-    }
-    setTeacherToToggle(null);
-  };
-
   const handleSave = async (data: Partial<Teacher>) => {
     const list = subjectList;
 
@@ -243,7 +229,6 @@ export function TeacherTable() {
 
     const body = {
       fullName: data.name ?? "",
-      type: data.type ?? "CHU_NHIEM",
       maxPeriodsPerWeek: data.maxPeriods ?? 23,
       subjectIds,
     };
@@ -317,6 +302,16 @@ export function TeacherTable() {
       <div className="bg-md-surface-container-lowest rounded-xl overflow-hidden shadow-md border border-slate-200">
         <div className="px-6 py-4 flex justify-between items-center bg-md-surface-container-low/30">
           <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm kiếm theo tên giáo viên..."
+                className="pl-8 h-9 w-64"
+              />
+            </div>
             {selectedIds.size > 0 && (
               <span className="text-xs font-semibold text-md-primary bg-md-primary/10 px-2 py-0.5 rounded-full">
                 Đã chọn {selectedIds.size}/{filteredTeachers.length}
@@ -327,7 +322,7 @@ export function TeacherTable() {
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={handleBatchDelete}
+                onClick={() => openDeleteConfirm(teachers.filter((t) => selectedIds.has(t.id)))}
                 disabled={isBatchDeleting || selectedIds.size === 0}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -336,15 +331,6 @@ export function TeacherTable() {
             <Button size="sm" onClick={() => setIsModalOpen(true)}>
               <UserPlus className="h-3.5 w-3.5" />
               Thêm mới
-            </Button>
-            <Button size="sm" variant={activeFilterCount > 0 ? "secondary" : "ghost"} onClick={() => setIsFilterOpen(true)}>
-              <Filter className="h-3.5 w-3.5" />
-              Lọc
-              {activeFilterCount > 0 && (
-                <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                  {activeFilterCount}
-                </Badge>
-              )}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>
               <FileUp className="h-3.5 w-3.5" />
@@ -369,9 +355,6 @@ export function TeacherTable() {
                 </TableHead>
                 <TableHead className="px-4">Mã GV</TableHead>
                 <TableHead className="px-4">Họ tên</TableHead>
-                <TableHead className="px-4">Loại GV</TableHead>
-                <TableHead className="px-4">Môn dạy</TableHead>
-                <TableHead className="px-4">Trạng thái</TableHead>
                 <TableHead className="text-center px-4">Định mức tiết/tuần</TableHead>
                 <TableHead className="text-right px-4">Thao tác</TableHead>
               </TableRow>
@@ -395,31 +378,6 @@ export function TeacherTable() {
                     <TableCell>
                       <span className="font-medium text-sm">{teacher.name}</span>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          teacher.type === "CHU_NHIEM"
-                            ? "bg-blue-100 text-blue-700 border-transparent whitespace-nowrap"
-                            : "bg-slate-100 text-slate-600 border-transparent whitespace-nowrap"
-                        }
-                      >
-                        {teacher.type === "CHU_NHIEM" ? "GVCN" : "Bộ môn"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-600 italic">
-                      {teacher.subjects.join(", ") || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          teacher.status === "active"
-                            ? "bg-emerald-100 text-emerald-700 border-transparent"
-                            : "bg-slate-100 text-slate-600 border-transparent"
-                        }
-                      >
-                        {teacher.status === "active" ? "Hoạt động" : "Vô hiệu hoá"}
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-center text-sm font-semibold text-slate-700">
                       {teacher.maxPeriods}
                     </TableCell>
@@ -439,17 +397,11 @@ export function TeacherTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setTeacherToToggle(teacher)}
-                        className={`transition-colors ${teacher.status === "active"
-                          ? "text-slate-400 hover:text-amber-600"
-                          : "text-slate-400 hover:text-emerald-600"
-                          }`}
+                        onClick={() => openDeleteConfirm([teacher])}
+                        className="text-slate-400 hover:text-md-error transition-colors"
                       >
-                        {teacher.status === "active" ? (
-                          <><UserMinus className="h-4 w-4" />Vô hiệu hoá</>
-                        ) : (
-                          <><UserCheck className="h-4 w-4" />Kích hoạt</>
-                        )}
+                        <Trash2 className="h-4 w-4" />
+                        Xóa
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -461,7 +413,6 @@ export function TeacherTable() {
         <div className="p-4 bg-md-surface-container-low/30 border-t border-md-outline-variant/10 flex items-center justify-between text-xs text-slate-500">
           <p>
             Hiển thị {currentData.length} trong số {filteredTeachers.length} giáo viên
-            {activeFilterCount > 0 && <span className="ml-1 text-md-primary font-medium">(đang lọc)</span>}
           </p>
           <div>
             <CustomPagination
@@ -473,14 +424,6 @@ export function TeacherTable() {
           </div>
         </div>
       </div>
-
-      <TeacherFilterModal
-        open={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        teachers={teachers}
-        filter={filter}
-        onApply={setFilter}
-      />
 
       <TeacherModal
         open={isModalOpen}
@@ -494,33 +437,31 @@ export function TeacherTable() {
       />
 
       <AlertDialog
-        open={!!teacherToToggle}
-        onOpenChange={(open) => !open && setTeacherToToggle(null)}
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {teacherToToggle?.status === "active"
-                ? `Vô hiệu hóa giáo viên ${teacherToToggle?.name}?`
-                : `Kích hoạt lại giáo viên ${teacherToToggle?.name}?`}
+              {deleteTarget && deleteTarget.ids.length === 1
+                ? `Xóa giáo viên ${deleteTarget.names[0]}?`
+                : `Xóa ${deleteTarget?.ids.length ?? 0} giáo viên đã chọn?`}
             </AlertDialogTitle>
-            {teacherToToggle?.status === "active" && (
-              <AlertDialogDescription>
-                Giáo viên sẽ không xuất hiện trong danh sách phân công mới.
-              </AlertDialogDescription>
-            )}
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Nếu giáo viên đã được phân công
+              dạy học nhưng chưa xếp thời khoá biểu, các phân công đó sẽ bị xoá
+              theo. Giáo viên đang là chủ nhiệm hoặc đã có tiết được xếp trong
+              thời khoá biểu sẽ không thể xoá.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Huỷ</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmToggleStatus}
-              className={
-                teacherToToggle?.status === "active"
-                  ? "bg-amber-600 hover:bg-amber-700 text-white"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-              }
+              onClick={confirmDelete}
+              disabled={isBatchDeleting}
+              className="bg-destructive hover:bg-destructive/90 text-white"
             >
-              {teacherToToggle?.status === "active" ? "Vô hiệu hóa" : "Kích hoạt"}
+              Xóa
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

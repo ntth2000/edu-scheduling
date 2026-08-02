@@ -3,124 +3,87 @@
 
 \section{Thiết kế kiến trúc}
 \subsection{Lựa chọn kiến trúc phần mềm}
+\label{subsection:4.1.1}
 
-\subsubsection{Kiến trúc tổng thể: Client–Server tách biệt}
+Mô hình Client--Server được lựa chọn làm kiến trúc tổng thể cho hệ thống
+EduSchedule nhằm phân tách rõ ràng giữa thành phần giao tiếp với người dùng và
+thành phần xử lý nghiệp vụ, quản lý dữ liệu. Trong mô hình này, Client và Server
+được phát triển thành hai ứng dụng độc lập, trao đổi dữ liệu thông qua các API.
+Cách tổ chức trên giúp mỗi thành phần có trách nhiệm riêng, thuận tiện cho việc
+bảo trì, cập nhật và mở rộng mà không làm thay đổi toàn bộ hệ thống.
 
-Hệ thống EduSchedule áp dụng kiến trúc \textbf{Client–Server tách biệt} (decoupled client–server), trong đó frontend và backend là hai ứng dụng độc lập, giao tiếp hoàn toàn qua RESTful API qua giao thức HTTP/HTTPS. Cách tổ chức này cho phép hai phía triển khai, cập nhật và mở rộng độc lập nhau mà không ảnh hưởng lẫn nhau.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Hinhve/Kientruc/client_server_model.png}
+    \caption{Mô hình kiến trúc Client--Server của hệ thống EduSchedule}
+    \label{fig:client_server_model}
+\end{figure}
 
-Hệ thống gồm ba thành phần chính:
-\begin{itemize}[noitemsep]
-    \item \textbf{Frontend}: ứng dụng Next.js chạy trên trình duyệt, hiển thị giao diện và gọi API.
-    \item \textbf{Backend}: ứng dụng Spring Boot cung cấp RESTful API, xử lý toàn bộ nghiệp vụ và bảo mật.
-    \item \textbf{Cơ sở dữ liệu}: PostgreSQL lưu trữ dữ liệu, chỉ được truy cập bởi backend.
-\end{itemize}
+Trong mô hình được minh họa tại Hình~\ref{fig:client_server_model}, Client đóng
+vai trò là thành phần tương tác trực tiếp với người dùng. Thành phần này được
+xây dựng bằng Next.js và TypeScript, có nhiệm vụ hiển thị giao diện, tiếp nhận
+thao tác và chuyển các yêu cầu nghiệp vụ đến Server. Các dữ liệu nhận được từ
+Server được Client xử lý và trình bày dưới dạng danh sách, biểu mẫu hoặc lưới
+thời khóa biểu. Việc tách phần giao diện khỏi xử lý nghiệp vụ giúp giao diện có
+thể thay đổi độc lập và hạn chế việc để lộ trực tiếp cơ chế truy cập dữ liệu.
 
-\subsubsection{Kiến trúc backend: Layered Architecture}
+Server đóng vai trò xử lý trung tâm, được xây dựng bằng Java và Spring Boot.
+Các Controller tiếp nhận yêu cầu HTTP từ Client, kiểm tra dữ liệu đầu vào và
+chuyển yêu cầu đến các Service tương ứng. Tầng Service thực hiện các nghiệp vụ
+như quản lý dữ liệu, phân công giảng dạy, kiểm tra xung đột và xếp thời khóa
+biểu; tầng Repository đảm nhiệm việc truy cập cơ sở dữ liệu PostgreSQL thông
+qua Spring Data JPA. Kết quả xử lý được chuẩn hóa và trả về cho Client dưới
+dạng JSON thông qua các RESTful API. Cơ sở dữ liệu chỉ được truy cập từ phía
+Server nhằm bảo đảm việc kiểm soát và tính nhất quán của dữ liệu.
 
-Backend áp dụng \textbf{kiến trúc phân tầng} (Layered Architecture) với ba tầng rõ ràng, mỗi tầng chỉ phụ thuộc vào tầng liền kề phía dưới.
-
-\textbf{Tầng Controller (API Layer)} — tiếp nhận HTTP request từ client, thực hiện validate dữ liệu đầu vào qua annotation, uỷ quyền xử lý cho tầng Service, và trả HTTP response. Tầng này không chứa logic nghiệp vụ. Trong hệ thống, tầng này gồm các class:
-\begin{itemize}[noitemsep]
-    \item AuthController: xử lý đăng nhập, cấp và làm mới JWT token.
-    \item TeacherController, SubjectController, SchoolClassController: CRUD danh mục giáo viên, môn học, lớp học.
-    \item AssignmentController: quản lý phân công giảng dạy.
-    \item SchoolYearController, TimetableController, WeekController: quản lý năm học, thời khoá biểu và tuần học.
-    \item SlotController: xếp và xoá tiết học.
-    \item SpecialRoomController: quản lý phòng chức năng.
-    \item ScheduleGeneratorController: nhận yêu cầu xếp tự động, trả kết quả dưới dạng draft chưa lưu.
-\end{itemize}
-
-\textbf{Tầng Service (Business Logic Layer)} — chứa toàn bộ logic nghiệp vụ của hệ thống: kiểm tra xung đột tiết dạy, xác nhận ràng buộc phân công, sinh thời khoá biểu tự động. Tầng này nhận tham số từ Controller qua DTO, gọi Repository để truy cập dữ liệu, và trả kết quả về dưới dạng DTO response. Các class chính:
-\begin{itemize}[noitemsep]
-    \item TeacherService, SubjectService, SchoolClassService: nghiệp vụ quản lý danh mục.
-    \item AssignmentService: kiểm tra tính hợp lệ khi phân công giáo viên chủ nhiệm và giáo viên bộ môn.
-    \item SchoolYearService, TimetableService, WeekService: quản lý năm học, khởi tạo thời khoá biểu và tuần học.
-    \item SlotService: xếp tiết, kiểm tra xung đột giáo viên và phòng chức năng.
-    \item SpecialRoomService: nghiệp vụ quản lý phòng chức năng.
-    \item ScheduleGeneratorService: thuật toán xếp tự động theo nhóm ưu tiên, trả kết quả draft.
-    \item JwtService: tạo, xác thực và làm mới JWT token.
-\end{itemize}
-
-\textbf{Tầng Data (Data Layer)} — gồm hai thành phần: Entity và Repository.
-\begin{itemize}[noitemsep]
-    \item \textit{Entity (Domain Model)}: các class Teacher, Subject, SchoolClass, Assignment, Timetable, Slot, User được annotate @Entity, ánh xạ trực tiếp tới các bảng trong cơ sở dữ liệu qua JPA.
-    \item \textit{Repository (Data Access)}: các interface kế thừa JpaRepository, được Spring tự động sinh implementation. Gồm TeacherRepository, SubjectRepository, SchoolClassRepository, AssignmentRepository, TimetableRepository, SlotRepository, UserRepository.
-\end{itemize}
-
-Ngoài ba tầng chính, backend có thêm hai thành phần hỗ trợ ngang (cross-cutting):
-\begin{itemize}[noitemsep]
-    \item \textbf{Package dto}: các class DTO (TeacherRequest, TeacherResponse, v.v.) làm lớp trung gian giữa Controller và client, tránh để lộ cấu trúc entity ra ngoài.
-    \item \textbf{Package config}: cấu hình Spring Security (BCrypt, JWT filter, CORS), không thuộc bất kỳ tầng nghiệp vụ nào.
-\end{itemize}
-
-\subsubsection{Kiến trúc frontend: Component-based kết hợp BFF}
-
-Frontend áp dụng kiến trúc \textbf{component-based} của React/Next.js, đồng thời bổ sung mô hình \textbf{BFF (Backend For Frontend)} thông qua Route Handler của Next.js.
-
-\textbf{Tầng Routing \& Page} (thư mục app/): định nghĩa các trang theo App Router của Next.js. Trang quản lý (dashboard) yêu cầu xác thực; trang tra cứu thời khoá biểu (/timetable) được render phía server và cho phép truy cập không cần đăng nhập.
-
-\textbf{BFF — Route Handler} (thư mục app/api/): các handler /api/auth/login và /api/auth/logout đóng vai trò trung gian giữa trình duyệt và backend. Khi đăng nhập, Route Handler gọi API Spring Boot, nhận JWT và lưu vào httpOnly cookie — trình duyệt không thể đọc token trực tiếp, giảm nguy cơ tấn công XSS.
-
-\textbf{Proxy middleware} (file src/proxy.ts): chạy ở Edge Runtime trước mỗi request, kiểm tra sự tồn tại của cookie access\_token để phân quyền truy cập route; không cần qua server.
-
-\textbf{Tầng Component} (thư mục components/): các component UI được tổ chức theo domain nghiệp vụ: teachers/, subjects/, classes/, assignments/, timetable/. Ngoài ra có layout/ chứa cấu trúc khung trang, shared/ chứa component dùng chung, và ui/ chứa các primitive component từ shadcn/ui.
-
-\textbf{Tầng Logic \& Tiện ích}: thư mục hooks/ chứa custom React hook tái sử dụng logic gọi API; thư mục lib/ chứa các hàm tiện ích dùng chung.
+Việc áp dụng mô hình Client--Server mang lại một số lợi ích phù hợp với yêu
+cầu của EduSchedule. Phần giao diện và phần máy chủ có thể được phát triển,
+kiểm thử và triển khai độc lập; các nghiệp vụ và dữ liệu quan trọng được quản lý
+tập trung tại Server; đồng thời hệ thống có thể bổ sung giao diện hoặc ứng dụng
+khách khác trong tương lai mà vẫn tái sử dụng các API hiện có. Trên cơ sở đó,
+đồ án lựa chọn Next.js cho Client, Spring Boot cho Server và PostgreSQL cho
+lớp lưu trữ dữ liệu. Cơ chế xác thực bằng JSON Web Token được sử dụng để bảo
+vệ các chức năng quản lý, trong khi các API tra cứu thời khóa biểu đã công khai
+được cung cấp cho người dùng vãng lai mà không yêu cầu đăng nhập.
 
 
 \subsection{Thiết kế tổng quan}
 \label{subsection:4.1.2}
 
-Biểu đồ gói UML tổng quan (Hình~\ref{fig:package_diagram}) thể hiện cấu trúc phân tầng của hệ thống EduSchedule gồm ba tầng chính xếp dọc và một nhóm cross-cutting concerns nằm ngang.
+Hình~\ref{fig:package_diagram} trình bày biểu đồ gói tổng quan của hệ thống
+EduSchedule. Hệ thống được chia thành hai thành phần chính là Client và Server;
+cơ sở dữ liệu PostgreSQL được đặt độc lập và chỉ được truy cập thông qua phía
+Server. Các mũi tên trong biểu đồ thể hiện quan hệ phụ thuộc và hướng trao đổi
+giữa các gói.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Hinhve/Kientruc/package_diagram.jpg}
-    \caption{Biểu đồ gói UML tổng quan hệ thống EduSchedule}
+    \includegraphics[width=0.95\textwidth]{Hinhve/Kientruc/overall_system.png}
+    \caption{Biểu đồ gói tổng quan của hệ thống EduSchedule}
     \label{fig:package_diagram}
 \end{figure}
 
-\textbf{Presentation Layer (frontend)} — tầng giao diện, gồm ba package:
-\begin{itemize}[noitemsep]
-    \item Pages: các trang được định tuyến theo App Router của Next.js, chịu trách nhiệm render giao diện và điều phối dữ liệu.
-    \item Components: các thành phần UI tái sử dụng, tổ chức theo domain nghiệp vụ (teachers, subjects, classes, assignments, timetable).
-    \item API Services: các hàm gọi REST API đến backend và Route Handler (BFF) xử lý xác thực, lưu JWT vào httpOnly cookie.
-\end{itemize}
+Phía Client được xây dựng bằng Next.js và gồm ba gói chính. Gói Pages tổ chức
+các trang theo chức năng và tiếp nhận thao tác của người dùng. Các trang sử dụng
+những thành phần giao diện có khả năng tái sử dụng trong gói Components. Khi
+cần truy xuất hoặc cập nhật dữ liệu, Components gọi các hàm trong gói API
+Services để gửi yêu cầu đến các RESTful API do Server cung cấp.
 
-\textbf{Business Layer (backend)} — tầng nghiệp vụ, gồm hai package:
-\begin{itemize}[noitemsep]
-    \item Controller (REST API): tiếp nhận HTTP request, validate đầu vào và uỷ quyền cho Service.
-    \item Service: xử lý toàn bộ logic nghiệp vụ — kiểm tra xung đột tiết dạy, kiểm tra định mức giáo viên, xác nhận ràng buộc phân công.
-\end{itemize}
+Phía Server được xây dựng bằng Spring Boot và tổ chức theo kiến trúc phân
+tầng. Gói Controllers tiếp nhận yêu cầu từ API Services, kiểm tra dữ liệu đầu
+vào và chuyển yêu cầu đến gói Services. Services thực hiện các nghiệp vụ của hệ
+thống như quản lý dữ liệu, phân công giảng dạy, kiểm tra xung đột và xếp thời
+khóa biểu. Khi cần đọc hoặc ghi dữ liệu, Services sử dụng các interface trong
+gói Repositories; các đối tượng trong gói Entities đảm nhiệm việc ánh xạ dữ liệu
+giữa ứng dụng Java và các bảng trong cơ sở dữ liệu.
 
-\textbf{Data Layer} — tầng dữ liệu, gồm hai package và cơ sở dữ liệu:
-\begin{itemize}[noitemsep]
-    \item Repositories: các interface Spring Data JPA truy cập cơ sở dữ liệu.
-    \item Entities: các class ánh xạ tới bảng trong PostgreSQL qua JPA annotation.
-    \item PostgreSQL: hệ quản trị cơ sở dữ liệu, chỉ được truy cập qua tầng Repository.
-\end{itemize}
+PostgreSQL nằm ngoài các gói mã nguồn và đóng vai trò lưu trữ dữ liệu lâu dài
+cho hệ thống. Việc truy cập cơ sở dữ liệu được thực hiện tập trung thông qua
+Repositories, nhờ đó phần xử lý nghiệp vụ không phụ thuộc trực tiếp vào cách
+dữ liệu được lưu trữ. Cấu trúc trên tạo ra luồng xử lý thống nhất từ giao diện,
+qua các tầng nghiệp vụ đến cơ sở dữ liệu và giúp các thành phần có thể được bảo
+trì, kiểm thử hoặc mở rộng tương đối độc lập.
 
-\textbf{Cross Cutting} — các thành phần xuyên suốt, ảnh hưởng đến cả Business Layer và Data Layer:
-\begin{itemize}[noitemsep]
-    \item Config (CORS/BCrypt): cấu hình CORS cho phép frontend gọi API, mã hoá mật khẩu bằng BCrypt.
-    \item Spring Security + JWT: JWT filter chạy trước mọi request vào Controller, xác thực token và phân quyền truy cập.
-\end{itemize}
-
-
-\subsection{Thiết kế chi tiết gói}
-\label{subsection:4.1.3}
-
-Biểu đồ sau thể hiện quan hệ giữa các lớp trong nhóm package nghiệp vụ cốt lõi của backend, tập trung vào luồng xếp tiết và phân công giảng dạy.
-
-\begin{figure}[H]
-    \centering
-    % TODO: Chèn biểu đồ lớp cho nhóm package service - repository - entity
-    \includegraphics[width=0.95\textwidth]{Hinhve/KienTruc/class_package_diagram.jpg}
-    \caption{Biểu đồ thiết kế gói nghiệp vụ backend}
-    \label{fig:class_package_diagram}
-\end{figure}
-
-Trong biểu đồ: SlotService và AssignmentService phụ thuộc (dependency) vào nhiều Repository để thực hiện nghiệp vụ. Assignment có quan hệ kết hợp (association) nhiều chiều với SchoolClass, Subject và Teacher. Slot hợp thành (composition) với Timetable và kết hợp với Assignment. Teacher và Subject có quan hệ nhiều–nhiều thông qua bảng trung gian teacher\_subjects.
 
 \section{Thiết kế chi tiết}
 \subsection{Thiết kế giao diện}
@@ -130,88 +93,61 @@ Trong biểu đồ: SlotService và AssignmentService phụ thuộc (dependency)
 
 \textbf{Chuẩn hoá giao diện.} Một số quy ước được áp dụng nhất quán trong toàn bộ giao diện:
 \begin{itemize}[noitemsep]
-    \item \textit{Phối màu}: nền trắng (\#ffffff), văn bản đen (\#0f172a), màu nhấn xanh dương (\#2563eb). Ô xung đột hiển thị nền đỏ (\#fee2e2) với viền đỏ (\#ef4444); ô cảnh báo vượt định mức hiển thị màu vàng cam.
+    \item \textit{Phối màu}: nền xám nhạt (\#F8F9FA), văn bản đen, màu nhấn xanh dương đậm (\#0037B0) dùng cho sidebar và các thành phần thương hiệu. Ô xung đột trong lưới thời khoá biểu hiển thị nền đỏ nhạt với chữ đỏ đậm; ô chưa lưu dùng tông vàng cam. Riêng cảnh báo giáo viên vượt định mức tiết dạy được hiển thị bằng chữ đỏ trong bảng thống kê ở trang phân công giảng dạy, không hiển thị trực tiếp trên lưới thời khoá biểu.
     \item \textit{Typography}: font hệ thống sans-serif, cỡ chữ cơ sở 14–16px. Tiêu đề section dùng cỡ 18–20px, font-weight 600.
-    \item \textit{Nút}: nút chính (primary) nền xanh, nút huỷ nền xám, nút xoá nền đỏ. Tất cả các nút có trạng thái hover và disabled rõ ràng.
-    \item \textit{Thông báo phản hồi}: toast notification xuất hiện ở góc trên chính giữa màn hình, hiển thị trong 3 giây. Màu xanh lá cho thành công, đỏ cho lỗi.
-    \item \textit{Bố cục}: sidebar cố định bên trái rộng 240px chứa menu điều hướng; vùng nội dung chính chiếm phần còn lại.
+    \item \textit{Nút}: nút mặc định (primary) nền đen/xám đậm, nút phụ (huỷ) nền xám nhạt, nút xoá (destructive) nền đỏ nhạt với chữ đỏ. Tất cả các nút có trạng thái hover và disabled rõ ràng.
+    \item \textit{Thông báo phản hồi}: toast notification xuất hiện ở góc trên chính giữa màn hình, thời gian hiển thị thay đổi theo loại thông báo (khoảng 1–6 giây). Biểu tượng xanh lá cho thành công, đỏ cho lỗi.
+    \item \textit{Bố cục}: sidebar cố định bên trái rộng 256px chứa menu điều hướng; vùng nội dung chính chiếm phần còn lại.
     \item \textit{Lưới thời khoá biểu}: bảng có hàng là tiết (1–7), cột là thứ (Hai–Sáu). Mỗi ô có kích thước cố định, hiển thị tên môn và tên giáo viên.
 \end{itemize}
-
-Dưới đây là thiết kế một số giao diện chính của hệ thống EduSchedule, bao gồm dashboard tổng quan, trang quản lý giáo viên, và trang xếp thời khoá biểu.
-\begin{figure}[H]
-    \centering
-    
-    % --- Ảnh 1 ---
-    \begin{minipage}{0.95\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_tong_quan.png}
-        \caption{Giao diện tổng quan hệ thống EduSchedule}
-        \label{fig:ui_overview}
-    \end{minipage}
-
-    \vspace{0.5cm} % Khoảng cách giữa caption ảnh 1 và ảnh 2 (chỉnh số này nếu muốn khít hơn)
-
-    % --- Ảnh 2 ---
-    \begin{minipage}{0.95\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_giao_vien.png}
-        \caption{Giao diện giáo viên hệ thống EduSchedule}
-        \label{fig:ui_teacher}
-    \end{minipage}
-
-    \vspace{0.5cm}
-
-    % --- Ảnh 3 ---
-    \begin{minipage}{0.95\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_xep_tkb.png}
-        \caption{Giao diện xếp thời khoá biểu hệ thống EduSchedule}
-        \label{fig:ui_scheduler}
-    \end{minipage}
-
-\end{figure}
 
 \subsection{Thiết kế lớp}
 \label{subsection:4.2.2}
 
-Phần này trình bày thiết kế chi tiết hai lớp nghiệp vụ quan trọng nhất của hệ thống: SlotService và AssignmentService.
-
-\textbf{Lớp SlotService}
-
-\textit{Vai trò}: Xử lý toàn bộ nghiệp vụ xếp tiết học vào thời khoá biểu, bao gồm kiểm tra xung đột giáo viên và thao tác upsert slot.
-
-\textit{Thuộc tính (dependency injection)}:
-\begin{itemize}[noitemsep]
-    \item slotRepository: SlotRepository — truy vấn và lưu slot
-    \item timetableRepository: TimetableRepository — tra cứu thời khoá biểu
-    \item assignmentRepository: AssignmentRepository — tra cứu và tạo phân công
-    \item classRepository: SchoolClassRepository — tra cứu lớp học
-    \item subjectRepository: SubjectRepository — tra cứu môn học
-\end{itemize}
-
-\textit{Phương thức chính}:
-\begin{itemize}[noitemsep]
-    \item getAll(): List<SlotResponse> — lấy toàn bộ slot.
-    \item getByTimetable(timetableId): List<SlotResponse> — lấy slot theo thời khoá biểu.
-    \item saveOrUpdateSlot(request): SlotResponse — upsert slot vào ô (day, period): kiểm tra xung đột giáo viên, nếu có ném ngoại lệ; nếu không lưu slot và trả kết quả.
-    \item deleteSlot(id): void — xoá slot theo id.
-    \item resolveAssignment(request): Assignment — (private) xác định Assignment cho slot: nếu có assignmentId thì tra cứu trực tiếp; nếu chỉ có classId + subjectId thì tìm/tạo phân công với GVCN của lớp đó.
-\end{itemize}
+Phần này trình bày thiết kế chi tiết ba lớp nghiệp vụ cốt lõi của hệ thống — AssignmentService, SlotService và ScheduleGeneratorService — tương ứng với các use case Phân công giáo viên chủ nhiệm/bộ môn, Xếp và điều chỉnh thời khoá biểu thủ công và Xếp thời khoá biểu tự động đã đặc tả ở Chương 2. Use case Đăng nhập và Tra cứu thời khoá biểu không phát sinh lớp nghiệp vụ mới nên không được trình bày lại ở đây.
 
 \textbf{Lớp AssignmentService}
 
-\textit{Vai trò}: Xử lý nghiệp vụ phân công giảng dạy, bao gồm phân công giáo viên chủ nhiệm và giáo viên bộ môn cho từng lớp–môn.
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn biểu đồ lớp chi tiết AssignmentService + Assignment
+    \includegraphics[width=0.8\textwidth]{Hinhve/Kientruc/class_assignment.png}
+    \caption{Biểu đồ lớp thiết kế chi tiết AssignmentService}
+    \label{fig:class_assignment}
+\end{figure}
 
-\textit{Phương thức chính}:
-\begin{itemize}[noitemsep]
-    \item assignHomeroom(request): void — phân công GVCN: kiểm tra giáo viên có type CHU\_NHIEM; kiểm tra giáo viên chưa làm chủ nhiệm lớp khác; cập nhật homeroomTeacher của lớp.
-    \item assign(request): AssignmentResponse — phân công giáo viên cho môn–lớp: tạo hoặc cập nhật bản ghi Assignment.
-    \item getAll(year): List<AssignmentResponse> — lấy toàn bộ phân công, lọc theo năm học.
-    \item delete(id): void — xoá phân công.
-\end{itemize}
+Hình~\ref{fig:class_assignment} trình bày cấu trúc lớp \texttt{AssignmentService}, đóng vai trò then chốt trong việc điều phối nghiệp vụ phân công giảng dạy, bao gồm phân công giáo viên chủ nhiệm và giáo viên bộ môn cho từng lớp–môn. Phương thức \texttt{assignHomeroom()} phân công giáo viên chủ nhiệm cho một lớp: kiểm tra giáo viên thuộc loại CHU\_NHIEM và chưa đảm nhiệm lớp khác trong năm học trước khi cập nhật trường \texttt{homeroomTeacher} của lớp. Phương thức \texttt{assign()} phân công giáo viên bộ môn cho một môn–lớp cụ thể, tạo mới hoặc cập nhật bản ghi \texttt{Assignment} tương ứng. Bên cạnh đó, \texttt{getAll(year)} truy vấn toàn bộ phân công theo năm học và \texttt{delete(id)} xoá một phân công. Các phương thức này tương tác trực tiếp với thực thể \texttt{Assignment} thuộc tầng dữ liệu.
 
-Biểu đồ trình tự dưới đây minh hoạ luồng xử lý cho hai use case quan trọng.
+Thực thể \texttt{Assignment} lưu trữ lớp học, môn học, giáo viên phụ trách và số tiết mỗi tuần được phân công, có quan hệ kết hợp nhiều chiều với \texttt{SchoolClass}, \texttt{Subject} và \texttt{Teacher}. Đây là dữ liệu đầu vào quan trọng để \texttt{SlotService} và \texttt{ScheduleGeneratorService} xác định giáo viên phụ trách khi xếp từng tiết học.
+
+\textbf{Lớp SlotService và ScheduleGeneratorService}
+
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn biểu đồ lớp chi tiết SlotService, ScheduleGeneratorService + Slot
+    \includegraphics[width=0.9\textwidth]{Hinhve/Kientruc/class_slot.png}
+    \caption{Biểu đồ lớp thiết kế chi tiết SlotService và ScheduleGeneratorService}
+    \label{fig:class_slot}
+\end{figure}
+
+Hình~\ref{fig:class_slot} mô tả hai lớp cùng thao tác trên thực thể \texttt{Slot} nhưng phục vụ hai use case khác nhau. \texttt{SlotService} chịu trách nhiệm xếp tiết học thủ công: phương thức \texttt{saveOrUpdateSlot()} thực hiện upsert một tiết vào ô (thứ, tiết) cụ thể, trước tiên xác định \texttt{Assignment} tương ứng thông qua \texttt{resolveAssignment()} — nếu yêu cầu chứa \texttt{assignmentId} thì tra cứu trực tiếp, nếu chỉ có \texttt{classId} và \texttt{subjectId} thì tìm hoặc tạo phân công với giáo viên chủ nhiệm của lớp — sau đó kiểm tra xung đột giáo viên qua \texttt{SlotRepository}; nếu giáo viên đã dạy lớp khác cùng buổi và tiết, phương thức ném ngoại lệ và trả lỗi 400, ngược lại tiết được lưu và trả về \texttt{SlotResponse}. Ngoài ra, \texttt{getAll()}/\texttt{getByTimetable()} phục vụ truy vấn danh sách tiết, còn \texttt{deleteSlot()} xoá một tiết theo id.
+
+\texttt{ScheduleGeneratorService} đảm nhiệm nghiệp vụ xếp thời khoá biểu tự động, phân bổ các tiết học còn thiếu bằng thuật toán trong khi giữ nguyên các tiết đã xếp thủ công trước đó. Phương thức \texttt{generate(weekId)} trước tiên xác định số tiết còn thiếu của từng phân công bằng cách so sánh tổng số tiết yêu cầu theo khối (lấy từ \texttt{Subject}) với số tiết đã xếp trong tuần; các phân công còn thiếu tiết và đã có giáo viên phụ trách được đưa vào \texttt{GreedyPhase} để tạo nhanh một phương án khởi tạo đáp ứng các ràng buộc bắt buộc (không trùng giáo viên, không trùng lớp, không vượt số phòng chức năng). Phương án này sau đó được chuyển cho \texttt{TimefoldPhase}, sử dụng \texttt{SolverFactory} của thư viện Timefold Solver, để tiếp tục cải thiện các ràng buộc mềm trong giới hạn thời gian cho phép. Kết quả trả về gồm danh sách tiết đã xếp ở trạng thái chưa lưu cùng danh sách tiết không thể xếp được (nếu có), để người dùng xem xét trước khi quyết định lưu. Khác với \texttt{SlotService} xử lý từng tiết riêng lẻ theo thao tác của người dùng, \texttt{ScheduleGeneratorService} thao tác trên toàn bộ tập tiết còn trống của một tuần cùng lúc, nên được tách thành một lớp nghiệp vụ độc lập.
+
+Thực thể \texttt{Slot} lưu trữ tuần học, phân công tương ứng, thứ, buổi, tiết và phòng chức năng sử dụng (nếu có); hợp thành với \texttt{Timetable} thông qua \texttt{Week} và kết hợp với \texttt{Assignment}.
+
+Các biểu đồ trình tự dưới đây minh hoạ luồng xử lý cho ba use case tương ứng.
+
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn biểu đồ trình tự UC "Phân công giảng dạy"
+    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_phancong.png}
+    \caption{Biểu đồ trình tự use case Phân công giảng dạy}
+    \label{fig:sd_phan_cong}
+\end{figure}
+\vspace{-10pt}
+
+Trong UC Phân công GVBM: Admin gửi request classId, subjectId, teacherId. AssignmentController gọi AssignmentService.assign(). Service kiểm tra giáo viên có trong danh sách môn dạy được; nếu không ném ngoại lệ. Nếu hợp lệ, tìm hoặc tạo Assignment rồi lưu và trả response.
 
 \begin{figure}[H]
     \centering
@@ -226,14 +162,14 @@ Trong UC Xếp tiết học: Admin gửi request chứa timetableId, day, period
 
 \begin{figure}[H]
     \centering
-    % TODO: Chèn biểu đồ trình tự UC "Phân công giảng dạy"
-    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_phancong.png}
-    \caption{Biểu đồ trình tự use case Phân công giảng dạy}
-    \label{fig:sd_phan_cong}
+    % TODO: Chèn biểu đồ trình tự UC "Xếp thời khoá biểu tự động"
+    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_xep_tu_dong.png}
+    \caption{Biểu đồ trình tự use case Xếp thời khoá biểu tự động}
+    \label{fig:sd_xep_tu_dong}
 \end{figure}
 \vspace{-10pt}
 
-Trong UC Phân công GVBM: Admin gửi request classId, subjectId, teacherId. AssignmentController gọi AssignmentService.assign(). Service kiểm tra giáo viên có trong danh sách môn dạy được; nếu không ném ngoại lệ. Nếu hợp lệ, tìm hoặc tạo Assignment rồi lưu và trả response.
+Trong UC Xếp thời khoá biểu tự động: Admin nhấn nút xếp tự động với weekId đang chỉnh sửa. ScheduleGeneratorController chuyển tiếp sang ScheduleGeneratorService.generate(). Service tính số tiết còn thiếu của từng phân công, chạy GreedyPhase để tạo phương án khởi tạo rồi chuyển cho TimefoldPhase tối ưu ràng buộc mềm. Kết quả trả về danh sách tiết đã xếp ở trạng thái chưa lưu để client hiển thị cho người dùng xem xét trước khi lưu.
 
 \subsection{Thiết kế cơ sở dữ liệu}
 \label{subsection:4.2.3}
@@ -536,70 +472,86 @@ special\_room\_id & BIGINT & FK $\rightarrow$ special\_rooms, NULL & Phòng ch�
 \subsection{Thư viện và công cụ sử dụng}
 \label{subsection:4.3.1}
 
-\begin{table}[H]
-\centering
-\small
+ Bảng~\ref{table:tools} liệt kê các thư viện và công cụ chính được sử dụng
+trong quá trình xây dựng hệ thống EduSchedule. Các công nghệ được phân chia
+thành ba nhóm gồm phía máy chủ, phía giao diện, cùng các công cụ hỗ trợ phát
+triển và triển khai.
+
+{\small
+\begin{longtable}{|L{5.7cm}|L{5.6cm}|L{2.2cm}|}
 \caption{Danh sách thư viện và công cụ sử dụng}
-\label{table:tools}
-\begin{tabular}{|p{3cm}|p{4cm}|p{2cm}|p{4.5cm}|}
+\label{table:tools} \\
 \hline
-\textbf{Mục đích} & \textbf{Công cụ / Thư viện} & \textbf{Phiên bản} & \textbf{Ghi chú} \\
+\textbf{Mục đích} & \textbf{Công cụ hoặc thư viện} & \textbf{Phiên bản} \\
 \hline
-\multicolumn{4}{|l|}{\textit{Backend}} \\
+\endfirsthead
 \hline
-Ngôn ngữ lập trình & Java & 17 & LTS, được dùng trong Spring Boot \\
+\textbf{Mục đích} & \textbf{Công cụ hoặc thư viện} & \textbf{Phiên bản} \\
 \hline
-Framework backend & Spring Boot & 4.0.5 & Bao gồm Spring MVC, DI container \\
+\endhead
+\multicolumn{3}{|l|}{\textit{Phía máy chủ}} \\
 \hline
-Bảo mật & Spring Security & (theo SB) & BCrypt, JWT filter, CORS \\
+Ngôn ngữ lập trình & Java & 21 \\
 \hline
-Truy cập dữ liệu & Spring Data JPA & (theo SB) & ORM qua Hibernate \\
+Khung phát triển phía máy chủ & Spring Boot & 4.0.5 \\
 \hline
-JWT & JJWT & 0.13.0 & Tạo và xác thực JWT token \\
+Bảo mật và phân quyền & Spring Security & Đi kèm Spring Boot \\
 \hline
-Quản lý schema DB & Flyway & (theo SB) & Migration script có đánh số version \\
+Truy cập và ánh xạ dữ liệu & Spring Data JPA & Đi kèm Spring Boot \\
 \hline
-CSDL & PostgreSQL & 17 & Hệ quản trị CSDL quan hệ \\
+Tạo và xác thực mã JWT & JJWT & 0.13.0 \\
 \hline
-Code generation & Lombok & (theo SB) & Tự sinh getter, setter, builder \\
+Quản lý thay đổi cấu trúc cơ sở dữ liệu & Flyway & Đi kèm Spring Boot \\
 \hline
-\multicolumn{4}{|l|}{\textit{Frontend}} \\
+Cơ sở dữ liệu quan hệ & PostgreSQL & 17 \\
 \hline
-Framework frontend & Next.js & 16.2.1 & App Router, Route Handler, SSR \\
+Tự động tạo mã nguồn hỗ trợ & Lombok & Đi kèm Spring Boot \\
 \hline
-Thư viện UI & React & 19.2.4 & Component-based UI \\
+Xếp thời khoá biểu tự động & Timefold Solver & 2.2.0 \\
 \hline
-Ngôn ngữ & TypeScript & 5 & Type-safe JavaScript \\
+Kiểm thử phía máy chủ & JUnit, Spring Boot Test và MockMvc & Đi kèm Spring Boot \\
 \hline
-Styling & TailwindCSS & 4 & Utility-first CSS framework \\
+\multicolumn{3}{|l|}{\textit{Phía giao diện}} \\
 \hline
-Component library & shadcn/ui & 4.1.0 & Dựa trên Radix UI primitives \\
+Khung phát triển giao diện & Next.js & 16.2.1 \\
 \hline
-Validation & Zod & 4.3.6 & Schema validation cho form \\
+Thư viện xây dựng giao diện & React & 19.2.4 \\
 \hline
-Xuất Excel & xlsx (SheetJS) & 0.18.5 & Xuất thời khoá biểu ra file .xlsx \\
+Ngôn ngữ lập trình & TypeScript & 5 \\
 \hline
-Toast notification & Sonner & 2.0.7 & Hiển thị thông báo phản hồi \\
+Thiết kế giao diện bằng CSS & Tailwind CSS & 4 \\
 \hline
-\multicolumn{4}{|l|}{\textit{Công cụ phát triển và triển khai}} \\
+Thư viện thành phần giao diện & shadcn/ui & 4.1.0 \\
 \hline
-IDE Backend & IntelliJ IDEA & 2024.x & JetBrains, phát triển Spring Boot \\
+Kiểm tra dữ liệu biểu mẫu & Zod & 4.3.6 \\
 \hline
-IDE Frontend & Visual Studio Code & 1.9x & Microsoft, phát triển Next.js \\
+Xuất tệp Excel & SheetJS (xlsx) & 0.18.5 \\
 \hline
-Kiểm thử API & Postman & 11.x & Gọi và kiểm tra REST API \\
+Hiển thị thông báo phản hồi & Sonner & 2.0.7 \\
 \hline
-Containerization & Docker & 27.x & Đóng gói backend thành image \\
+Kiểm thử thành phần giao diện & Vitest và React Testing Library & 4.1.8 và 16.3.2 \\
 \hline
-Hosting Frontend & Vercel & --- & HTTPS tự động, CI/CD từ GitHub \\
+\multicolumn{3}{|l|}{\textit{Công cụ phát triển và triển khai}} \\
 \hline
-Quản lý mã nguồn & Git / GitHub & --- & Version control, remote repository \\
+Môi trường phát triển phía máy chủ & IntelliJ IDEA & 2024.x \\
 \hline
-\end{tabular}
-\end{table}
+Môi trường phát triển phía giao diện & Visual Studio Code & 1.9x \\
+\hline
+Kiểm thử API & Postman & 11.x \\
+\hline
+Đóng gói ứng dụng & Docker & 27.x \\
+\hline
+Triển khai phía giao diện & Vercel & -- \\
+\hline
+Triển khai phía máy chủ & Render & -- \\
+\hline
+Quản lý mã nguồn & Git và GitHub & -- \\
+\hline
+\end{longtable}
+}
 \vspace{-8pt}
 
-\subsection{Kết quả đạt được}
+\subsection{Kết quả đạt được và minh họa các chức năng chính}
 \label{subsection:4.3.2}
 
 Sản phẩm EduSchedule gồm hai thành phần độc lập được triển khai riêng biệt:
@@ -610,60 +562,322 @@ Sản phẩm EduSchedule gồm hai thành phần độc lập được triển k
 
 Hệ thống hiện thực đầy đủ các chức năng đã đặt ra trong phần phân tích yêu cầu: quản lý danh mục giáo viên, lớp học, môn học; phân công giảng dạy; xếp thời khoá biểu với kiểm tra xung đột thời gian thực; xem và xuất thời khoá biểu ra file Excel.
 
+Các hình dưới đây minh họa một số chức năng chính đã được hiện thực trong hệ
+thống, bao gồm giao diện tổng quan, giao diện quản lý giáo viên và giao diện xếp
+thời khóa biểu.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.95\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_tong_quan.png}
+        \caption{Giao diện tổng quan hệ thống EduSchedule}
+        \label{fig:ui_overview}
+    \end{minipage}
+
+    \vspace{0.5cm}
+
+    \begin{minipage}{0.95\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_giao_vien.png}
+        \caption{Giao diện quản lý giáo viên của hệ thống EduSchedule}
+        \label{fig:ui_teacher}
+    \end{minipage}
+
+    \vspace{0.5cm}
+
+    \begin{minipage}{0.95\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_xep_tkb.png}
+        \caption{Giao diện xếp thời khóa biểu của hệ thống EduSchedule}
+        \label{fig:ui_scheduler}
+    \end{minipage}
+\end{figure}
+
 \section{Kiểm thử}
 \label{section:4.4}
 
-Hệ thống được kiểm thử theo phương pháp \textbf{kiểm thử hộp đen} (black-box testing), sử dụng kỹ thuật \textbf{phân hoạch tương đương} (equivalence partitioning) và \textbf{phân tích giá trị biên} (boundary value analysis). Công cụ kiểm thử sử dụng là Postman cho API backend và trình duyệt Chrome cho giao diện frontend.
+Quá trình kiểm thử được xây dựng dựa trên các ca sử dụng đã phân tích trong
+Chương~2, tập trung kiểm tra luồng chính, các trường hợp dữ liệu không hợp lệ
+và những ràng buộc nghiệp vụ quan trọng của hệ thống. Các ca kiểm thử API
+backend được thực hiện bằng JUnit, Spring Boot Test và MockMvc; các thành phần
+giao diện được kiểm tra bằng Vitest, React Testing Library và kiểm thử thủ công
+trên trình duyệt Chrome. Mỗi mục dưới đây tương ứng với một ca sử dụng, trong
+đó bảng kiểm thử trình bày điều kiện hoặc dữ liệu đầu vào, thao tác thực hiện và
+kết quả mong đợi.
 
-Bảng~\ref{table:tc_slot} trình bày các trường hợp kiểm thử cho chức năng Xếp tiết học — chức năng nghiệp vụ phức tạp nhất của hệ thống.
+\newcommand{\testcaseTableHeader}{%
+\hline
+\textbf{Mã kiểm thử} & \textbf{Điều kiện hoặc dữ liệu kiểm thử} &
+\textbf{Thao tác} & \textbf{Kết quả mong đợi} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Mã kiểm thử} & \textbf{Điều kiện hoặc dữ liệu kiểm thử} &
+\textbf{Thao tác} & \textbf{Kết quả mong đợi} \\
+\hline
+\endhead
+}
 
-\begin{table}[H]
-\centering
-\small
-\caption{Các trường hợp kiểm thử chức năng Xếp tiết học}
-\label{table:tc_slot}
-\begin{tabular}{|c|p{3.5cm}|p{3cm}|p{3cm}|c|}
-\hline
-\textbf{TC} & \textbf{Mô tả} & \textbf{Đầu vào} & \textbf{Kết quả mong đợi} & \textbf{Kết quả} \\
-\hline
-TC01 & Xếp tiết hợp lệ, không xung đột & timetableId=1, day=2, period=1, assignmentId=5 & Trả 200 OK, slot được lưu & Đạt \\
-\hline
-TC02 & Giáo viên đã dạy lớp khác cùng tiết & Cùng giáo viên, cùng (day=2, period=1), lớp khác & Trả 400, thông báo xung đột & Đạt \\
-\hline
-TC03 & Xếp lại ô đã có (upsert) & day=2, period=1 đã tồn tại, assignmentId mới & Cập nhật slot cũ, trả 200 OK & Đạt \\
-\hline
-TC04 & Lớp chưa có GVCN, xếp tiết dùng classId+subjectId & classId có homeroomTeacher=null & Trả 400, thông báo chưa có GVCN & Đạt \\
-\hline
-TC05 & TimetableId không tồn tại & timetableId=9999 & Trả 400, thông báo không tìm thấy & Đạt \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Đăng nhập}
+\label{subsection:test_uc01}
 
-\begin{table}[H]
-\centering
-\small
-\caption{Các trường hợp kiểm thử chức năng Phân công giảng dạy}
-\label{table:tc_assign}
-\begin{tabular}{|c|p{3.5cm}|p{3cm}|p{3cm}|c|}
-\hline
-\textbf{TC} & \textbf{Mô tả} & \textbf{Đầu vào} & \textbf{Kết quả mong đợi} & \textbf{Kết quả} \\
-\hline
-TC06 & Phân công GVBM hợp lệ & teacherId có subject Tiếng Anh, subjectId=Tiếng Anh & Trả 200 OK, assignment được lưu & Đạt \\
-\hline
-TC07 & GV không dạy được môn được phân công & teacherId không có subjectId trong danh sách môn dạy & Trả 400, thông báo GV không dạy môn này & Đạt \\
-\hline
-TC08 & Phân công GVCN cho lớp đã có GVCN khác & Teacher type=CHU\_NHIEM, lớp đã có GVCN & Cập nhật GVCN mới cho lớp & Đạt \\
-\hline
-TC09 & Phân công GV bộ môn làm GVCN & Teacher type=BO\_MON & Trả 400, thông báo không phải GVCN & Đạt \\
-\hline
-TC10 & GVCN đã chủ nhiệm lớp khác & Teacher đang làm GVCN lớp 1A, phân công thêm lớp 1B & Trả 400, thông báo đã là GVCN lớp khác & Đạt \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
+Bảng~\ref{table:test_uc01} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC01 - Đăng nhập.
 
-Tổng cộng đã thực hiện 10 trường hợp kiểm thử cho hai chức năng cốt lõi, tất cả đều đạt kết quả như mong đợi. Các trường hợp kiểm thử còn lại cho chức năng quản lý danh mục và đăng nhập được trình bày trong Phụ lục~B.
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Đăng nhập}
+\label{table:test_uc01} \\
+\testcaseTableHeader
+TC01-01 & Tên đăng nhập và mật khẩu hợp lệ. &
+Nhập thông tin và chọn ``Đăng nhập''. &
+Đăng nhập thành công và chuyển người dùng đến trang chính. \\
+\hline
+TC01-02 & Tên đăng nhập hợp lệ, mật khẩu không đúng. &
+Nhập thông tin và chọn ``Đăng nhập''. &
+Hệ thống từ chối đăng nhập, hiển thị thông báo tên đăng nhập hoặc mật khẩu không chính xác. \\
+\hline
+TC01-03 & Bỏ trống tên đăng nhập hoặc mật khẩu. &
+Chọn ``Đăng nhập''. &
+Hệ thống cảnh báo trường bắt buộc và không gửi yêu cầu đăng nhập. \\
+\hline
+TC01-04 & Không có token xác thực hợp lệ. &
+Truy cập trực tiếp một trang quản lý. &
+Hệ thống không cho phép truy cập và chuyển người dùng về trang đăng nhập. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Phân công giáo viên chủ nhiệm}
+\label{subsection:test_uc02}
+
+Bảng~\ref{table:test_uc02} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC02 - Phân công giáo viên chủ nhiệm.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Phân công giáo viên chủ nhiệm}
+\label{table:test_uc02} \\
+\testcaseTableHeader
+TC02-01 & Lớp chưa có giáo viên chủ nhiệm; giáo viên thuộc loại chủ nhiệm và chưa chủ nhiệm lớp khác. &
+Chọn lớp, chọn giáo viên và lưu phân công. &
+Giáo viên được gán làm chủ nhiệm của lớp và dữ liệu được cập nhật trên giao diện. \\
+\hline
+TC02-02 & Lớp đã có giáo viên chủ nhiệm. &
+Chọn một giáo viên chủ nhiệm hợp lệ khác và lưu. &
+Phân công cũ được thay thế bằng giáo viên mới. \\
+\hline
+TC02-03 & Giáo viên đã là chủ nhiệm của một lớp khác trong cùng năm học. &
+Chọn giáo viên đó cho lớp mới. &
+Giáo viên không xuất hiện trong danh sách có thể chọn hoặc hệ thống từ chối lưu và thông báo nguyên nhân. \\
+\hline
+TC02-04 & Lớp đang có giáo viên chủ nhiệm. &
+Chọn giá trị trống và xác nhận xoá phân công. &
+Giáo viên chủ nhiệm được gỡ khỏi lớp và giao diện được cập nhật. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Phân công giáo viên bộ môn}
+\label{subsection:test_uc03}
+
+Bảng~\ref{table:test_uc03} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC03 - Phân công giáo viên bộ môn.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Phân công giáo viên bộ môn}
+\label{table:test_uc03} \\
+\testcaseTableHeader
+TC03-01 & Lớp, môn học và giáo viên hợp lệ; môn học của lớp chưa được phân công. &
+Chọn giáo viên tương ứng với môn học của lớp và lưu. &
+Phân công được lưu; tổng số tiết đã phân công của giáo viên được cập nhật. \\
+\hline
+TC03-02 & Môn học của lớp đã được phân công cho một giáo viên khác. &
+Chọn giáo viên mới và lưu. &
+Hệ thống xoá phân công cũ và lưu phân công cho giáo viên mới. \\
+\hline
+TC03-03 & Có dữ liệu phân công giảng dạy. &
+Chuyển giữa chế độ xem theo giáo viên và theo lớp. &
+Hệ thống hiển thị cùng dữ liệu phân công theo đúng đối tượng được lựa chọn. \\
+\hline
+TC03-04 & Tổng số tiết sau khi phân công vượt định mức của giáo viên. &
+Thực hiện và lưu phân công. &
+Hệ thống vẫn lưu dữ liệu và hiển thị số tiết vượt định mức bằng trạng thái cảnh báo. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Xếp và điều chỉnh thời khoá biểu thủ công}
+\label{subsection:test_uc04}
+
+Bảng~\ref{table:test_uc04} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC04 - Xếp và điều chỉnh thời khoá biểu thủ công.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Xếp và điều chỉnh thời khoá biểu thủ công}
+\label{table:test_uc04} \\
+\testcaseTableHeader
+TC04-01 & Tuần, lớp, môn học và phân công hợp lệ; ô thời khoá biểu đang trống. &
+Chọn ô theo thứ, buổi và tiết; chọn môn học cần xếp. &
+Tiết học được lưu vào đúng ô và lưới thời khoá biểu được cập nhật. \\
+\hline
+TC04-02 & Ô đã có một tiết học. &
+Chọn môn học khác để thay thế nội dung của ô. &
+Hệ thống kiểm tra lại các ràng buộc và cập nhật tiết học khi dữ liệu hợp lệ. \\
+\hline
+TC04-03 & Giáo viên đang dạy một lớp khác tại cùng thứ, buổi và tiết. &
+Xếp môn học do giáo viên đó phụ trách vào ô. &
+Hệ thống hiển thị xung đột giáo viên và không tạo lịch trùng ngoài lựa chọn xử lý của người dùng. \\
+\hline
+TC04-04 & Môn học chưa được phân công giáo viên cho lớp. &
+Chọn môn học để xếp vào ô. &
+Hệ thống thông báo cần hoàn tất phân công và không lưu tiết học. \\
+\hline
+TC04-05 & Môn học đã được xếp đủ số tiết quy định trong tuần. &
+Mở danh sách môn học tại một ô trống trên lưới thời khoá biểu. &
+Môn học đã đủ số tiết không còn khả dụng để lựa chọn, do đó người dùng không thể xếp thêm tiết cho môn học này. \\
+\hline
+TC04-06 & Môn học cần phòng chức năng nhưng không còn phòng trống tại khung giờ đã chọn. &
+Xếp môn học vào ô tương ứng. &
+Hệ thống thông báo xung đột phòng chức năng và không lưu tiết học. \\
+\hline
+TC04-07 & Thời khoá biểu đã có tiết Toán của một lớp; giáo viên phụ trách môn Toán của lớp được thay đổi và giáo viên mới đang dạy lớp khác tại cùng thời điểm. &
+Mở lại thời khoá biểu sau khi thay đổi phân công giảng dạy. &
+Hệ thống kiểm tra tiết đã xếp theo phân công hiện tại, làm nổi bật các ô bị xung đột và hiển thị thông báo nêu rõ giáo viên, lớp học và thời điểm xảy ra xung đột. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Xếp thời khoá biểu tự động}
+\label{subsection:test_uc05}
+
+Bảng~\ref{table:test_uc05} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC05 - Xếp thời khoá biểu tự động.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Xếp thời khoá biểu tự động}
+\label{table:test_uc05} \\
+\testcaseTableHeader
+TC05-01 & Các lớp và môn học đã được phân công đầy đủ; dữ liệu có phương án xếp khả thi. &
+Chọn tuần và thực hiện ``Tự động xếp TKB''. &
+Hệ thống tạo đủ các tiết cần thiết, không trùng lớp, giáo viên hoặc phòng chức năng. \\
+\hline
+TC05-02 & Tuần đã có một số tiết được xếp thủ công. &
+Thực hiện xếp tự động. &
+Hệ thống giữ nguyên các tiết đã có và chỉ tạo phương án cho những tiết còn thiếu. \\
+\hline
+TC05-03 & Còn lớp hoặc môn học chưa được phân công giáo viên. &
+Thực hiện xếp tự động. &
+Hệ thống liệt kê dữ liệu chưa hoàn tất và không gửi yêu cầu xếp lịch. \\
+\hline
+TC05-04 & Không tồn tại phương án đáp ứng toàn bộ yêu cầu xếp lịch. &
+Thực hiện xếp tự động. &
+Hệ thống hiển thị các tiết xếp được và danh sách tiết chưa thể xếp để người dùng tiếp tục xử lý thủ công. \\
+\hline
+TC05-05 & Kết quả tự động đang ở trạng thái chưa lưu. &
+Chọn lưu tuần hiện tại hoặc áp dụng từ tuần hiện tại trở đi. &
+Hệ thống lưu kết quả theo đúng phạm vi người dùng lựa chọn. \\
+\hline
+TC05-06 & Kết quả tự động đang ở trạng thái chưa lưu. &
+Đóng màn hình hoặc chuyển tuần rồi xác nhận huỷ thay đổi. &
+Kết quả chưa lưu bị loại bỏ và thời khoá biểu trở về trạng thái trước khi xếp tự động. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Tra cứu thời khoá biểu}
+\label{subsection:test_uc06}
+
+Bảng~\ref{table:test_uc06} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC06 - Tra cứu thời khoá biểu.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Tra cứu thời khoá biểu}
+\label{table:test_uc06} \\
+\testcaseTableHeader
+TC06-01 & Có thời khoá biểu đã được công khai. &
+Người dùng vãng lai chọn năm học, học kì, tuần và một lớp cần tra cứu. &
+Hệ thống hiển thị đúng thời khoá biểu của lớp dưới dạng lưới mà không yêu cầu đăng nhập. \\
+\hline
+TC06-02 & Có dữ liệu thời khoá biểu theo giáo viên hoặc theo khối. &
+Thay đổi chế độ xem và chọn đối tượng cần tra cứu. &
+Lưới thời khoá biểu được cập nhật theo đúng chế độ xem và đối tượng đã chọn. \\
+\hline
+TC06-03 & Người dùng chưa chọn lớp, khối hoặc giáo viên. &
+Yêu cầu hiển thị thời khoá biểu. &
+Hệ thống yêu cầu lựa chọn đối tượng cần tra cứu. \\
+\hline
+TC06-04 & Không có thời khoá biểu công khai phù hợp với tiêu chí. &
+Chọn các tiêu chí tra cứu tương ứng. &
+Hệ thống hiển thị thông báo chưa có dữ liệu và không hiển thị dữ liệu chưa được công khai. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Công khai thời khoá biểu}
+\label{subsection:test_uc13}
+
+Bảng~\ref{table:test_uc13} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC13 - Công khai thời khoá biểu.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Công khai thời khoá biểu}
+\label{table:test_uc13} \\
+\testcaseTableHeader
+TC13-01 & Thời khoá biểu đã có dữ liệu và chưa được công khai. &
+Chọn ``Công khai thời khoá biểu'' và xác nhận. &
+Trạng thái thời khoá biểu được cập nhật; người dùng vãng lai có thể tra cứu dữ liệu. \\
+\hline
+TC13-02 & Hộp thoại xác nhận công khai đang hiển thị. &
+Chọn huỷ thao tác. &
+Trạng thái thời khoá biểu không thay đổi. \\
+\hline
+TC13-03 & Thời khoá biểu chưa có tiết học. &
+Thực hiện công khai. &
+Hệ thống thông báo không thể công khai thời khoá biểu chưa có dữ liệu. \\
+\hline
+\end{longtable}
+}
+
+\Needspace{12\baselineskip}
+\subsection{Kiểm thử ca sử dụng Xuất thời khoá biểu}
+\label{subsection:test_uc14}
+
+Bảng~\ref{table:test_uc14} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC14 - Xuất thời khoá biểu.
+
+{\small
+\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
+\caption{Kiểm thử ca sử dụng Xuất thời khoá biểu}
+\label{table:test_uc14} \\
+\testcaseTableHeader
+TC14-01 & Thời khoá biểu có dữ liệu; đã chọn năm học, học kì, tuần và lớp. &
+Chọn chế độ xem theo lớp và chọn ``Xuất Excel''. &
+Hệ thống tải xuống tệp \texttt{.xlsx} chứa đúng thời khoá biểu của lớp đã chọn. \\
+\hline
+TC14-02 & Thời khoá biểu có dữ liệu theo khối hoặc theo giáo viên. &
+Chọn chế độ xem, chọn đối tượng tương ứng và xuất tệp. &
+Tệp Excel được tạo với đúng dữ liệu và tiêu đề theo chế độ xem đã chọn. \\
+\hline
+TC14-03 & Không có dữ liệu phù hợp với tiêu chí đã chọn. &
+Chọn ``Xuất Excel''. &
+Hệ thống thông báo chưa có dữ liệu để xuất và không tạo tệp rỗng. \\
+\hline
+\end{longtable}
+}
 
 \section{Triển khai}
 \label{section:4.5}

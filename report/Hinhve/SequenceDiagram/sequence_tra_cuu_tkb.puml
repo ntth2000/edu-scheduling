@@ -1,0 +1,56 @@
+@startuml
+title Biểu đồ trình tự - Tra cứu thời khóa biểu
+
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người dùng\nvãng lai" as Guest
+boundary "Giao diện tra cứu\nthời khóa biểu" as LookupUI
+control "Điều khiển\ntra cứu" as LookupController
+entity "Thời khóa biểu" as Timetable
+entity "Tuần học" as Week
+entity "Tiết học" as Slot
+
+note over Timetable
+    Thời khóa biểu đã được công khai,
+    có UID và URL công khai tương ứng
+end note
+
+Guest -> LookupUI: Mở URL công khai chứa UID
+LookupUI -> LookupController: Yêu cầu tra cứu thời khóa biểu theo UID
+LookupController -> Timetable: Tìm thời khóa biểu có UID tương ứng
+Timetable --> LookupController: Thông tin thời khóa biểu\nhoặc không tìm thấy
+
+alt UID không hợp lệ hoặc không tìm thấy thời khóa biểu công khai
+    LookupController --> LookupUI: Yêu cầu chuyển hướng
+    LookupUI --> Guest: Chuyển tới màn hình đăng nhập
+else Tìm thấy thời khóa biểu công khai
+    LookupController --> LookupUI: Thông tin thời khóa biểu\n(năm học, học kỳ)
+
+    LookupUI -> LookupController: Yêu cầu danh sách tuần của thời khóa biểu
+    LookupController -> Week: Tìm các tuần thuộc thời khóa biểu
+    Week --> LookupController: Thông tin các tuần\n(số tuần, ngày bắt đầu, ngày kết thúc)
+    LookupController --> LookupUI: Danh sách tuần
+    LookupUI -> LookupUI: Tự động chọn tuần đầu tiên
+
+    LookupUI -> LookupController: Yêu cầu các tiết học của tuần được chọn
+    LookupController -> Slot: Tìm các tiết học thuộc tuần
+    Slot --> LookupController: Danh sách tiết học\nkèm môn học, lớp và giáo viên
+    LookupController --> LookupUI: Danh sách tiết học
+    LookupUI -> LookupUI: Cập nhật dữ liệu lưới
+    LookupUI --> Guest: Hiển thị thời khóa biểu dạng lưới\nvới năm học và học kỳ cố định
+
+    loop Người dùng chọn tuần khác
+        Guest -> LookupUI: Chọn tuần trong danh sách
+        LookupUI -> LookupUI: Cập nhật tuần được chọn
+        LookupUI -> LookupController: Yêu cầu các tiết học của tuần mới
+        LookupController -> Slot: Tìm các tiết học thuộc tuần mới
+        Slot --> LookupController: Danh sách tiết học\nkèm môn học, lớp và giáo viên
+        LookupController --> LookupUI: Danh sách tiết học
+        LookupUI -> LookupUI: Thay thế dữ liệu lưới hiện tại
+        LookupUI --> Guest: Hiển thị thời khóa biểu của tuần mới
+    end
+end
+
+@enduml

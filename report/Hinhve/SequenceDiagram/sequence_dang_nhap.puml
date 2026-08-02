@@ -1,0 +1,42 @@
+@startuml
+title Biểu đồ trình tự - Đăng nhập
+
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện\nđăng nhập" as LoginUI
+control "Điều khiển\nxác thực" as AuthController
+database "CSDL\nngười dùng" as UserDB
+
+User -> LoginUI: Truy cập trang đăng nhập
+LoginUI --> User: Hiển thị biểu mẫu đăng nhập
+User -> LoginUI: Nhập tên đăng nhập, mật khẩu\nvà chọn "Đăng nhập"
+
+alt Chưa nhập đầy đủ thông tin
+    LoginUI --> User: Yêu cầu nhập đầy đủ thông tin
+else Đã nhập đầy đủ thông tin
+    LoginUI -> AuthController: đăngNhập(tênĐăngNhập, mậtKhẩu)
+    AuthController -> UserDB: tìmTheoTênĐăngNhập(tênĐăngNhập)
+    UserDB --> AuthController: Thông tin tài khoản hoặc rỗng
+
+    alt Tên đăng nhập chưa được đăng ký
+        AuthController --> LoginUI: Trả về thông báo lỗi
+        LoginUI --> User: Hiển thị lỗi đăng nhập
+    else Tài khoản tồn tại
+        AuthController -> AuthController: kiểmTraMậtKhẩu()
+
+        alt Mật khẩu không chính xác
+            AuthController --> LoginUI: Trả về thông báo lỗi
+            LoginUI --> User: Hiển thị lỗi đăng nhập
+        else Thông tin đăng nhập hợp lệ
+            AuthController -> UserDB: Cập nhật mã làm mới phiên đăng nhập
+            UserDB --> AuthController: Cập nhật thành công
+            AuthController --> LoginUI: Trả về thông tin xác thực
+            LoginUI --> User: Thông báo đăng nhập thành công\nvà chuyển tới trang thời khóa biểu
+        end
+    end
+end
+
+@enduml

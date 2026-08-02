@@ -1,0 +1,44 @@
+@startuml class_assignment
+skinparam classAttributeIconSize 0
+skinparam classFontStyle Bold
+hide circle
+hide empty members
+
+class AssignmentService {
+  + assignHomeroom(request): void
+  + assign(request): AssignmentResponse
+  + getAll(year): List<AssignmentResponse>
+  + delete(id): void
+}
+
+class Assignment {
+  - id: Long
+  - schoolClass: SchoolClass
+  - subject: Subject
+  - teacher: Teacher
+  - periodsPerWeek: int
+}
+
+class SchoolClass {
+  - id: Long
+  - name: String
+  - grade: int
+}
+
+class Subject {
+  - id: Long
+  - name: String
+}
+
+class Teacher {
+  - id: Long
+  - fullName: String
+  - type: TeacherType
+}
+
+AssignmentService ..> Assignment : quản lý
+Assignment "*" -- "1" SchoolClass
+Assignment "*" -- "1" Subject
+Assignment "*" -- "0..1" Teacher
+
+@enduml

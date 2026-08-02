@@ -1,5 +1,4 @@
 import type { Teacher, Subject, SchoolClass } from "./types";
-import { type TeacherType } from "./enums";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -8,12 +7,11 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 export interface TeacherResponse {
   id: number;
   fullName: string;
-  type: TeacherType;
   maxPeriodsPerWeek: number;
-  isActive: boolean;
   subjects: SubjectResponse[];
   currentPeriodsPerWeek: number;
   homeroomClassName: string | null;
+  scheduled: boolean;
 }
 
 export interface SubjectResponse {
@@ -33,13 +31,6 @@ export interface ClassResponse {
   homeroomTeacherId: number | null;
   homeroomTeacherName: string | null;
   schoolYearId: number | null;
-}
-
-export interface TeacherCascadeResponse {
-  teacher: TeacherResponse;
-  deletedAssignments: number;
-  deletedSlots: number;
-  unsetHomeroomClasses: string[];
 }
 
 export interface BatchDeleteCascadeResponse {
@@ -68,12 +59,11 @@ export function mapTeacher(t: TeacherResponse): Teacher {
     id: t.id,
     code: `GV${String(t.id).padStart(3, "0")}`,
     name: t.fullName,
-    type: t.type,
     position: "Giáo viên",
     subjects: t.subjects.map((s) => s.name),
     maxPeriods: t.maxPeriodsPerWeek,
     currentPeriods: t.currentPeriodsPerWeek ?? 0,
-    status: t.isActive ? "active" : "inactive",
+    scheduled: t.scheduled ?? false,
   };
 }
 
@@ -123,7 +113,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export interface TeacherRequest {
   fullName: string;
-  type: TeacherType;
   maxPeriodsPerWeek: number;
   subjectIds: number[];
 }
@@ -159,11 +148,6 @@ export const teacherApi = {
     apiFetch<TeacherResponse>(`/api/teachers/${id}`, {
       method: "PUT",
       body: JSON.stringify(body),
-    }),
-
-  toggleStatus: (id: number) =>
-    apiFetch<TeacherCascadeResponse>(`/api/teachers/${id}/toggle-status`, {
-      method: "PATCH",
     }),
 
   deleteBatch: (ids: number[]) =>
@@ -339,6 +323,8 @@ export const schoolYearApi = {
       method: "POST",
       body: JSON.stringify({ startYear }),
     }),
+  delete: (id: number) =>
+    apiFetch<void>(`/api/school-years/${id}`, { method: "DELETE" }),
 };
 
 export interface SpecialRoomResponse {

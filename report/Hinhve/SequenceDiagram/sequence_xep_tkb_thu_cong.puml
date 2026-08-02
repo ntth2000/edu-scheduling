@@ -1,0 +1,77 @@
+@startuml
+title Biểu đồ trình tự - Xếp và điều chỉnh thời khóa biểu thủ công
+
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện\nthời khóa biểu" as TimetableUI
+control "Điều khiển\nthời khóa biểu" as TimetableController
+entity "Phân công\ngiảng dạy" as Assignment
+entity "Tiết học" as Slot
+entity "Phòng\nchức năng" as Room
+
+User -> TimetableUI: Mở thời khóa biểu và chọn tuần cần xếp
+TimetableUI -> TimetableController: Yêu cầu dữ liệu của tuần được chọn
+TimetableController -> Assignment: Yêu cầu thông tin phân công giảng dạy
+Assignment --> TimetableController: Danh sách phân công
+TimetableController -> Slot: Yêu cầu các tiết học đã được xếp trong tuần
+Slot --> TimetableController: Danh sách tiết học
+TimetableController -> Room: Yêu cầu thông tin phòng chức năng
+Room --> TimetableController: Danh sách phòng chức năng
+TimetableController -> TimetableController: Đối chiếu các tiết đã xếp\nvới phân công hiện tại
+TimetableController --> TimetableUI: Dữ liệu lưới và các tiết bị xung đột
+TimetableUI --> User: Hiển thị lưới;\nlàm nổi bật các tiết bị xung đột
+
+loop Xếp hoặc điều chỉnh từng tiết học
+    User -> TimetableUI: Chọn một ô trên lưới
+    TimetableUI -> TimetableController: Yêu cầu các môn có thể bố trí tại ô
+    TimetableController -> TimetableController: Xác định môn đã được phân công\nvà số tiết còn lại
+    TimetableController --> TimetableUI: Danh sách môn và trạng thái có thể lựa chọn
+    TimetableUI --> User: Hiển thị danh sách môn học;\nkhóa môn chưa phân công hoặc đã đủ tiết
+
+    alt Người dùng loại bỏ tiết học hiện tại
+        User -> TimetableUI: Chọn loại bỏ tiết học
+        TimetableUI -> TimetableUI: Đánh dấu tiết học cần xóa
+        TimetableUI --> User: Cập nhật lưới ở trạng thái chưa lưu
+    else Người dùng bố trí hoặc thay thế môn học
+        User -> TimetableUI: Chọn môn học
+        TimetableUI -> TimetableController: Yêu cầu kiểm tra vị trí được chọn
+        TimetableController -> TimetableController: Kiểm tra xung đột giáo viên,\nphòng chức năng và các ràng buộc
+
+        alt Phòng chức năng không còn chỗ
+            TimetableController --> TimetableUI: Thông báo xung đột phòng
+            TimetableUI --> User: Yêu cầu chọn vị trí khác
+        else Giáo viên đang dạy lớp khác
+            TimetableController --> TimetableUI: Thông tin tiết học bị xung đột
+            TimetableUI --> User: Yêu cầu xác nhận loại bỏ tiết xung đột
+
+            alt Người dùng xác nhận
+                User -> TimetableUI: Xác nhận
+                TimetableUI -> TimetableUI: Đánh dấu xóa tiết xung đột\nvà thêm tiết mới ở trạng thái chưa lưu
+                TimetableUI --> User: Cập nhật lưới thời khóa biểu
+            else Người dùng không xác nhận
+                User -> TimetableUI: Hủy thao tác
+                TimetableUI --> User: Giữ nguyên thời khóa biểu
+            end
+        else Không phát sinh xung đột
+            TimetableController --> TimetableUI: Chấp nhận vị trí được chọn
+            TimetableUI -> TimetableUI: Đánh dấu thêm hoặc thay thế tiết\nở trạng thái chưa lưu
+            TimetableUI --> User: Cập nhật lưới thời khóa biểu
+        end
+    end
+end
+
+alt Lưu tuần đang chỉnh sửa
+    User -> TimetableUI: Chọn Lưu tuần N
+else Áp dụng cho các tuần tiếp theo
+    User -> TimetableUI: Chọn Áp dụng từ tuần N trở đi
+end
+TimetableUI -> TimetableController: Yêu cầu lưu theo phạm vi đã chọn
+TimetableController -> Slot: Lưu các thay đổi của thời khóa biểu
+Slot --> TimetableController: Kết quả lưu
+TimetableController --> TimetableUI: Thời khóa biểu đã được cập nhật
+TimetableUI --> User: Thông báo lưu thành công
+
+@enduml

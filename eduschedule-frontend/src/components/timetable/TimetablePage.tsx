@@ -161,7 +161,7 @@ export function TimetablePage({
         setSpecialRooms(r);
         const firstClass = sorted[0];
         if (firstClass) { setSelectedGrade(firstClass.grade); setProgressClassId(firstClass.name); }
-        const firstBm = t.find((x) => x.type === "BO_MON" || x.type === "KHAC");
+        const firstBm = t.find((x) => x.homeroomClassName == null);
         if (firstBm) setSelectedTeacherId(firstBm.id.toString());
       })
       .catch(() => toast.error("Không thể tải dữ liệu"));
@@ -217,7 +217,6 @@ export function TimetablePage({
   const overlayClassObj = useMemo(() => classes.find((c) => c.name === overlayClassId), [classes, overlayClassId]);
   const overlayClassAssignments = useMemo(() => assignments.filter((a) => a.className === overlayClassId), [assignments, overlayClassId]);
 
-  const bmTeachers = useMemo(() => teachers.filter((t) => t.type === "BO_MON" || t.type === "KHAC"), [teachers]);
   const teacherSlots = useMemo(() => savedSlotsWithConflicts.filter((s) => s.teacherId === selectedTeacherId), [savedSlotsWithConflicts, selectedTeacherId]);
   const selectedWeek = useMemo(() => weeks.find((w) => w.id === selectedWeekId) ?? null, [weeks, selectedWeekId]);
 
@@ -307,6 +306,22 @@ export function TimetablePage({
     () => subjects.filter((s) => s.periodsByGrade[progressGrade - 1] > 0),
     [subjects, progressGrade]
   );
+
+  // Không còn môn nào có thể tự động xếp — mọi lớp đã đủ số tiết yêu cầu
+  const noSubjectsToSchedule = useMemo(() => {
+    if (classes.length === 0) return false;
+    return classes.every((cls) => {
+      const clsSubjects = subjects.filter((s) => s.periodsByGrade[cls.grade - 1] > 0);
+      const clsAssignments = assignments.filter((a) => a.className === cls.name);
+      const required = clsSubjects.reduce((sum, sub) => {
+        const a = clsAssignments.find((x) => x.subjectId === sub.id);
+        return sum + (a?.periodsPerWeek ?? sub.periodsByGrade[cls.grade - 1]);
+      }, 0);
+      if (required === 0) return true;
+      const filled = slotsWithConflicts.filter((s) => s.classId === cls.name).length;
+      return filled >= required;
+    });
+  }, [classes, subjects, assignments, slotsWithConflicts]);
 
   // ── Handlers ──────────────────────────────────────────
   const handleGradeSelect = (grade: number) => {
@@ -508,6 +523,11 @@ export function TimetablePage({
   }, [selectedGrade, selectedClassId]);
 
   const handleAutoSchedule = useCallback(async () => {
+    if (noSubjectsToSchedule) {
+      toast.info("Đã xếp đủ tiết");
+      return;
+    }
+
     // 1. Check all subjects are assigned
     const unassigned: { className: string; subjects: string[] }[] = [];
     for (const cls of classes) {
@@ -541,7 +561,7 @@ export function TimetablePage({
     }
 
     if (result.slots.length === 0 && result.errors.length === 0) {
-      toast.info("Tất cả các tiết đã được xếp rồi");
+      toast.info("Đã xếp đủ tiết");
       return;
     }
 
@@ -600,7 +620,7 @@ export function TimetablePage({
     } else {
       toast.success(`Đã tự động xếp ${result.slots.length} tiết — nhớ lưu lại!`, { duration: 4000 });
     }
-  }, [classes, subjects, assignments, selectedWeekId]);
+  }, [classes, subjects, assignments, selectedWeekId, noSubjectsToSchedule]);
 
   const reloadSlots = useCallback(async () => {
     if (!selectedWeekId) return;
@@ -803,7 +823,7 @@ export function TimetablePage({
               onChange={(e) => setSelectedTeacherId(e.target.value)}
               className="bg-slate-100 border-0 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-md-primary/20 min-w-45"
             >
-              {bmTeachers.map((t) => (
+              {teachers.map((t) => (
                 <option key={t.id} value={t.id.toString()}>{t.fullName}</option>
               ))}
             </select>
@@ -918,14 +938,14 @@ export function TimetablePage({
               )}
               <Button
                 onClick={handleAutoSchedule}
-                disabled={saving || generating}
+                disabled={saving || generating || noSubjectsToSchedule}
                 size="sm"
                 variant="outline"
-                title="Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"
+                title={noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"}
                 className="flex items-center gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                {generating ? "Đang xếp..." : "Tự động xếp TKB"}
+                {generating ? "Đang xếp..." : noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp TKB"}
               </Button>
               <Button
                 onClick={handleSave}

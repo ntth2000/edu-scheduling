@@ -36,7 +36,7 @@ export function SubjectTable() {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
-  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(subjects);
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(subjects, 20);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Import progress state
@@ -205,11 +205,11 @@ export function SubjectTable() {
         setSubjects((prev) => [...prev, mapSubject(created)]);
         toast.success("Đã thêm môn học mới");
       }
-    } catch {
-      toast.error("Không thể lưu môn học");
+      setIsModalOpen(false);
+      setEditingSubject(null);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Không thể lưu môn học");
     }
-    setIsModalOpen(false);
-    setEditingSubject(null);
   };
 
   if (loading) {

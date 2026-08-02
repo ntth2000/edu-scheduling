@@ -15,7 +15,6 @@ import {
   type ClassResponse,
   type AssignmentResponse,
 } from "@/lib/api";
-import { TeacherType } from "@/lib/enums";
 
 interface Change {
   classId: number;
@@ -184,7 +183,7 @@ export function SubjectAssignmentModal({
                         sub.periodsGrade1, sub.periodsGrade2, sub.periodsGrade3,
                         sub.periodsGrade4, sub.periodsGrade5,
                       ][cls.grade - 1] ?? 0;
-                      const isHomeroomTeacher = defaultTeacher.type === TeacherType.CHU_NHIEM;
+                      const isHomeroomTeacher = defaultTeacher.homeroomClassName != null;
                       const isTheirClass = cls.homeroomTeacherId === defaultTeacher.id;
                       const disabled = periods === 0 || (isHomeroomTeacher && !isTheirClass);
                       const existingAssignment = assignments.find(

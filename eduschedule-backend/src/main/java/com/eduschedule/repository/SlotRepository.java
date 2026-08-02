@@ -22,6 +22,8 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
 
     List<Slot> findByAssignment_TeacherId(Long teacherId);
 
+    boolean existsByWeek_Timetable_SchoolYearId(Long schoolYearId);
+
     @Modifying
     @Query("DELETE FROM Slot s WHERE s.assignment.teacher.id = :teacherId")
     void deleteByAssignment_TeacherId(@Param("teacherId") Long teacherId);

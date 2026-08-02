@@ -6,7 +6,9 @@ import com.eduschedule.entity.SchoolYear;
 import com.eduschedule.entity.Timetable;
 import com.eduschedule.entity.User;
 import com.eduschedule.entity.Week;
+import com.eduschedule.repository.SchoolClassRepository;
 import com.eduschedule.repository.SchoolYearRepository;
+import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.TimetableRepository;
 import com.eduschedule.repository.UserRepository;
 import com.eduschedule.repository.WeekRepository;
@@ -30,6 +32,8 @@ public class SchoolYearService {
     private final TimetableRepository timetableRepository;
     private final WeekRepository weekRepository;
     private final UserRepository userRepository;
+    private final SchoolClassRepository schoolClassRepository;
+    private final SlotRepository slotRepository;
 
     public List<SchoolYearResponse> getAll(String username) {
         User user = getUser(username);
@@ -55,6 +59,30 @@ public class SchoolYearService {
         createTimetableWithWeeks(schoolYear, 2, WEEKS_HK2);
 
         return toResponse(schoolYear);
+    }
+
+    @Transactional
+    public void delete(Long id, String username) {
+        User user = getUser(username);
+        SchoolYear schoolYear = schoolYearRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Năm học không tồn tại"));
+
+        if (!schoolYear.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền xóa năm học này");
+        }
+
+        if (schoolClassRepository.existsBySchoolYearId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Không thể xóa năm học đã có lớp học");
+        }
+
+        if (slotRepository.existsByWeek_Timetable_SchoolYearId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Không thể xóa năm học đã có thời khóa biểu");
+        }
+
+        timetableRepository.deleteAll(timetableRepository.findBySchoolYearId(id));
+        schoolYearRepository.delete(schoolYear);
     }
 
     private void createTimetableWithWeeks(SchoolYear schoolYear, int semesterOrder, int weekCount) {

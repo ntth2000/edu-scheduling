@@ -142,11 +142,9 @@ export function ClassModal({ open, onOpenChange, schoolClass, defaultGrade, onSa
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Chưa phân công</SelectItem>
-                  {teachers
-                    .filter((t) => t.type === "CHU_NHIEM")
-                    .map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>{t.fullName}</SelectItem>
-                    ))}
+                  {teachers.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.fullName}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>

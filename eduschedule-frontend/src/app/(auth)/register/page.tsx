@@ -21,13 +21,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+
+    if (!username.trim() || !password.trim() || !confirmPassword.trim()) {
+      setError("Vui lòng nhập đầy đủ tên đăng nhập, mật khẩu và xác nhận mật khẩu.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Mật khẩu xác nhận không khớp");
       return;
     }
 
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -63,7 +69,7 @@ export default function RegisterPage() {
         <p className="font-normal text-[14px] leading-[20px] text-[#424754]">Tạo tài khoản mới để trải nghiệm EduSchedule.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <Label className="font-semibold text-[16px] leading-[24px] text-[#191b23]" htmlFor="username">Tên đăng nhập</Label>
           <div className="relative flex items-center">
@@ -72,7 +78,6 @@ export default function RegisterPage() {
               id="username"
               name="username"
               type="text"
-              required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full pl-12 pr-4 h-[56px] rounded-xl border-[#c2c6d6] bg-[#f9f9ff] focus-visible:ring-2 focus-visible:ring-[#005ac2] focus-visible:border-[#005ac2] border transition-all text-[#191b23] placeholder:text-[#727785] font-normal text-[14px] leading-[20px]"
@@ -88,7 +93,6 @@ export default function RegisterPage() {
               id="password"
               name="password"
               type={showPassword ? "text" : "password"}
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-12 pr-12 h-[56px] rounded-xl border-[#c2c6d6] bg-[#f9f9ff] focus-visible:ring-2 focus-visible:ring-[#005ac2] focus-visible:border-[#005ac2] border transition-all text-[#191b23] placeholder:text-[#727785] font-normal text-[14px] leading-[20px]"
@@ -111,7 +115,6 @@ export default function RegisterPage() {
               id="confirmPassword"
               name="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
-              required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full pl-12 pr-12 h-[56px] rounded-xl border-[#c2c6d6] bg-[#f9f9ff] focus-visible:ring-2 focus-visible:ring-[#005ac2] focus-visible:border-[#005ac2] border transition-all text-[#191b23] placeholder:text-[#727785] font-normal text-[14px] leading-[20px]"
