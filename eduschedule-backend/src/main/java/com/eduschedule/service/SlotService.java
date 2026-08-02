@@ -15,8 +15,10 @@ import com.eduschedule.repository.SpecialRoomRepository;
 import com.eduschedule.repository.SubjectRepository;
 import com.eduschedule.repository.WeekRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -46,6 +48,7 @@ public class SlotService {
     public SlotResponse saveOrUpdateSlot(SlotRequest request) {
         Week week = weekRepository.findById(request.getWeekId())
                 .orElseThrow(() -> new RuntimeException("Week not found with id: " + request.getWeekId()));
+        requireNotPublished(week);
 
         Assignment assignment;
         if (request.getAssignmentId() != null) {
@@ -106,10 +109,17 @@ public class SlotService {
 
     @Transactional
     public void deleteSlot(Long id) {
-        if (!slotRepository.existsById(id)) {
-            throw new RuntimeException("Slot not found with id: " + id);
-        }
+        Slot slot = slotRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Slot not found with id: " + id));
+        requireNotPublished(slot.getWeek());
         slotRepository.deleteById(id);
+    }
+
+    private void requireNotPublished(Week week) {
+        if (Boolean.TRUE.equals(week.getIsPublished())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Tuần đã công bố, cần hủy công bố trước khi chỉnh sửa");
+        }
     }
 
     private SlotResponse toResponse(Slot slot) {

@@ -30,6 +30,8 @@ const TM_HK1 = {
   schoolYearName: "2025-2026",
   semesterOrder: 1,
   createdAt: "2025-09-01T00:00:00",
+  isPublic: false,
+  publicToken: null,
 };
 
 const TM_HK2 = {
@@ -38,12 +40,14 @@ const TM_HK2 = {
   schoolYearName: "2025-2026",
   semesterOrder: 2,
   createdAt: "2026-01-01T00:00:00",
+  isPublic: false,
+  publicToken: null,
 };
 
 // 2 tuần, startDate là thứ Hai
 const WEEKS_HK1 = [
-  { id: 101, timetableId: 10, weekNumber: 1, startDate: "2025-09-08", endDate: "2025-09-14" },
-  { id: 102, timetableId: 10, weekNumber: 2, startDate: "2025-09-15", endDate: "2025-09-21" },
+  { id: 101, timetableId: 10, weekNumber: 1, startDate: "2025-09-08", endDate: "2025-09-14", isPublished: false },
+  { id: 102, timetableId: 10, weekNumber: 2, startDate: "2025-09-15", endDate: "2025-09-21", isPublished: false },
 ];
 
 // ── Helper ────────────────────────────────────────────────────────────────────

@@ -28,6 +28,13 @@ public class Timetable {
     @Column(name = "semester_order", nullable = false)
     private Integer semesterOrder;
 
+    @Column(name = "is_public", nullable = false)
+    @Builder.Default
+    private Boolean isPublic = false;
+
+    @Column(name = "public_token", unique = true)
+    private String publicToken;
+
     @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("weekNumber ASC")
     @Builder.Default

@@ -5,16 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WeekResponse {
-    private Long id;
+public class WeekPublishStatusResponse {
+    private Long weekId;
     private Integer weekNumber;
-    private LocalDate startDate;  // null khi chưa set
-    private LocalDate endDate;    // null khi startDate chưa set
     private Boolean isPublished;
+    private Boolean eligible;
+    private String reason;
 }

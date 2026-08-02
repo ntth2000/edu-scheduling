@@ -32,6 +32,10 @@ public class Week {
     @Column(name = "start_date")
     private LocalDate startDate;
 
+    @Column(name = "is_published", nullable = false)
+    @Builder.Default
+    private Boolean isPublished = false;
+
     @OneToMany(mappedBy = "week", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Slot> slots = new ArrayList<>();

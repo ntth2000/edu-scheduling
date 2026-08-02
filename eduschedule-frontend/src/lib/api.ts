@@ -2,6 +2,17 @@ import type { Teacher, Subject, SchoolClass } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
+// Origin of this frontend app itself (for building shareable links like the
+// public timetable URL) — NOT the backend API. Falls back to the browser's
+// current origin when the env var isn't set (e.g. local dev).
+export function getAppOrigin(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+}
+
+export function getPublicTimetableUrl(publicToken: string): string {
+  return `${getAppOrigin()}/public/timetable/${publicToken}`;
+}
+
 // Backend response types (mirrors Java DTOs)
 
 export interface TeacherResponse {
@@ -215,6 +226,8 @@ export interface TimetableResponse {
   semesterOrder: number;
   semesterStartDate?: string;
   createdAt: string;
+  isPublic: boolean;
+  publicToken: string | null;
 }
 
 export interface WeekResponse {
@@ -223,6 +236,15 @@ export interface WeekResponse {
   weekNumber: number;
   startDate: string | null;
   endDate: string | null;
+  isPublished: boolean;
+}
+
+export interface WeekPublishStatusResponse {
+  weekId: number;
+  weekNumber: number;
+  isPublished: boolean;
+  eligible: boolean;
+  reason: string | null;
 }
 
 export interface SlotResponse {
@@ -256,6 +278,18 @@ export const timetableApi = {
       method: "POST",
       body: JSON.stringify(params),
     }),
+
+  getPublishStatus: (id: number) =>
+    apiFetch<WeekPublishStatusResponse[]>(`/api/timetables/${id}/publish-status`),
+
+  publish: (id: number, weekIds: number[]) =>
+    apiFetch<TimetableResponse>(`/api/timetables/${id}/publish`, {
+      method: "POST",
+      body: JSON.stringify({ weekIds }),
+    }),
+
+  unpublishWeek: (id: number, weekId: number) =>
+    apiFetch<void>(`/api/timetables/${id}/weeks/${weekId}/unpublish`, { method: "POST" }),
 };
 
 export interface AutoScheduleSlot {
@@ -381,4 +415,24 @@ export const assignmentApi = {
 
   getByTeacher: (teacherId: number) =>
     apiFetch<AssignmentResponse[]>(`/api/assignments?teacherId=${teacherId}`),
+};
+
+export interface PublicTimetableInfoResponse {
+  schoolYearName: string;
+  semesterOrder: number;
+  classes: ClassResponse[];
+  teachers: TeacherResponse[];
+  subjects: SubjectResponse[];
+  assignments: AssignmentResponse[];
+}
+
+export const publicTimetableApi = {
+  getInfo: (token: string) =>
+    apiFetch<PublicTimetableInfoResponse>(`/api/public/timetables/${token}`),
+
+  getWeeks: (token: string) =>
+    apiFetch<WeekResponse[]>(`/api/public/timetables/${token}/weeks`),
+
+  getSlots: (token: string, weekId: number) =>
+    apiFetch<SlotResponse[]>(`/api/public/timetables/${token}/slots?weekId=${weekId}`),
 };

@@ -18,8 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   FileSpreadsheet, AlertTriangle, Users, ArrowLeft, BarChart2,
-  Check, ChevronDown, Save, X, Pencil, Sparkles,
+  Check, ChevronDown, Save, X, Pencil, Sparkles, Globe, Lock,
 } from "lucide-react";
+import { PublishTimetableDialog } from "./PublishTimetableDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,6 +101,7 @@ export function TimetablePage({
   const [overlayClassId, setOverlayClassId] = useState<string>("all");
   const [floatingPanelOpen, setFloatingPanelOpen] = useState(false);
   const [applyForwardConfirmOpen, setApplyForwardConfirmOpen] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 
   // ── Data state ────────────────────────────────────────
   const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
@@ -189,6 +191,23 @@ export function TimetablePage({
       .then((rawSlots) => setSlots(rawSlots.map(mapSlot)))
       .catch(() => toast.error("Không thể tải tiết học"));
   }, [selectedWeekId]);
+
+  const refreshWeeks = useCallback(async () => {
+    if (!currentTimetable) return;
+    const w = await weekApi.getByTimetable(currentTimetable.id);
+    setWeeks(w);
+  }, [currentTimetable]);
+
+  const handleUnpublishWeek = useCallback(async () => {
+    if (!currentTimetable || !selectedWeekId) return;
+    try {
+      await timetableApi.unpublishWeek(currentTimetable.id, selectedWeekId);
+      await refreshWeeks();
+      toast.success("Đã hủy công bố tuần này");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Không thể hủy công bố");
+    }
+  }, [currentTimetable, selectedWeekId, refreshWeeks]);
 
   // ── Derived ───────────────────────────────────────────
   const slotsWithConflicts = useMemo(() => computeConflicts(slots), [slots]);
@@ -365,6 +384,10 @@ export function TimetablePage({
   const handleAddSlot = useCallback(
     (params: AddSlotParams) => {
       if (!selectedWeekId) return;
+      if (selectedWeek?.isPublished) {
+        toast.error("Tuần đã công bố, cần hủy công bố trước khi chỉnh sửa");
+        return;
+      }
 
       // Room conflict check — block immediately
       const subjectId = params.subjectNumericId ?? Number(params.subjectId);
@@ -395,7 +418,7 @@ export function TimetablePage({
       }
       markDirtyAdd(params);
     },
-    [selectedWeekId, slots, specialRooms, markDirtyAdd]
+    [selectedWeekId, selectedWeek, slots, specialRooms, markDirtyAdd]
   );
 
   const handleConfirmAdd = useCallback(() => {
@@ -414,6 +437,10 @@ export function TimetablePage({
 
   const handleDeleteSlot = useCallback(
     (slotId: string) => {
+      if (selectedWeek?.isPublished) {
+        toast.error("Tuần đã công bố, cần hủy công bố trước khi chỉnh sửa");
+        return;
+      }
       const slot = slots.find((s) => s.id === slotId);
       if (!slot) return;
       const cellKey = `${slot.day}-${slot.period}-${slot.classId}`;
@@ -425,7 +452,7 @@ export function TimetablePage({
       setSlots((prev) => prev.filter((s) => s.id !== slotId));
       toast.success(`Đã xóa ${slot.subjectName}`, { duration: 1500 });
     },
-    [slots]
+    [slots, selectedWeek]
   );
 
   const handleSave = useCallback(async () => {
@@ -523,6 +550,10 @@ export function TimetablePage({
   }, [selectedGrade, selectedClassId]);
 
   const handleAutoSchedule = useCallback(async () => {
+    if (selectedWeek?.isPublished) {
+      toast.error("Tuần đã công bố, cần hủy công bố trước khi xếp lại");
+      return;
+    }
     if (noSubjectsToSchedule) {
       toast.info("Đã xếp đủ tiết");
       return;
@@ -620,7 +651,7 @@ export function TimetablePage({
     } else {
       toast.success(`Đã tự động xếp ${result.slots.length} tiết — nhớ lưu lại!`, { duration: 4000 });
     }
-  }, [classes, subjects, assignments, selectedWeekId, noSubjectsToSchedule]);
+  }, [classes, subjects, assignments, selectedWeekId, selectedWeek, noSubjectsToSchedule]);
 
   const reloadSlots = useCallback(async () => {
     if (!selectedWeekId) return;
@@ -782,6 +813,14 @@ export function TimetablePage({
           >
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </button>
+          <button
+            onClick={() => setPublishDialogOpen(true)}
+            disabled={weeks.length === 0}
+            title={weeks.length === 0 ? "Chưa có tuần nào để công khai" : undefined}
+            className="flex items-center gap-2 px-4 py-2 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Globe className="h-4 w-4" /> Công khai thời khoá biểu
+          </button>
           <Button onClick={handleOpenOverlay} className="flex items-center gap-2">
             <Pencil className="h-4 w-4" /> Cập nhật thời khoá biểu
           </Button>
@@ -936,35 +975,39 @@ export function TimetablePage({
                   Chưa lưu
                 </span>
               )}
-              <Button
-                onClick={handleAutoSchedule}
-                disabled={saving || generating || noSubjectsToSchedule}
-                size="sm"
-                variant="outline"
-                title={noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"}
-                className="flex items-center gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {generating ? "Đang xếp..." : noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp TKB"}
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving || !hasDirtyChanges}
-                size="sm"
-                variant="outline"
-                className="flex items-center gap-1.5"
-              >
-                <Save className="h-3.5 w-3.5" />
-                {saving ? "Đang lưu..." : `Lưu tuần ${selectedWeek?.weekNumber ?? ""}${selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""}`}
-              </Button>
-              <Button
-                onClick={() => setApplyForwardConfirmOpen(true)}
-                disabled={saving || !hasDirtyChanges}
-                size="sm"
-                className="bg-emerald-500 hover:bg-emerald-600 text-white"
-              >
-                Áp dụng từ tuần {selectedWeek?.weekNumber ?? ""}{selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} trở đi →
-              </Button>
+              {!selectedWeek?.isPublished && (
+                <>
+                  <Button
+                    onClick={handleAutoSchedule}
+                    disabled={saving || generating || noSubjectsToSchedule}
+                    size="sm"
+                    variant="outline"
+                    title={noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"}
+                    className="flex items-center gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {generating ? "Đang xếp..." : noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp TKB"}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving || !hasDirtyChanges}
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1.5"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {saving ? "Đang lưu..." : `Lưu tuần ${selectedWeek?.weekNumber ?? ""}${selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""}`}
+                  </Button>
+                  <Button
+                    onClick={() => setApplyForwardConfirmOpen(true)}
+                    disabled={saving || !hasDirtyChanges}
+                    size="sm"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  >
+                    Áp dụng từ tuần {selectedWeek?.weekNumber ?? ""}{selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} trở đi →
+                  </Button>
+                </>
+              )}
               <button
                 onClick={handleCloseOverlay}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
@@ -973,6 +1016,24 @@ export function TimetablePage({
               </button>
             </div>
           </div>
+
+          {/* Tuần đã công bố: banner khoá + lối tắt hủy công bố */}
+          {selectedWeek?.isPublished && (
+            <div className="shrink-0 px-6 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2 text-sm text-amber-800">
+              <Lock className="h-4 w-4 shrink-0" />
+              <span className="flex-1">
+                Tuần {selectedWeek.weekNumber} đã công bố — hủy công bố để chỉnh sửa.
+              </span>
+              <Button
+                onClick={handleUnpublishWeek}
+                size="sm"
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-100"
+              >
+                Hủy công bố tuần này
+              </Button>
+            </div>
+          )}
 
           {/* Overlay body */}
           <div className="flex-1 overflow-auto p-6">
@@ -984,7 +1045,7 @@ export function TimetablePage({
                   classes={overlayGradeClasses}
                   subjects={subjects}
                   assignments={assignments}
-                  readOnly={false}
+                  readOnly={selectedWeek?.isPublished ?? false}
                   onSelectClass={(name) => setOverlayClassId(name)}
                   onAddSlot={handleAddSlot}
                   onDeleteSlot={handleDeleteSlot}
@@ -995,7 +1056,7 @@ export function TimetablePage({
                   slots={slotsWithConflicts}
                   onAddSlot={handleAddSlot}
                   onDeleteSlot={handleDeleteSlot}
-                  readOnly={false}
+                  readOnly={selectedWeek?.isPublished ?? false}
                   subjects={overlayGradeSubjects}
                   assignments={overlayClassAssignments}
                   currentClass={
@@ -1170,6 +1231,17 @@ export function TimetablePage({
         </AlertDialogContent>
       </AlertDialog>
 
+      {currentTimetable && (
+        <PublishTimetableDialog
+          timetableId={currentTimetable.id}
+          isPublic={currentTimetable.isPublic}
+          publicToken={currentTimetable.publicToken}
+          open={publishDialogOpen}
+          onOpenChange={setPublishDialogOpen}
+          onChanged={(updated) => { setCurrentTimetable(updated); refreshWeeks(); }}
+        />
+      )}
+
       <Dialog open={autoScheduleDialogOpen} onOpenChange={setAutoScheduleDialogOpen}>
         <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden z-10001">
           <DialogHeader className="px-6 pt-5 pb-0">
@@ -1246,7 +1318,7 @@ export function TimetablePage({
 }
 
 /** Teacher schedule grid — days as columns, periods as rows */
-function TeacherTimetableGrid({
+export function TeacherTimetableGrid({
   teacherId, slots, teacherSlots, onAddSlot, onDeleteSlot, readOnly = false, subjects, assignments,
 }: {
   teacherId: string;

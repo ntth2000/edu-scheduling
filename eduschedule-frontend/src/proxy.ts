@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 const PROTECTED_PATHS = ["/assignments", "/classes", "/subjects", "/teachers", "/timetable", "/special-rooms"];
+// Public timetable lookup: viewable logged-in or not, never bounced to /login or away from itself.
+const ALWAYS_PUBLIC_PATHS = ["/public"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -10,6 +12,11 @@ export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get("access_token")?.value;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const isProtected = PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isAlwaysPublic = ALWAYS_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+  if (isAlwaysPublic) {
+    return NextResponse.next();
+  }
 
   // If logged in: redirect away from guest-only pages (e.g. /login)
   if (accessToken && isPublic) {

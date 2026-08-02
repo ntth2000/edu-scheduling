@@ -5,18 +5,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TimetableResponse {
-    private Long id;
-    private Long schoolYearId;
+public class PublicTimetableInfoResponse {
     private String schoolYearName;
     private Integer semesterOrder;
-    private LocalDate semesterStartDate;
-    private Boolean isPublic;
-    private String publicToken;
+    private List<ClassResponse> classes;
+    private List<TeacherResponse> teachers;
+    private List<SubjectResponse> subjects;
+    private List<AssignmentResponse> assignments;
 }

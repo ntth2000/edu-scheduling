@@ -11,8 +11,10 @@ import com.eduschedule.scheduler.solver.Lesson;
 import com.eduschedule.scheduler.solver.Timeslot;
 import com.eduschedule.scheduler.solver.Timetable;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +33,10 @@ public class ScheduleGeneratorService {
     public AutoScheduleResult generate(Long weekId) {
         Week week = weekRepo.findById(weekId)
                 .orElseThrow(() -> new IllegalArgumentException("Week not found: " + weekId));
+        if (Boolean.TRUE.equals(week.getIsPublished())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Tuần đã công bố, cần hủy công bố trước khi xếp lại");
+        }
 
         Long schoolYearId = week.getTimetable().getSchoolYear().getId();
         Long userId = week.getTimetable().getSchoolYear().getUser().getId();
