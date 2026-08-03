@@ -8,4 +8,6 @@ import java.util.List;
 public interface SpecialRoomRepository extends JpaRepository<SpecialRoom, Long> {
     List<SpecialRoom> findAllByUserId(Long userId);
     boolean existsByNameAndUserId(String name, Long userId);
+    boolean existsBySubjectIdAndUserId(Long subjectId, Long userId);
+    boolean existsBySubjectIdAndUserIdAndIdNot(Long subjectId, Long userId, Long id);
 }

@@ -17,7 +17,7 @@ class SpecialRoomControllerTest extends BaseControllerTest {
                         .cookie(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "name", "Tin học",
+                                "name", "Tin học nâng cao",
                                 "periodsGrade1", 1, "periodsGrade2", 1, "periodsGrade3", 1,
                                 "periodsGrade4", 1, "periodsGrade5", 1
                         ))))
@@ -66,6 +66,37 @@ class SpecialRoomControllerTest extends BaseControllerTest {
                                 Map.of("name", "Phòng Tin", "quantity", 2, "subjectId", subjectId))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subjectId").value(subjectId));
+    }
+
+    // PHONG-05: Không thể tạo 2 phòng cùng gắn với 1 môn học
+    @Test
+    void PHONG_05_createRoomWithDuplicateSubject_conflict() throws Exception {
+        Cookie auth = loginAndGetCookie();
+        Long subjectId = createSubject(auth);
+        createRoom(auth, "Phòng Tin 1", 1, subjectId);
+
+        mockMvc.perform(post("/api/special-rooms")
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("name", "Phòng Tin 2", "quantity", 1, "subjectId", subjectId))))
+                .andExpect(status().isConflict());
+    }
+
+    // PHONG-06: Không thể cập nhật phòng để gắn với môn đã được phòng khác sử dụng
+    @Test
+    void PHONG_06_updateRoomWithDuplicateSubject_conflict() throws Exception {
+        Cookie auth = loginAndGetCookie();
+        Long subjectId = createSubject(auth);
+        createRoom(auth, "Phòng Tin 1", 1, subjectId);
+        Long otherRoomId = createRoom(auth, "Phòng Tin 2", 1, null);
+
+        mockMvc.perform(put("/api/special-rooms/" + otherRoomId)
+                        .cookie(auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("name", "Phòng Tin 2", "quantity", 1, "subjectId", subjectId))))
+                .andExpect(status().isConflict());
     }
 
     // PHONG-03: Cập nhật số lượng phòng

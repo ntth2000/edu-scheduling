@@ -104,84 +104,93 @@ trì, kiểm thử hoặc mở rộng tương đối độc lập.
 \subsection{Thiết kế lớp}
 \label{subsection:4.2.2}
 
-Phần này trình bày thiết kế chi tiết ba lớp nghiệp vụ cốt lõi của hệ thống — AssignmentService, SlotService và ScheduleGeneratorService — tương ứng với các use case Phân công giáo viên chủ nhiệm/bộ môn, Xếp và điều chỉnh thời khoá biểu thủ công và Xếp thời khoá biểu tự động đã đặc tả ở Chương 2. Use case Đăng nhập và Tra cứu thời khoá biểu không phát sinh lớp nghiệp vụ mới nên không được trình bày lại ở đây.
-
-\textbf{Lớp AssignmentService}
-
-\begin{figure}[H]
-    \centering
-    % TODO: Chèn biểu đồ lớp chi tiết AssignmentService + Assignment
-    \includegraphics[width=0.8\textwidth]{Hinhve/Kientruc/class_assignment.png}
-    \caption{Biểu đồ lớp thiết kế chi tiết AssignmentService}
-    \label{fig:class_assignment}
-\end{figure}
-
-Hình~\ref{fig:class_assignment} trình bày cấu trúc lớp \texttt{AssignmentService}, đóng vai trò then chốt trong việc điều phối nghiệp vụ phân công giảng dạy, bao gồm phân công giáo viên chủ nhiệm và giáo viên bộ môn cho từng lớp–môn. Phương thức \texttt{assignHomeroom()} phân công giáo viên chủ nhiệm cho một lớp: kiểm tra giáo viên thuộc loại CHU\_NHIEM và chưa đảm nhiệm lớp khác trong năm học trước khi cập nhật trường \texttt{homeroomTeacher} của lớp. Phương thức \texttt{assign()} phân công giáo viên bộ môn cho một môn–lớp cụ thể, tạo mới hoặc cập nhật bản ghi \texttt{Assignment} tương ứng. Bên cạnh đó, \texttt{getAll(year)} truy vấn toàn bộ phân công theo năm học và \texttt{delete(id)} xoá một phân công. Các phương thức này tương tác trực tiếp với thực thể \texttt{Assignment} thuộc tầng dữ liệu.
-
-Thực thể \texttt{Assignment} lưu trữ lớp học, môn học, giáo viên phụ trách và số tiết mỗi tuần được phân công, có quan hệ kết hợp nhiều chiều với \texttt{SchoolClass}, \texttt{Subject} và \texttt{Teacher}. Đây là dữ liệu đầu vào quan trọng để \texttt{SlotService} và \texttt{ScheduleGeneratorService} xác định giáo viên phụ trách khi xếp từng tiết học.
-
-\textbf{Lớp SlotService và ScheduleGeneratorService}
+Biểu đồ lớp mô tả cấu trúc tĩnh của hệ thống EduSchedule thông qua các lớp
+nghiệp vụ chính và mối quan hệ giữa chúng. Sơ đồ tập trung vào ba nhóm chức
+năng gồm quản lý dữ liệu nhà trường, phân công giảng dạy và tổ chức thời khóa
+biểu. Các quan hệ kết hợp thể hiện sự liên hệ giữa các đối tượng nghiệp vụ,
+trong khi quan hệ hợp thành biểu diễn các thành phần phụ thuộc vào vòng đời của
+đối tượng chứa chúng.
 
 \begin{figure}[H]
     \centering
-    % TODO: Chèn biểu đồ lớp chi tiết SlotService, ScheduleGeneratorService + Slot
-    \includegraphics[width=0.9\textwidth]{Hinhve/Kientruc/class_slot.png}
-    \caption{Biểu đồ lớp thiết kế chi tiết SlotService và ScheduleGeneratorService}
-    \label{fig:class_slot}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/Kientruc/class_design_diagram.png}
+    \caption{Biểu đồ lớp thiết kế của hệ thống EduSchedule}
+    \label{fig:class_design_diagram}
 \end{figure}
 
-Hình~\ref{fig:class_slot} mô tả hai lớp cùng thao tác trên thực thể \texttt{Slot} nhưng phục vụ hai use case khác nhau. \texttt{SlotService} chịu trách nhiệm xếp tiết học thủ công: phương thức \texttt{saveOrUpdateSlot()} thực hiện upsert một tiết vào ô (thứ, tiết) cụ thể, trước tiên xác định \texttt{Assignment} tương ứng thông qua \texttt{resolveAssignment()} — nếu yêu cầu chứa \texttt{assignmentId} thì tra cứu trực tiếp, nếu chỉ có \texttt{classId} và \texttt{subjectId} thì tìm hoặc tạo phân công với giáo viên chủ nhiệm của lớp — sau đó kiểm tra xung đột giáo viên qua \texttt{SlotRepository}; nếu giáo viên đã dạy lớp khác cùng buổi và tiết, phương thức ném ngoại lệ và trả lỗi 400, ngược lại tiết được lưu và trả về \texttt{SlotResponse}. Ngoài ra, \texttt{getAll()}/\texttt{getByTimetable()} phục vụ truy vấn danh sách tiết, còn \texttt{deleteSlot()} xoá một tiết theo id.
+Hình~\ref{fig:class_design_diagram} cho thấy các lớp chính của hệ thống được
+tổ chức như sau:
 
-\texttt{ScheduleGeneratorService} đảm nhiệm nghiệp vụ xếp thời khoá biểu tự động, phân bổ các tiết học còn thiếu bằng thuật toán trong khi giữ nguyên các tiết đã xếp thủ công trước đó. Phương thức \texttt{generate(weekId)} trước tiên xác định số tiết còn thiếu của từng phân công bằng cách so sánh tổng số tiết yêu cầu theo khối (lấy từ \texttt{Subject}) với số tiết đã xếp trong tuần; các phân công còn thiếu tiết và đã có giáo viên phụ trách được đưa vào \texttt{GreedyPhase} để tạo nhanh một phương án khởi tạo đáp ứng các ràng buộc bắt buộc (không trùng giáo viên, không trùng lớp, không vượt số phòng chức năng). Phương án này sau đó được chuyển cho \texttt{TimefoldPhase}, sử dụng \texttt{SolverFactory} của thư viện Timefold Solver, để tiếp tục cải thiện các ràng buộc mềm trong giới hạn thời gian cho phép. Kết quả trả về gồm danh sách tiết đã xếp ở trạng thái chưa lưu cùng danh sách tiết không thể xếp được (nếu có), để người dùng xem xét trước khi quyết định lưu. Khác với \texttt{SlotService} xử lý từng tiết riêng lẻ theo thao tác của người dùng, \texttt{ScheduleGeneratorService} thao tác trên toàn bộ tập tiết còn trống của một tuần cùng lúc, nên được tách thành một lớp nghiệp vụ độc lập.
+Lớp User đại diện cho tài khoản quản trị và duy trì các phiên đăng nhập thông
+qua lớp RefreshToken. Các lớp Teacher, Subject, SpecialRoom, SchoolYear và
+SchoolClass biểu diễn nhóm dữ liệu nghiệp vụ nền của nhà trường. Các lớp này
+hỗ trợ quản lý giáo viên, môn học, phòng chức năng, năm học và lớp học, qua đó
+cung cấp dữ liệu cần thiết cho quá trình phân công giảng dạy và xây dựng thời
+khóa biểu.
 
-Thực thể \texttt{Slot} lưu trữ tuần học, phân công tương ứng, thứ, buổi, tiết và phòng chức năng sử dụng (nếu có); hợp thành với \texttt{Timetable} thông qua \texttt{Week} và kết hợp với \texttt{Assignment}.
+Lớp Assignment biểu diễn một phân công giảng dạy, trong đó xác định lớp học,
+môn học, giáo viên phụ trách và số tiết cần thực hiện trong tuần. Đối tượng
+Assignment được sử dụng làm đầu vào cho quá trình xếp lịch, đồng thời giúp tách
+biệt thông tin phân công giảng dạy khỏi vị trí thực tế của tiết học trên thời
+khóa biểu.
 
-Các biểu đồ trình tự dưới đây minh hoạ luồng xử lý cho ba use case tương ứng.
+Lớp Timetable đại diện cho thời khóa biểu của một học kỳ và quản lý các đối
+tượng Week thuộc thời khóa biểu đó. Mỗi Week đại diện cho một tuần học và quản
+lý tập hợp Slot tương ứng. Quan hệ hợp thành giữa các lớp thể hiện rằng Week
+phụ thuộc vào vòng đời của Timetable, còn Slot phụ thuộc vào vòng đời của Week.
 
-\begin{figure}[H]
-    \centering
-    % TODO: Chèn biểu đồ trình tự UC "Phân công giảng dạy"
-    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_phancong.png}
-    \caption{Biểu đồ trình tự use case Phân công giảng dạy}
-    \label{fig:sd_phan_cong}
-\end{figure}
-\vspace{-10pt}
-
-Trong UC Phân công GVBM: Admin gửi request classId, subjectId, teacherId. AssignmentController gọi AssignmentService.assign(). Service kiểm tra giáo viên có trong danh sách môn dạy được; nếu không ném ngoại lệ. Nếu hợp lệ, tìm hoặc tạo Assignment rồi lưu và trả response.
-
-\begin{figure}[H]
-    \centering
-    % TODO: Chèn biểu đồ trình tự UC "Xếp tiết học"
-    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_xeptiet.png}
-    \caption{Biểu đồ trình tự use case Xếp tiết học}
-    \label{fig:sd_xep_tiet}
-\end{figure}
-\vspace{-10pt}
-
-Trong UC Xếp tiết học: Admin gửi request chứa timetableId, day, period, assignmentId. SlotController chuyển tiếp sang SlotService.saveOrUpdateSlot(). Service tra cứu Timetable, resolve Assignment, kiểm tra xung đột giáo viên qua SlotRepository. Nếu xung đột, ném ngoại lệ trả về lỗi 400. Nếu không, lưu slot và trả SlotResponse về client.
-
-\begin{figure}[H]
-    \centering
-    % TODO: Chèn biểu đồ trình tự UC "Xếp thời khoá biểu tự động"
-    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sd_xep_tu_dong.png}
-    \caption{Biểu đồ trình tự use case Xếp thời khoá biểu tự động}
-    \label{fig:sd_xep_tu_dong}
-\end{figure}
-\vspace{-10pt}
-
-Trong UC Xếp thời khoá biểu tự động: Admin nhấn nút xếp tự động với weekId đang chỉnh sửa. ScheduleGeneratorController chuyển tiếp sang ScheduleGeneratorService.generate(). Service tính số tiết còn thiếu của từng phân công, chạy GreedyPhase để tạo phương án khởi tạo rồi chuyển cho TimefoldPhase tối ưu ràng buộc mềm. Kết quả trả về danh sách tiết đã xếp ở trạng thái chưa lưu để client hiển thị cho người dùng xem xét trước khi lưu.
+Lớp Slot biểu diễn một tiết học đã được bố trí tại ngày, buổi và tiết cụ thể
+trong tuần. Mỗi Slot gắn với một Assignment để xác định lớp học, môn học và
+giáo viên phụ trách; đồng thời có thể gắn với một SpecialRoom nếu tiết học yêu
+cầu phòng chức năng. Thông qua Timetable, Week và Slot, hệ thống hỗ trợ xếp và
+điều chỉnh tiết học, cập nhật ngày bắt đầu của các tuần, sao chép lịch của một
+tuần sang các tuần tiếp theo, kiểm tra điều kiện công bố và công bố thời khóa
+biểu theo từng tuần.
 
 \subsection{Thiết kế cơ sở dữ liệu}
 \label{subsection:4.2.3}
 
-Cơ sở dữ liệu PostgreSQL của hệ thống gồm mười hai bảng, phản ánh trực tiếp từ các entity class trong backend. Thiết kế chi tiết được mô tả trong sơ đồ sau:
+Cơ sở dữ liệu của EduSchedule được xây dựng trên PostgreSQL nhằm quản lý tập
+trung thông tin người dùng, giáo viên, môn học, lớp học, năm học và thời khóa
+biểu. Hệ thống gồm mười hai bảng có quan hệ chặt chẽ với nhau thông qua các khóa
+ngoại, trong đó bảng users là thực thể trung tâm dùng để phân tách dữ
+liệu theo từng tài khoản. Mỗi người dùng sở hữu các danh mục giáo viên, môn học,
+phòng chức năng và năm học riêng, giúp bảo đảm tính độc lập và nhất quán của dữ
+liệu.
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Hinhve/database/dbdesign.png}
-    \caption{Thiết kế chi tiết cơ sở dữ liệu}
+    \includegraphics[width=\textwidth]{Hinhve/database/dbdesign.png}
+    \caption{Thiết kế cơ sở dữ liệu cho hệ thống EduSchedule}
     \label{fig:db_design}
 \end{figure}
 
+Trong sơ đồ tại Hình~\ref{fig:db_design}, nhóm dữ liệu xác thực gồm bảng
+users lưu thông tin đăng nhập và bảng refresh\_tokens quản lý phiên làm việc.
+Nhóm dữ liệu chuyên môn gồm các bảng teachers, subjects và bảng liên kết
+teacher\_subjects; cấu trúc này biểu
+diễn quan hệ nhiều - nhiều giữa giáo viên và các môn học mà giáo viên có khả
+năng giảng dạy. Bảng special\_rooms lưu số lượng phòng chức năng và có
+thể liên kết với môn học tương ứng để phục vụ kiểm tra điều kiện phòng khi xếp
+lịch.
+
+Nhóm dữ liệu tổ chức năm học gồm bảng school\_years và classes. Mỗi lớp thuộc
+một năm học và có thể được gán một giáo viên chủ nhiệm. Bảng assignments kết
+nối lớp học, môn học và giáo viên, đồng thời
+lưu số tiết phải thực hiện trong tuần; đây là dữ liệu đầu vào trực tiếp cho quá
+trình xây dựng thời khóa biểu.
+
+Nhóm dữ liệu thời khóa biểu được tổ chức theo ba cấp gồm timetables, weeks và
+slots. Một thời khóa biểu thuộc
+một năm học và học kỳ, bao gồm nhiều tuần; mỗi tuần chứa các tiết học xác định
+theo thứ, buổi và tiết. Bảng slots liên kết với phân công giảng dạy và
+phòng chức năng, đồng thời lưu bản chụp thông tin giáo viên và môn học tại thời
+điểm công bố tuần. Cơ chế này giúp nội dung thời khóa biểu đã công bố không thay
+đổi khi dữ liệu phân công được cập nhật về sau. Các ràng buộc duy nhất và khóa
+ngoại trong mô hình giúp hạn chế dữ liệu trùng lặp, duy trì tính toàn vẹn và hỗ
+trợ hệ thống truy xuất lịch học một cách nhất quán.
+
+\iffalse
 
 Từ sơ đồ ER, ta có thể thiết kế chi tiết cấu trúc bảng và ràng buộc cho từng bảng như sau:
 
@@ -468,6 +477,8 @@ special\_room\_id & BIGINT & FK $\rightarrow$ special\_rooms, NULL & Phòng ch�
 \end{table}
 \vspace{-8pt}
 
+\fi
+
 \section{Xây dựng ứng dụng}
 \subsection{Thư viện và công cụ sử dụng}
 \label{subsection:4.3.1}
@@ -562,37 +573,103 @@ Sản phẩm EduSchedule gồm hai thành phần độc lập được triển k
 
 Hệ thống hiện thực đầy đủ các chức năng đã đặt ra trong phần phân tích yêu cầu: quản lý danh mục giáo viên, lớp học, môn học; phân công giảng dạy; xếp thời khoá biểu với kiểm tra xung đột thời gian thực; xem và xuất thời khoá biểu ra file Excel.
 
-Các hình dưới đây minh họa một số chức năng chính đã được hiện thực trong hệ
-thống, bao gồm giao diện tổng quan, giao diện quản lý giáo viên và giao diện xếp
-thời khóa biểu.
+Các hình dưới đây minh họa các chức năng chính đã được hiện thực trong hệ
+thống, bao gồm quản lý giáo viên, quản lý môn học, tra cứu thời khóa biểu, phân
+công chủ nhiệm, phân công chuyên môn và xếp thời khóa biểu.
 
 \begin{figure}[H]
     \centering
-    \begin{minipage}{0.95\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_tong_quan.png}
-        \caption{Giao diện tổng quan hệ thống EduSchedule}
-        \label{fig:ui_overview}
-    \end{minipage}
-
-    \vspace{0.5cm}
-
-    \begin{minipage}{0.95\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_giao_vien.png}
-        \caption{Giao diện quản lý giáo viên của hệ thống EduSchedule}
-        \label{fig:ui_teacher}
-    \end{minipage}
-
-    \vspace{0.5cm}
-
-    \begin{minipage}{0.95\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Hinhve/GiaoDien/giao_dien_xep_tkb.png}
-        \caption{Giao diện xếp thời khóa biểu của hệ thống EduSchedule}
-        \label{fig:ui_scheduler}
-    \end{minipage}
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/giao_dien_giao_vien.png}
+    \caption{Giao diện quản lý giáo viên}
+    \label{fig:ui_teacher}
 \end{figure}
+
+Giao diện quản lý giáo viên (Hình~\ref{fig:ui_teacher}) cho phép người dùng theo
+dõi hồ sơ giáo viên thông qua các thông tin gồm mã giáo viên, họ tên và định mức
+số tiết giảng dạy mỗi tuần. Người dùng có thể tìm kiếm theo tên, thêm mới, chỉnh
+sửa, xóa một hoặc nhiều giáo viên, đồng thời nhập danh sách từ file Excel hoặc
+tải file mẫu để chuẩn bị dữ liệu đúng định dạng.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/giao_dien_mon_hoc.png}
+    \caption{Giao diện quản lý môn học}
+    \label{fig:ui_subject}
+\end{figure}
+
+Giao diện quản lý môn học (Hình~\ref{fig:ui_subject}) trình bày danh mục các môn
+học cùng số tiết quy định theo từng khối lớp. Tại đây, người dùng có thể thêm môn
+học mới, cập nhật tên môn và phân bổ số tiết, hoặc lựa chọn một hay nhiều môn để
+xóa. Các thông tin này là cơ sở để hệ thống thực hiện phân công chuyên môn và
+kiểm soát số tiết khi xây dựng thời khóa biểu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/phan_cong_chu_nhiem.png}
+    \caption{Giao diện phân công giáo viên chủ nhiệm}
+    \label{fig:ui_homeroom_assignment}
+\end{figure}
+
+Giao diện phân công giáo viên chủ nhiệm (Hình~\ref{fig:ui_homeroom_assignment})
+tổ chức danh sách lớp theo từng khối và hiển thị giáo viên chủ nhiệm tương ứng.
+Người dùng có thể lựa chọn giáo viên từ danh sách cho từng lớp hoặc xóa phân công
+hiện tại. Cách trình bày theo nhóm khối giúp theo dõi nhanh tình trạng phân công
+chủ nhiệm của toàn trường trong năm học đã chọn.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/phan_cong_chuyen_mon_theo_giao_vien.png}
+    \caption{Giao diện phân công chuyên môn theo giáo viên}
+    \label{fig:ui_teacher_specialization_assignment}
+\end{figure}
+
+Giao diện phân công chuyên môn theo giáo viên
+(Hình~\ref{fig:ui_teacher_specialization_assignment}) cung cấp ma trận gồm các
+lớp và các môn học để xác định phạm vi giảng dạy của một giáo viên. Mỗi ô lựa
+chọn thể hiện môn mà giáo viên được phân công tại một lớp, đồng thời hiển thị số
+tiết cần thực hiện theo chương trình. Sau khi rà soát, người dùng có thể lưu toàn
+bộ thay đổi bằng thao tác lưu phân công.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/phan_cong_chuyen_mon_theo_lop.png}
+    \caption{Giao diện phân công chuyên môn theo lớp}
+    \label{fig:ui_class_specialization_assignment}
+\end{figure}
+
+Giao diện phân công chuyên môn theo lớp
+(Hình~\ref{fig:ui_class_specialization_assignment}) cho phép chọn khối, sau đó
+gán giáo viên phụ trách từng môn cho mỗi lớp. Hệ thống hiển thị tiến độ số lớp đã
+hoàn thành phân công và hỗ trợ chuyển đổi linh hoạt giữa hai cách xem theo lớp
+hoặc theo giáo viên. Thông tin phân công là dữ liệu đầu vào quan trọng để hệ
+thống xác định đúng giáo viên khi xếp thời khóa biểu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/xep_thoi_khoa_bieu.png}
+    \caption{Giao diện xếp thời khóa biểu}
+    \label{fig:ui_scheduler}
+\end{figure}
+
+Giao diện xếp thời khóa biểu (Hình~\ref{fig:ui_scheduler}) hỗ trợ người dùng cập
+nhật lịch học theo khối, tuần và từng lớp trên một bảng trực quan. Khi chọn một
+tiết trống, hệ thống hiển thị các môn còn số tiết để người dùng xếp thủ công;
+ngoài ra còn cung cấp chức năng tự động xếp thời khóa biểu. Các thay đổi có thể
+được lưu cho tuần hiện tại hoặc áp dụng từ tuần đang chọn trở đi, đồng thời hệ
+thống hiển thị số lỗi để cảnh báo các xung đột cần xử lý trước khi hoàn tất.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Hinhve/Giaodien/giao_dien_tra_cuu.png}
+    \caption{Giao diện tra cứu thời khóa biểu}
+    \label{fig:ui_timetable_lookup}
+\end{figure}
+
+Giao diện tra cứu thời khóa biểu (Hình~\ref{fig:ui_timetable_lookup}) hiển thị
+lịch học theo học kỳ, tuần và khối lớp. Thời khóa biểu được tổ chức theo ngày,
+buổi và tiết; mỗi ô thể hiện môn học cùng giáo viên phụ trách của từng lớp. Người
+dùng có thể chuyển đổi giữa chế độ xem theo lớp và theo giáo viên, nhờ đó thuận
+tiện theo dõi lịch giảng dạy và phát hiện các thông tin cần điều chỉnh.
 
 \section{Kiểm thử}
 \label{section:4.4}

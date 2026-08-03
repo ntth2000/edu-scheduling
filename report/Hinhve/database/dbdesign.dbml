@@ -1,0 +1,156 @@
+// EduSchedule database schema
+// Paste this into https://dbdiagram.io
+
+Table users {
+  id bigint [pk, increment]
+  username varchar(255) [not null, unique]
+  password varchar(255) [not null]
+}
+
+Table refresh_tokens {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  token varchar(512) [not null, unique]
+  expires_at timestamp [not null]
+  created_at timestamp [default: `now()`]
+}
+
+Table teachers {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  full_name varchar(100) [not null]
+  type varchar(20) [not null, note: "BO_MON | CHU_NHIEM | KHAC"]
+  max_periods_per_week int [not null]
+  created_at timestamp
+}
+
+Table subjects {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  name varchar(100) [not null]
+  periods_grade1 int [default: 0]
+  periods_grade2 int [default: 0]
+  periods_grade3 int [default: 0]
+  periods_grade4 int [default: 0]
+  periods_grade5 int [default: 0]
+}
+
+Table teacher_subjects {
+  teacher_id bigint [not null]
+  subject_id bigint [not null]
+
+  indexes {
+    (teacher_id, subject_id) [pk]
+  }
+}
+
+Table special_rooms {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  name varchar(100) [not null]
+  subject_id bigint
+  quantity int [not null, default: 1]
+}
+
+Table school_years {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  start_year int [not null]
+
+  indexes {
+    (user_id, start_year) [unique]
+  }
+}
+
+Table classes {
+  id bigint [pk, increment]
+  name varchar(10) [not null]
+  grade int [not null]
+  homeroom_teacher_id bigint
+  school_year_id bigint
+
+  indexes {
+    (name, school_year_id) [unique]
+  }
+}
+
+Table assignments {
+  id bigint [pk, increment]
+  class_id bigint
+  subject_id bigint
+  teacher_id bigint
+  periods_per_week int [not null, default: 0]
+
+  indexes {
+    (class_id, subject_id, teacher_id) [unique]
+  }
+}
+
+Table timetables {
+  id bigint [pk, increment]
+  school_year_id bigint [not null]
+  semester_order int [not null]
+  is_public boolean [not null, default: false]
+  public_token varchar(64) [unique]
+
+  indexes {
+    (school_year_id, semester_order) [unique]
+  }
+}
+
+Table weeks {
+  id bigint [pk, increment]
+  timetable_id bigint [not null]
+  week_number int [not null]
+  start_date date
+  is_published boolean [not null, default: false]
+
+  indexes {
+    (timetable_id, week_number) [unique]
+  }
+}
+
+Table slots {
+  id bigint [pk, increment]
+  week_id bigint [not null]
+  assignment_id bigint
+  day int
+  session int [not null]
+  period int
+  special_room_id bigint
+  teacher_id_snapshot bigint
+  teacher_name_snapshot varchar(255)
+  subject_name_snapshot varchar(255)
+
+  indexes {
+    (week_id, assignment_id, day, session, period) [unique]
+  }
+}
+
+// ── Relationships ──────────────────────────────────────────────
+
+Ref: refresh_tokens.user_id > users.id
+Ref: teachers.user_id > users.id
+Ref: subjects.user_id > users.id
+Ref: special_rooms.user_id > users.id
+Ref: school_years.user_id > users.id
+
+Ref: teacher_subjects.teacher_id > teachers.id
+Ref: teacher_subjects.subject_id > subjects.id
+
+Ref: special_rooms.subject_id > subjects.id
+
+Ref: classes.school_year_id > school_years.id
+Ref: classes.homeroom_teacher_id > teachers.id
+
+Ref: assignments.class_id > classes.id
+Ref: assignments.subject_id > subjects.id
+Ref: assignments.teacher_id > teachers.id
+
+Ref: timetables.school_year_id > school_years.id
+
+Ref: weeks.timetable_id > timetables.id
+
+Ref: slots.week_id > weeks.id
+Ref: slots.assignment_id > assignments.id
+Ref: slots.special_room_id > special_rooms.id

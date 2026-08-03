@@ -261,15 +261,21 @@ export function SpecialRoomTable() {
                   <SelectItem value="none">
                     <span className="text-slate-400 italic">Chọn môn học</span>
                   </SelectItem>
-                  {subjects.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
+                  {subjects.map((s) => {
+                    const usedByOtherRoom = rooms.some(
+                      (r) => r.subjectId === s.id && r.id !== editingRoom?.id
+                    );
+                    return (
+                      <SelectItem key={s.id} value={String(s.id)} disabled={usedByOtherRoom}>
+                        {s.name}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               <p className="text-xs text-slate-400">
                 Chỉ áp dụng giới hạn khi xếp tiết của môn học này. Để trống nếu phòng dùng chung cho mọi môn.
+                Mỗi môn chỉ được gắn với một phòng chức năng.
               </p>
             </div>
           </div>

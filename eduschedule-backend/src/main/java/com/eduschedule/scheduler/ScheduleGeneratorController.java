@@ -12,12 +12,10 @@ public class ScheduleGeneratorController {
 
     private final ScheduleGeneratorService generatorService;
 
+    // Luôn trả 200 kể cả khi result.errors không rỗng — xếp tự động một phần vẫn là kết quả hợp lệ
+    // (client hiển thị các tiết xếp được + số tiết xếp được/tổng số tiết, không coi là lỗi request).
     @PostMapping("/{weekId}/generate")
     public ResponseEntity<AutoScheduleResult> generate(@PathVariable Long weekId) {
-        AutoScheduleResult result = generatorService.generate(weekId);
-        if (result.isSuccess()) {
-            return ResponseEntity.ok(result);
-        }
-        return ResponseEntity.badRequest().body(result);
+        return ResponseEntity.ok(generatorService.generate(weekId));
     }
 }

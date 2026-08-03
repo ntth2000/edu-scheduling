@@ -126,7 +126,7 @@ class SchoolClassControllerTest extends BaseControllerTest {
                         .cookie(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("fullName", "GV CN 3C", "type", "CHU_NHIEM", "maxPeriodsPerWeek", 20))))
+                                Map.of("fullName", "GV CN 3C", "maxPeriodsPerWeek", 20))))
                 .andExpect(status().isOk())
                 .andReturn();
         Long teacherId = objectMapper.readTree(teacherResult.getResponse().getContentAsString()).get("id").asLong();

@@ -11,9 +11,9 @@ import java.util.Optional;
 public interface SchoolClassRepository extends JpaRepository<SchoolClass, Long> {
     Optional<SchoolClass> findByHomeroomTeacherId(Long teacherId);
 
-    Boolean existsByHomeroomTeacherId(Long teacherId);
+    Optional<SchoolClass> findByHomeroomTeacherIdAndSchoolYearId(Long teacherId, Long schoolYearId);
 
-    boolean existsByHomeroomTeacherIdAndSchoolYearIdAndIdNot(Long teacherId, Long schoolYearId, Long excludeClassId);
+    Boolean existsByHomeroomTeacherId(Long teacherId);
 
     List<SchoolClass> findAllByHomeroomTeacherId(Long teacherId);
 

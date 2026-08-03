@@ -591,20 +591,14 @@ export function TimetablePage({
       setGenerating(false);
     }
 
-    if (result.slots.length === 0 && result.errors.length === 0) {
+    const totalAttempted = result.slots.length + result.errors.length;
+    if (totalAttempted === 0) {
       toast.info("Đã xếp đủ tiết");
       return;
     }
 
-    if (result.slots.length === 0 && result.errors.length > 0) {
-      toast.error(
-        `Không thể xếp tự động: ${result.errors.slice(0, 3).join(" · ")}${result.errors.length > 3 ? ` (+${result.errors.length - 3} khác)` : ""}`,
-        { duration: 7000 }
-      );
-      return;
-    }
-
-    // 3. Batch-add all generated slots as dirty/pending (no individual toasts)
+    // 3. Batch-add whatever got successfully placed as dirty/pending — xếp được một phần vẫn
+    // hiển thị lên lưới, không coi "còn tiết chưa xếp được" là thất bại toàn bộ.
     setSlots((prev) => {
       let next = [...prev];
       for (const s of result.slots) {
@@ -643,13 +637,11 @@ export function TimetablePage({
       }
       return next;
     });
+    const summary = `Đã xếp tự động ${result.slots.length}/${totalAttempted} tiết. Còn lại ${result.errors.length} tiết chưa xếp được.`;
     if (result.errors.length > 0) {
-      toast.warning(
-        `Đã xếp ${result.slots.length} tiết, không xếp được ${result.errors.length} môn — nhớ lưu lại!`,
-        { duration: 6000 }
-      );
+      toast.warning(summary, { duration: 6000 });
     } else {
-      toast.success(`Đã tự động xếp ${result.slots.length} tiết — nhớ lưu lại!`, { duration: 4000 });
+      toast.success(summary, { duration: 4000 });
     }
   }, [classes, subjects, assignments, selectedWeekId, selectedWeek, noSubjectsToSchedule]);
 
@@ -690,16 +682,27 @@ export function TimetablePage({
       label = `TKB khối ${selectedGrade}`;
     }
     setExportingLabel(label);
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
+        if (!currentTimetable || !selectedWeek) {
+          toast.error("Chưa chọn tuần");
+          return;
+        }
+        const meta = {
+          weekNumber: selectedWeek.weekNumber,
+          semesterOrder: currentTimetable.semesterOrder,
+          schoolYearName: currentTimetable.schoolYearName,
+          startDate: selectedWeek.startDate,
+          endDate: selectedWeek.endDate,
+        };
         if (inTeacherView) {
           const teacher = teachers.find((t) => t.id.toString() === selectedTeacherId);
-          exportTeacherTimetable(slots, selectedTeacherId, teacher?.fullName ?? selectedTeacherId);
+          await exportTeacherTimetable(slots, selectedTeacherId, teacher?.fullName ?? selectedTeacherId, meta);
         } else if (selectedClassId !== "all") {
           const cls = classes.find((c) => c.name === selectedClassId);
-          exportClassTimetable(slots, selectedClassId, cls?.homeroomTeacherName ?? undefined);
+          await exportClassTimetable(slots, selectedClassId, meta, cls?.homeroomTeacherName ?? undefined);
         } else {
-          exportGradeTimetable(slots, selectedGrade, classes);
+          await exportGradeTimetable(slots, selectedGrade, classes, meta);
         }
         toast.success(`Đã xuất ${label}`);
       } catch {
@@ -708,7 +711,7 @@ export function TimetablePage({
         setExportingLabel(null);
       }
     }, 80);
-  }, [inTeacherView, selectedTeacherId, selectedClassId, selectedGrade, slots, teachers, classes]);
+  }, [inTeacherView, selectedTeacherId, selectedClassId, selectedGrade, slots, teachers, classes, currentTimetable, selectedWeek]);
 
   // ── Week dropdown shared render ───────────────────────
   const weekDropdown = (
@@ -811,7 +814,7 @@ export function TimetablePage({
             onClick={handleExportExcel}
             className="flex items-center gap-2 px-4 py-2 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium"
           >
-            <FileSpreadsheet className="h-4 w-4" /> Excel
+            <FileSpreadsheet className="h-4 w-4" />Xuất Excel
           </button>
           <button
             onClick={() => setPublishDialogOpen(true)}
@@ -941,79 +944,91 @@ export function TimetablePage({
       {isEditOverlayOpen && (
         <div className="fixed inset-0 z-9999 bg-white flex flex-col">
           {/* Overlay header */}
-          <div className="shrink-0 px-6 py-3 bg-white border-b border-slate-200 flex items-center gap-3 flex-wrap">
-            <span className="font-bold text-slate-800 font-heading shrink-0 mr-1">Cập nhật thời khoá biểu</span>
-
-            {/* Khối */}
-            <select
-              value={overlayGrade}
-              onChange={(e) => { setOverlayGrade(Number(e.target.value)); setOverlayClassId("all"); }}
-              className="bg-slate-100 border-0 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-md-primary/20"
-            >
-              {grades.map((g) => <option key={g} value={g}>Khối {g}</option>)}
-            </select>
-
-            {/* Lớp */}
-            <select
-              value={overlayClassId}
-              onChange={(e) => setOverlayClassId(e.target.value)}
-              className="bg-slate-100 border-0 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-md-primary/20"
-            >
-              <option value="all">Cả khối</option>
-              {overlayGradeClasses.map((cls) => (
-                <option key={cls.id} value={cls.name}>Lớp {cls.name}</option>
-              ))}
-            </select>
-
-            {/* Tuần */}
-            {weeks.length > 0 && weekDropdown}
-
-            <div className="ml-auto flex items-center gap-3">
-              {hasDirtyChanges && (
-                <span className="flex items-center gap-1.5 text-xs text-amber-500 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                  Chưa lưu
-                </span>
-              )}
-              {!selectedWeek?.isPublished && (
-                <>
-                  <Button
-                    onClick={handleAutoSchedule}
-                    disabled={saving || generating || noSubjectsToSchedule}
-                    size="sm"
-                    variant="outline"
-                    title={noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"}
-                    className="flex items-center gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {generating ? "Đang xếp..." : noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp TKB"}
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={saving || !hasDirtyChanges}
-                    size="sm"
-                    variant="outline"
-                    className="flex items-center gap-1.5"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    {saving ? "Đang lưu..." : `Lưu tuần ${selectedWeek?.weekNumber ?? ""}${selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""}`}
-                  </Button>
-                  <Button
-                    onClick={() => setApplyForwardConfirmOpen(true)}
-                    disabled={saving || !hasDirtyChanges}
-                    size="sm"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                  >
-                    Áp dụng từ tuần {selectedWeek?.weekNumber ?? ""}{selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} trở đi →
-                  </Button>
-                </>
-              )}
+          <div className="shrink-0 px-6 py-3 bg-white border-b border-slate-200 flex flex-col gap-3">
+            {/* Row 1: title + close */}
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 font-heading">Cập nhật thời khoá biểu</span>
               <button
                 onClick={handleCloseOverlay}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
+            </div>
+
+            {/* Row 2: selectors + actions */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Khối */}
+              <select
+                value={overlayGrade}
+                onChange={(e) => { setOverlayGrade(Number(e.target.value)); setOverlayClassId("all"); }}
+                className="bg-slate-100 border-0 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-md-primary/20"
+              >
+                {grades.map((g) => <option key={g} value={g}>Khối {g}</option>)}
+              </select>
+
+              {/* Lớp */}
+              <select
+                value={overlayClassId}
+                onChange={(e) => setOverlayClassId(e.target.value)}
+                className="bg-slate-100 border-0 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-md-primary/20"
+              >
+                <option value="all">Cả khối</option>
+                {overlayGradeClasses.map((cls) => (
+                  <option key={cls.id} value={cls.name}>Lớp {cls.name}</option>
+                ))}
+              </select>
+
+              {/* Tuần */}
+              {weeks.length > 0 && weekDropdown}
+
+              <div className="ml-auto flex items-center gap-3">
+                {hasDirtyChanges && (
+                  <span className="flex items-center gap-1.5 text-xs text-amber-500 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                    Chưa lưu
+                  </span>
+                )}
+                <button
+                  onClick={() => setProgressModalOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-high transition-colors rounded-full text-sm font-medium"
+                >
+                  <BarChart2 className="h-3.5 w-3.5" /> Tiến độ
+                </button>
+                {!selectedWeek?.isPublished && (
+                  <>
+                    <Button
+                      onClick={handleAutoSchedule}
+                      disabled={saving || generating || noSubjectsToSchedule}
+                      size="sm"
+                      variant="outline"
+                      title={noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp các tiết chưa được sắp xếp, giữ nguyên các tiết đã xếp"}
+                      className="flex items-center gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {generating ? "Đang xếp..." : noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp TKB"}
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving || !hasDirtyChanges}
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1.5"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {saving ? "Đang lưu..." : `Lưu tuần ${selectedWeek?.weekNumber ?? ""}${selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""}`}
+                    </Button>
+                    <Button
+                      onClick={() => setApplyForwardConfirmOpen(true)}
+                      disabled={saving || !hasDirtyChanges}
+                      size="sm"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                    >
+                      Áp dụng từ tuần {selectedWeek?.weekNumber ?? ""}{selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} trở đi →
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1152,7 +1167,7 @@ export function TimetablePage({
       </Dialog>
 
       <Dialog open={progressModalOpen} onOpenChange={setProgressModalOpen}>
-        <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden z-10001">
           <DialogHeader className="px-6 pt-5 pb-0">
             <DialogTitle className="font-heading text-lg font-bold">Tiến độ & Khối lượng</DialogTitle>
           </DialogHeader>

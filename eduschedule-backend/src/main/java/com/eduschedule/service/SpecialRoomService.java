@@ -39,6 +39,10 @@ public class SpecialRoomService {
                     "Phòng '" + request.getName() + "' đã tồn tại");
         }
         Subject subject = resolveSubject(request.getSubjectId(), user);
+        if (subject != null && specialRoomRepository.existsBySubjectIdAndUserId(subject.getId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Môn '" + subject.getName() + "' đã được gắn với một phòng chức năng khác");
+        }
         SpecialRoom room = SpecialRoom.builder()
                 .user(user)
                 .name(request.getName())
@@ -57,9 +61,15 @@ public class SpecialRoomService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Phòng '" + request.getName() + "' đã tồn tại");
         }
+        Subject subject = resolveSubject(request.getSubjectId(), user);
+        if (subject != null
+                && specialRoomRepository.existsBySubjectIdAndUserIdAndIdNot(subject.getId(), user.getId(), id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Môn '" + subject.getName() + "' đã được gắn với một phòng chức năng khác");
+        }
         room.setName(request.getName());
         room.setQuantity(request.getQuantity());
-        room.setSubject(resolveSubject(request.getSubjectId(), user));
+        room.setSubject(subject);
         return toResponse(specialRoomRepository.save(room));
     }
 

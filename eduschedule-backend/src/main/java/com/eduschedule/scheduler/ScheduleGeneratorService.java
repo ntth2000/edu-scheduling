@@ -2,7 +2,6 @@ package com.eduschedule.scheduler;
 
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.eduschedule.entity.*;
-import com.eduschedule.entity.enums.TeacherType;
 import com.eduschedule.repository.*;
 import com.eduschedule.scheduler.model.AutoScheduleResult;
 import com.eduschedule.scheduler.model.AutoScheduleSlot;
@@ -76,6 +75,9 @@ public class ScheduleGeneratorService {
         }
 
         List<SpecialRoom> rooms = specialRoomRepo.findAllByUserId(userId);
+        Map<Long, SpecialRoom> subjectToRoom = rooms.stream()
+                .filter(r -> r.getSubject() != null)
+                .collect(Collectors.toMap(r -> r.getSubject().getId(), r -> r, (a, b) -> a));
 
         // Base: assignments with a teacher and remaining periods to place
         List<Assignment> baseAssignments = allAssignments.stream()
@@ -87,79 +89,184 @@ public class ScheduleGeneratorService {
             return new AutoScheduleResult(Collections.emptyList(), Collections.emptyList());
         }
 
-        // Group 1: all subject teachers (non-homeroom)
-        List<Assignment> group1 = baseAssignments.stream()
-                .filter(a -> a.getTeacher().getType() != TeacherType.CHU_NHIEM)
-                .collect(Collectors.toList());
+        // --- Greedy construction phase: DISABLED (2026-08-04, theo yêu cầu) — Timefold một
+        // mình vừa xây (Construction Heuristic) vừa tối ưu (Local Search) toàn bộ bài toán bên
+        // dưới. Giữ nguyên khối này ở dạng comment để dễ bật lại nếu cần.
+        //
+        // GreedyPhase greedy = new GreedyPhase();
+        // ScheduleGrid bestGrid = null;
+        // List<String> bestErrors = Collections.emptyList();
+        // int minErrorCount = Integer.MAX_VALUE;
+        //
+        // for (int attempt = 1; attempt <= ScheduleConfig.MAX_GREEDY_ATTEMPTS; attempt++) {
+        //     List<String> attemptErrors = new ArrayList<>();
+        //     ScheduleGrid startGrid = buildPrePopulatedGrid(rooms, existingSlots, allAssignments);
+        //     ScheduleGrid result = greedy.run(baseAssignments, periodsMap, startGrid, attemptErrors);
+        //     if (attemptErrors.isEmpty()) {
+        //         bestGrid = result;
+        //         bestErrors = Collections.emptyList();
+        //         break;
+        //     }
+        //     if (attemptErrors.size() < minErrorCount) {
+        //         minErrorCount = attemptErrors.size();
+        //         bestGrid = result;
+        //         bestErrors = new ArrayList<>(attemptErrors);
+        //     }
+        // }
+        //
+        // List<AutoScheduleSlot> newSlots;
+        // if (bestErrors.isEmpty()) {
+        //     List<Lesson> solvedLessons = new TimefoldPhase().run(bestGrid, solverFactory);
+        //     newSlots = solvedLessons.stream()
+        //             .filter(l -> !l.isPinned())
+        //             .map(this::toAutoSlot)
+        //             .collect(Collectors.toList());
+        // } else {
+        //     newSlots = bestGrid.toNewSlotEntries().stream()
+        //             .map(e -> toAutoSlot(e))
+        //             .collect(Collectors.toList());
+        // }
+        //
+        // return new AutoScheduleResult(newSlots, deduplicateErrors(bestErrors));
 
-        // Group 2: homeroom teachers → fill remaining slots last
-        List<Assignment> group2 = baseAssignments.stream()
-                .filter(a -> a.getTeacher().getType() == TeacherType.CHU_NHIEM)
-                .collect(Collectors.toList());
-
-        GreedyPhase greedy = new GreedyPhase();
-        ScheduleGrid bestGrid = null;
-        List<String> bestErrors = Collections.emptyList();
-        int minErrorCount = Integer.MAX_VALUE;
-
-        for (int attempt = 1; attempt <= ScheduleConfig.MAX_GREEDY_ATTEMPTS; attempt++) {
-            List<String> attemptErrors = new ArrayList<>();
-            ScheduleGrid startGrid = buildPrePopulatedGrid(rooms, existingSlots, allAssignments);
-            ScheduleGrid result = greedy.run(group1, group2, periodsMap, startGrid, attemptErrors);
-            if (attemptErrors.isEmpty()) {
-                bestGrid = result;
-                bestErrors = Collections.emptyList();
-                break;
-            }
-            if (attemptErrors.size() < minErrorCount) {
-                minErrorCount = attemptErrors.size();
-                bestGrid = result;
-                bestErrors = new ArrayList<>(attemptErrors);
-            }
+        List<Timeslot> timeslotList = Timeslot.generateAll();
+        Map<String, Timeslot> timeslotIndex = new HashMap<>();
+        for (Timeslot ts : timeslotList) {
+            timeslotIndex.put(timeslotKey(ts.getDay(), ts.getSession(), ts.getPeriod()), ts);
         }
-
-        List<AutoScheduleSlot> newSlots;
-        if (bestErrors.isEmpty()) {
-            // Greedy already found a solution satisfying every hard constraint — hand it to
-            // Timefold (already-initialized, so it skips Construction Heuristic) to optimize
-            // the soft constraints via Local Search.
-            List<Lesson> solvedLessons = new TimefoldPhase().run(bestGrid, solverFactory);
-            newSlots = solvedLessons.stream()
-                    .filter(l -> !l.isPinned())
-                    .map(this::toAutoSlot)
-                    .collect(Collectors.toList());
-        } else {
-            newSlots = bestGrid.toNewSlotEntries().stream()
-                    .map(e -> toAutoSlot(e))
-                    .collect(Collectors.toList());
-        }
-
-        return new AutoScheduleResult(newSlots, deduplicateErrors(bestErrors));
-    }
-
-    private ScheduleGrid buildPrePopulatedGrid(List<SpecialRoom> rooms,
-                                               List<Slot> existingSlots,
-                                               List<Assignment> allAssignments) {
         Map<Long, Assignment> assignmentMap = allAssignments.stream()
                 .collect(Collectors.toMap(Assignment::getId, a -> a, (a, b) -> a));
 
-        ScheduleGrid grid = new ScheduleGrid(rooms);
+        List<Lesson> lessonList = new ArrayList<>();
+        Map<Long, Integer> occurrence = new HashMap<>();
 
+        // Pinned: slots already saved for this week — Timefold must never move these.
         for (Slot slot : existingSlots) {
             if (slot.getAssignment() == null) continue;
             Assignment a = assignmentMap.get(slot.getAssignment().getId());
             if (a == null) continue;
 
-            // Slots in DB use flat period (1-7); grid uses within-session period (1-4 / 1-3)
+            // Slots in DB use flat period (1-7); solver's Timeslot uses within-session period.
             int flatPeriod = slot.getPeriod();
             int session = flatPeriod <= 4 ? 1 : 2;
             int withinPeriod = flatPeriod <= 4 ? flatPeriod : flatPeriod - 4;
-
-            grid.placeLocked(a, slot.getDay(), session, withinPeriod);
+            lessonList.add(buildLesson(a, occurrence, subjectToRoom, true,
+                    timeslotIndex.get(timeslotKey(slot.getDay(), session, withinPeriod))));
         }
 
-        return grid;
+        // Unsolved: remaining periods to place — Timefold's Construction Heuristic assigns these.
+        for (Assignment a : baseAssignments) {
+            int count = periodsMap.get(a.getId());
+            for (int i = 0; i < count; i++) {
+                lessonList.add(buildLesson(a, occurrence, subjectToRoom, false, null));
+            }
+        }
+
+        List<Lesson> solvedLessons = new TimefoldPhase().run(lessonList, timeslotList, solverFactory);
+
+        // Timefold Community Edition doesn't expose which lesson caused a remaining hard-constraint
+        // violation (that "explain"/indictment API is Enterprise-only) — re-check the 3 hard
+        // constraints that can be attributed to a specific lesson (class/teacher double-booking,
+        // special-room over-capacity) ourselves. The other 2 hard constraints (no gap within a
+        // session, afternoon requires a complete morning) aren't attributable to one lesson and are
+        // trusted to Local Search, which treats every hard constraint as effectively infinite weight.
+        Set<String> conflicted = findAttributableHardConflicts(solvedLessons);
+
+        List<AutoScheduleSlot> newSlots = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        for (Lesson lesson : solvedLessons) {
+            if (lesson.isPinned()) continue;
+            if (conflicted.contains(lesson.getId())) {
+                errors.add("Không thể xếp: lớp %s — %s (%s)".formatted(
+                        lesson.getClassName(), lesson.getSubjectName(),
+                        lesson.getTeacherFullName() != null ? lesson.getTeacherFullName() : "GVCN"));
+            } else {
+                newSlots.add(toAutoSlot(lesson));
+            }
+        }
+
+        return new AutoScheduleResult(newSlots, deduplicateErrors(errors));
     }
+
+    private Lesson buildLesson(Assignment a, Map<Long, Integer> occurrence, Map<Long, SpecialRoom> subjectToRoom,
+                                boolean pinned, Timeslot timeslot) {
+        int idx = occurrence.merge(a.getId(), 1, Integer::sum) - 1;
+        SpecialRoom room = subjectToRoom.get(a.getSubject().getId());
+        return Lesson.builder()
+                .id(a.getId() + "-" + idx)
+                .assignmentId(a.getId())
+                .classId(a.getSchoolClass().getId())
+                .className(a.getSchoolClass().getName())
+                .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
+                .teacherFullName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
+                .teacherMaxPeriodsPerWeek(a.getTeacher() != null ? a.getTeacher().getMaxPeriodsPerWeek() : null)
+                .subjectId(a.getSubject().getId())
+                .subjectName(a.getSubject().getName())
+                .specialRoomId(room != null ? room.getId() : null)
+                .specialRoomCapacity(room != null ? room.getQuantity() : null)
+                .pinned(pinned)
+                .timeslot(timeslot)
+                .build();
+    }
+
+    private Set<String> findAttributableHardConflicts(List<Lesson> lessons) {
+        Set<String> conflicted = new HashSet<>();
+        Map<String, List<Lesson>> byClassSlot = new HashMap<>();
+        Map<String, List<Lesson>> byTeacherSlot = new HashMap<>();
+        Map<String, List<Lesson>> byRoomSlot = new HashMap<>();
+
+        for (Lesson l : lessons) {
+            if (l.getTimeslot() == null) {
+                conflicted.add(l.getId());
+                continue;
+            }
+            String ts = timeslotKey(l.getTimeslot().getDay(), l.getTimeslot().getSession(), l.getTimeslot().getPeriod());
+            byClassSlot.computeIfAbsent(l.getClassId() + "_" + ts, k -> new ArrayList<>()).add(l);
+            if (l.getTeacherId() != null) {
+                byTeacherSlot.computeIfAbsent(l.getTeacherId() + "_" + ts, k -> new ArrayList<>()).add(l);
+            }
+            if (l.getSpecialRoomId() != null) {
+                byRoomSlot.computeIfAbsent(l.getSpecialRoomId() + "_" + ts, k -> new ArrayList<>()).add(l);
+            }
+        }
+
+        byClassSlot.values().stream().filter(g -> g.size() > 1)
+                .forEach(g -> g.forEach(l -> conflicted.add(l.getId())));
+        byTeacherSlot.values().stream().filter(g -> g.size() > 1)
+                .forEach(g -> g.forEach(l -> conflicted.add(l.getId())));
+        byRoomSlot.values().stream().filter(g -> g.size() > g.get(0).getSpecialRoomCapacity())
+                .forEach(g -> g.forEach(l -> conflicted.add(l.getId())));
+
+        return conflicted;
+    }
+
+    private String timeslotKey(int day, int session, int period) {
+        return day + "_" + session + "_" + period;
+    }
+
+    // private ScheduleGrid buildPrePopulatedGrid(List<SpecialRoom> rooms,
+    //                                            List<Slot> existingSlots,
+    //                                            List<Assignment> allAssignments) {
+    //     Map<Long, Assignment> assignmentMap = allAssignments.stream()
+    //             .collect(Collectors.toMap(Assignment::getId, a -> a, (a, b) -> a));
+    //
+    //     ScheduleGrid grid = new ScheduleGrid(rooms);
+    //
+    //     for (Slot slot : existingSlots) {
+    //         if (slot.getAssignment() == null) continue;
+    //         Assignment a = assignmentMap.get(slot.getAssignment().getId());
+    //         if (a == null) continue;
+    //
+    //         // Slots in DB use flat period (1-7); grid uses within-session period (1-4 / 1-3)
+    //         int flatPeriod = slot.getPeriod();
+    //         int session = flatPeriod <= 4 ? 1 : 2;
+    //         int withinPeriod = flatPeriod <= 4 ? flatPeriod : flatPeriod - 4;
+    //
+    //         grid.placeLocked(a, slot.getDay(), session, withinPeriod);
+    //     }
+    //
+    //     return grid;
+    // }
 
     private List<String> deduplicateErrors(List<String> errors) {
         Map<String, Long> counts = errors.stream()

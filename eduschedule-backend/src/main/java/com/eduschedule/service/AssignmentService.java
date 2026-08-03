@@ -65,12 +65,18 @@ public class AssignmentService {
         SchoolClass schoolClass = findClass(request.getClassId());
         Teacher teacher = findTeacher(request.getTeacherId());
 
-        Long schoolYearId = schoolClass.getSchoolYear().getId();
-        if (classRepository.existsByHomeroomTeacherIdAndSchoolYearIdAndIdNot(
-                teacher.getId(), schoolYearId, schoolClass.getId())) {
-            throw new RuntimeException(
-                    "Giáo viên " + teacher.getFullName() +
-                            " đã là GVCN của lớp khác trong năm học này");
+        // Ràng buộc "1 GV chỉ chủ nhiệm 1 lớp" chỉ tính trong CÙNG năm học của lớp đang phân
+        // công — không chặn nếu GV đó đang là GVCN của 1 lớp ở năm học khác.
+        if (schoolClass.getSchoolYear() != null) {
+            classRepository
+                    .findByHomeroomTeacherIdAndSchoolYearId(teacher.getId(), schoolClass.getSchoolYear().getId())
+                    .ifPresent(existing -> {
+                        if (!existing.getId().equals(schoolClass.getId())) {
+                            throw new RuntimeException(
+                                    "Giáo viên " + teacher.getFullName() +
+                                            " đã là GVCN của lớp " + existing.getName() + " trong năm học này");
+                        }
+                    });
         }
 
         schoolClass.setHomeroomTeacher(teacher);

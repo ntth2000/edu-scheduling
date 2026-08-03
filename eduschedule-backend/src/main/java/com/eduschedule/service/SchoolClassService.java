@@ -50,7 +50,7 @@ public class SchoolClassService {
     public ClassResponse create(ClassRequest request) {
         Teacher teacher = null;
         if (request.getHomeroomTeacherId() != null) {
-            teacher = findTeacherAndValidate(request.getHomeroomTeacherId(), null);
+            teacher = findTeacherAndValidate(request.getHomeroomTeacherId(), null, request.getSchoolYearId());
         }
 
         SchoolYear schoolYear = null;
@@ -80,7 +80,8 @@ public class SchoolClassService {
 
         Teacher teacher = null;
         if (request.getHomeroomTeacherId() != null) {
-            teacher = findTeacherAndValidate(request.getHomeroomTeacherId(), id);
+            Long schoolYearId = schoolClass.getSchoolYear() != null ? schoolClass.getSchoolYear().getId() : null;
+            teacher = findTeacherAndValidate(request.getHomeroomTeacherId(), id, schoolYearId);
         }
 
         if (schoolClass.getSchoolYear() != null
@@ -124,16 +125,19 @@ public class SchoolClassService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp với id: " + id));
     }
 
-    private Teacher findTeacherAndValidate(Long teacherId, Long currentClassId) {
+    private Teacher findTeacherAndValidate(Long teacherId, Long currentClassId, Long schoolYearId) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên với id: " + teacherId));
 
-        // Check if teacher is already homeroom teacher of another class
-        classRepository.findByHomeroomTeacherId(teacherId).ifPresent(c -> {
-            if (!c.getId().equals(currentClassId)) {
-                throw new RuntimeException("Giáo viên này đã chủ nhiệm lớp " + c.getName());
-            }
-        });
+        // Check if teacher is already homeroom teacher of another class IN THE SAME SCHOOL YEAR —
+        // being GVCN of a class in a different year is not a conflict.
+        if (schoolYearId != null) {
+            classRepository.findByHomeroomTeacherIdAndSchoolYearId(teacherId, schoolYearId).ifPresent(c -> {
+                if (!c.getId().equals(currentClassId)) {
+                    throw new RuntimeException("Giáo viên này đã chủ nhiệm lớp " + c.getName() + " trong năm học này");
+                }
+            });
+        }
 
         return teacher;
     }
