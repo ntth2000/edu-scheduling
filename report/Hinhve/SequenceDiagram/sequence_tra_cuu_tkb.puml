@@ -12,19 +12,14 @@ entity "Thời khóa biểu" as Timetable
 entity "Tuần học" as Week
 entity "Tiết học" as Slot
 
-note over Timetable
-    Thời khóa biểu đã được công khai,
-    có UID và URL công khai tương ứng
-end note
-
 Guest -> LookupUI: Mở URL công khai chứa UID
 LookupUI -> LookupController: Yêu cầu tra cứu thời khóa biểu theo UID
 LookupController -> Timetable: Tìm thời khóa biểu có UID tương ứng
 Timetable --> LookupController: Thông tin thời khóa biểu\nhoặc không tìm thấy
 
 alt UID không hợp lệ hoặc không tìm thấy thời khóa biểu công khai
-    LookupController --> LookupUI: Yêu cầu chuyển hướng
-    LookupUI --> Guest: Chuyển tới màn hình đăng nhập
+    LookupController --> LookupUI: Không tìm thấy thời khóa biểu công khai
+    LookupUI --> Guest: Hiển thị thông báo thời khóa biểu công khai không tồn tại
 else Tìm thấy thời khóa biểu công khai
     LookupController --> LookupUI: Thông tin thời khóa biểu\n(năm học, học kỳ)
 

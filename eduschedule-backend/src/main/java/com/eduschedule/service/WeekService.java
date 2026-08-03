@@ -97,8 +97,12 @@ public class WeekService {
                 .map(Week::getWeekNumber)
                 .toList();
         if (!publishedWeekNumbers.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Không thể áp dụng đè lên tuần đã công bố: " + publishedWeekNumbers);
+            boolean plural = publishedWeekNumbers.size() > 1;
+            String message = "Không thể áp dụng thay đổi từ tuần " + sourceWeekNumber + "\n"
+                    + formatWeekList(publishedWeekNumbers) + " đã được công bố và đang bị khóa. "
+                    + "Vui lòng hủy công bố " + (plural ? "các tuần này" : "tuần này")
+                    + " trước khi áp dụng thay đổi, hoặc chỉ lưu thay đổi cho tuần " + sourceWeekNumber + ".";
+            throw new ResponseStatusException(HttpStatus.CONFLICT, message);
         }
 
         List<Slot> sourceSlots = slotRepository.findByWeekId(sourceWeekId);
@@ -120,6 +124,19 @@ public class WeekService {
             }
         }
         slotRepository.saveAll(copies);
+    }
+
+    // "Tuần 8" / "Tuần 8 và tuần 9" / "Tuần 8, tuần 9 và tuần 10".
+    private String formatWeekList(List<Integer> weekNumbers) {
+        List<String> parts = new ArrayList<>();
+        for (int i = 0; i < weekNumbers.size(); i++) {
+            parts.add((i == 0 ? "Tuần " : "tuần ") + weekNumbers.get(i));
+        }
+        if (parts.size() == 1) {
+            return parts.get(0);
+        }
+        String last = parts.remove(parts.size() - 1);
+        return String.join(", ", parts) + " và " + last;
     }
 
     // Publish eligibility = (a) every assignment's required weekly periods are fully placed in

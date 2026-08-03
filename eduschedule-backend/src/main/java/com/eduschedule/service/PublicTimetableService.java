@@ -159,8 +159,11 @@ public class PublicTimetableService {
                 .build();
     }
 
+    // Chỉ gọi cho tuần đã công bố (getSlots() trả rỗng sớm nếu chưa) nên dùng snapshot đóng
+    // băng lúc publish — xem ghi chú tương tự ở SlotService#toResponse.
     private SlotResponse toSlotResponse(Slot slot) {
         Assignment a = slot.getAssignment();
+        boolean published = Boolean.TRUE.equals(slot.getWeek().getIsPublished());
         return SlotResponse.builder()
                 .id(slot.getId())
                 .weekId(slot.getWeek().getId())
@@ -171,9 +174,9 @@ public class PublicTimetableService {
                 .period(slot.getPeriod())
                 .specialRoomId(slot.getSpecialRoom() != null ? slot.getSpecialRoom().getId() : null)
                 .subjectId(a.getSubject().getId())
-                .subjectName(a.getSubject().getName())
-                .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
-                .teacherName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
+                .subjectName(published ? slot.getSubjectNameSnapshot() : a.getSubject().getName())
+                .teacherId(published ? slot.getTeacherIdSnapshot() : (a.getTeacher() != null ? a.getTeacher().getId() : null))
+                .teacherName(published ? slot.getTeacherNameSnapshot() : (a.getTeacher() != null ? a.getTeacher().getFullName() : null))
                 .classId(a.getSchoolClass().getId())
                 .className(a.getSchoolClass().getName())
                 .grade(a.getSchoolClass().getGrade())

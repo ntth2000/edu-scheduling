@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface SlotRepository extends JpaRepository<Slot, Long> {
     List<Slot> findByWeekId(Long weekId);
 
+    List<Slot> findByWeekIdIn(List<Long> weekIds);
+
     Optional<Slot> findByWeekIdAndDayAndSessionAndPeriodAndAssignment_SchoolClassId(
             Long weekId, Integer day, Integer session, Integer period, Long classId);
 

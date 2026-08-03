@@ -122,8 +122,12 @@ public class SlotService {
         }
     }
 
+    // Tuần đã công bố: dùng tên GV/môn đã đóng băng lúc publish (xem TimetableService#publish)
+    // thay vì đọc "sống" từ Assignment, để tuần đã khoá không đổi hiển thị khi phân công bị
+    // sửa sau đó. Tuần chưa công bố vẫn phản ánh Assignment hiện tại như trước giờ.
     private SlotResponse toResponse(Slot slot) {
         Assignment a = slot.getAssignment();
+        boolean published = Boolean.TRUE.equals(slot.getWeek().getIsPublished());
         return SlotResponse.builder()
                 .id(slot.getId())
                 .weekId(slot.getWeek().getId())
@@ -134,9 +138,9 @@ public class SlotService {
                 .period(slot.getPeriod())
                 .specialRoomId(slot.getSpecialRoom() != null ? slot.getSpecialRoom().getId() : null)
                 .subjectId(a.getSubject().getId())
-                .subjectName(a.getSubject().getName())
-                .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
-                .teacherName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
+                .subjectName(published ? slot.getSubjectNameSnapshot() : a.getSubject().getName())
+                .teacherId(published ? slot.getTeacherIdSnapshot() : (a.getTeacher() != null ? a.getTeacher().getId() : null))
+                .teacherName(published ? slot.getTeacherNameSnapshot() : (a.getTeacher() != null ? a.getTeacher().getFullName() : null))
                 .classId(a.getSchoolClass().getId())
                 .className(a.getSchoolClass().getName())
                 .grade(a.getSchoolClass().getGrade())

@@ -17,7 +17,7 @@ for (const dir of usecaseDirs) {
   const dirPath = path.join(__dirname, dir);
   const files = fs
     .readdirSync(dirPath)
-    .filter((f) => f.endsWith(".js"))
+    .filter((f) => f.endsWith(".js") && !f.startsWith("_"))
     .sort();
 
   for (const file of files) {

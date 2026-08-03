@@ -3,11 +3,14 @@ package com.eduschedule.service;
 import com.eduschedule.dto.request.TimetableRequest;
 import com.eduschedule.dto.response.TimetableResponse;
 import com.eduschedule.dto.response.WeekPublishStatusResponse;
+import com.eduschedule.entity.Assignment;
 import com.eduschedule.entity.SchoolYear;
+import com.eduschedule.entity.Slot;
 import com.eduschedule.entity.Timetable;
 import com.eduschedule.entity.User;
 import com.eduschedule.entity.Week;
 import com.eduschedule.repository.SchoolYearRepository;
+import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.TimetableRepository;
 import com.eduschedule.repository.UserRepository;
 import com.eduschedule.repository.WeekRepository;
@@ -32,6 +35,7 @@ public class TimetableService {
     private final WeekRepository weekRepository;
     private final WeekService weekService;
     private final UserRepository userRepository;
+    private final SlotRepository slotRepository;
 
     public List<TimetableResponse> getAll() {
         return timetableRepository.findAll().stream()
@@ -95,6 +99,20 @@ public class TimetableService {
             week.setIsPublished(targetIds.contains(week.getId()));
         }
         weekRepository.saveAll(allWeeks);
+
+        // Đóng băng tên GV/môn hiện tại vào các tuần (mới) công khai, để tuần đã công bố
+        // không đổi hiển thị nếu sau đó phân công bị sửa (đổi GV, đổi tên môn...). Chạy lại
+        // mỗi lần publish nên công bố lại một tuần luôn chụp đúng nội dung mới nhất.
+        if (!targetIds.isEmpty()) {
+            List<Slot> slotsToSnapshot = slotRepository.findByWeekIdIn(targetIds);
+            for (Slot slot : slotsToSnapshot) {
+                Assignment a = slot.getAssignment();
+                slot.setTeacherIdSnapshot(a.getTeacher() != null ? a.getTeacher().getId() : null);
+                slot.setTeacherNameSnapshot(a.getTeacher() != null ? a.getTeacher().getFullName() : null);
+                slot.setSubjectNameSnapshot(a.getSubject().getName());
+            }
+            slotRepository.saveAll(slotsToSnapshot);
+        }
 
         if (targetIds.isEmpty()) {
             timetable.setIsPublic(false);
