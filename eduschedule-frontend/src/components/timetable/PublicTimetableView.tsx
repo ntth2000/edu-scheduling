@@ -97,7 +97,6 @@ export function PublicTimetableView({ token }: { token: string }) {
         <h2 className="text-2xl font-extrabold text-md-on-surface tracking-tight font-heading">
           HK{info.semesterOrder} – {info.schoolYearName}
         </h2>
-        <p className="text-sm text-md-on-surface-variant">Thời khoá biểu công khai — chỉ xem</p>
       </div>
 
       <div className="flex items-center gap-4 flex-wrap shrink-0">
