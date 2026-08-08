@@ -1,0 +1,51 @@
+@startuml
+title Biểu đồ trình tự - Quản lý năm học
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện quản lý\nnăm học" as UI
+control "Điều khiển\nnăm học" as Controller
+control "Xử lý nghiệp vụ\nnăm học" as Service
+database "CSDL\nnăm học" as DB
+
+User -> UI: Truy cập chức năng quản lý năm học
+UI -> Controller: lấyDanhSáchNămHọc()
+Controller -> Service: lấyDanhSáchNămHọc()
+Service -> DB: truyVấnNămHọcVàHọcKỳ()
+DB --> Service: Danh sách năm học và học kỳ
+Service --> Controller: Danh sách năm học
+Controller --> UI: Trả về danh sách
+UI --> User: Hiển thị danh sách năm học
+
+alt Tạo năm học mới
+    User -> UI: Nhập năm bắt đầu và ngày bắt đầu hai học kỳ
+    UI -> Controller: tạoNămHọc(thôngTin)
+    Controller -> Controller: kiểmTraDữLiệu()
+    Controller -> Service: kiểmTraNămHọcTồnTại()
+    Service -> DB: tìmNămHọc()
+    DB --> Service: Kết quả kiểm tra
+    alt Năm học đã tồn tại hoặc ngày không hợp lệ
+        Service --> Controller: Dữ liệu không hợp lệ
+        Controller --> UI: Trả về thông báo lỗi
+        UI --> User: Hiển thị lỗi, không tạo dữ liệu
+    else Dữ liệu hợp lệ
+        Controller -> Service: tạoNămHọcVàDữLiệuLiênQuan()
+        Service -> DB: tạoNămHọc, hai học kỳ và các tuần
+        DB --> Service: Tạo thành công
+        Service --> Controller: Năm học đã tạo
+        Controller --> UI: Trả về kết quả
+        UI --> User: Cập nhật danh sách
+    end
+else Điều chỉnh ngày bắt đầu tuần học
+    User -> UI: Chọn tuần và nhập ngày bắt đầu mới
+    UI -> Controller: cậpNhậtNgàyTuần(thôngTinTuần)
+    Controller -> Service: cậpNhậtTuầnVàCácTuầnTiếpTheo()
+    Service -> DB: lưuDanhSáchTuầnĐãCậpNhật()
+    DB --> Service: Cập nhật thành công
+    Service --> Controller: Danh sách tuần mới
+    Controller --> UI: Trả về kết quả
+    UI --> User: Hiển thị các tuần đã cập nhật
+end
+@enduml

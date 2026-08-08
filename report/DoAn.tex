@@ -29,7 +29,6 @@
 \usepackage{needspace} % Hạn chế tiêu đề và bảng bị tách không hợp lý giữa hai trang
 \usepackage{fancyhdr} % Cho phép tùy biến header và footer
 % \usepackage[natbib,backend=biber,style=ieee]{biblatex} % Giúp chèn tài liệu tham khảo
-\usepackage{appendix}
 
 \usepackage[font=small,labelfont=bf]{caption}
 
@@ -53,11 +52,6 @@
 
 \renewcommand{\bibname}{Danh_sach_tai_lieu_tham_khao} 
 \usepackage[backend=biber,style=ieee]{biblatex}
-
-\renewcommand\appendixname{PHỤ LỤC}
-\renewcommand\appendixpagename{PHỤ LỤC}
-\renewcommand\appendixtocname{PHỤ LỤC}
-
 
 \addbibresource{Danh_sach_tai_lieu_tham_khao.bib} % chèn file chứa danh mục tài liệu tham khảo vào 
 
@@ -296,13 +290,6 @@
 \label{chapter:SolutionAndContribution}
 \subfile{Chuong/5_Giai_phap_dong_gop}
 
-\newpage
-%\pagestyle{fancy} % Áp dụng header và footer
-\chapter*{MỘT SỐ LƯU Ý VỀ TÀI LIỆU THAM KHẢO} %Kết luận và hướng phát triển}
-\label{chapter:reference}
-\subfile{Chuong/7_Luu_y_tai_lieu_tham_khao}
-
-
 % ===================================================
 % ===== TÀI LIỆU THAM KHẢO =====
 \newpage
@@ -310,23 +297,4 @@
 \printbibliography
 \phantomsection\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
 
-% ===== PHỤ LỤC =====
-\appendixpage
-\appendices
-\addappheadtotoc
-
-\titleformat{\chapter}[hang]{\centering\bfseries}{ \thechapter.\ }{0pt}{}[]
-\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
-
-\titlecontents{chapter}
-    [0.0cm]
-    {\bfseries\vspace{0.3cm}}
-    {{\bfseries{\scshape} \thecontentslabel.\ }}
-    {}
-    {\titlerule*[0.3pc]{.}\contentspage}
-\chapter{ĐẶC TẢ USE CASE}
-\subfile{Chuong/Phu_luc_A}
-% \newpage
-% \chapter{ĐẶC TẢ USE CASE}
-% \subfile{Chuong/Phu_luc_B}
 \end{document}

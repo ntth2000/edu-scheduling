@@ -1,0 +1,55 @@
+@startuml
+title Biểu đồ trình tự - Quản lý giáo viên
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện quản lý\ngiáo viên" as UI
+control "Điều khiển\ngiáo viên" as Controller
+control "Xử lý nghiệp vụ\ngiáo viên" as Service
+database "CSDL\ngiáo viên" as DB
+
+User -> UI: Truy cập chức năng "Quản lý giáo viên"
+UI -> Controller: lấyDanhSáchGiáoViên()
+Controller -> Service: lấyDanhSáchGiáoViên()
+Service -> DB: truyVấnDanhSách()
+DB --> Service: Danh sách giáo viên
+Service --> Controller: Danh sách giáo viên
+Controller --> UI: Trả về danh sách
+UI --> User: Hiển thị, tìm kiếm và lọc danh sách
+
+alt Thêm mới hoặc cập nhật giáo viên
+    User -> UI: Nhập thông tin và xác nhận lưu
+    UI -> Controller: lưuGiáoViên(thôngTin)
+    Controller -> Controller: kiểmTraDữLiệu()
+    alt Dữ liệu không hợp lệ
+        Controller --> UI: Trả về thông báo lỗi
+        UI --> User: Hiển thị lỗi, yêu cầu kiểm tra lại
+    else Dữ liệu hợp lệ
+        Controller -> Service: lưuGiáoViên(thôngTin)
+        Service -> DB: thêmHoặcCậpNhật()
+        DB --> Service: Lưu thành công
+        Service --> Controller: Giáo viên đã cập nhật
+        Controller --> UI: Trả về kết quả
+        UI --> User: Cập nhật danh sách và thông báo thành công
+    end
+else Xóa giáo viên
+    User -> UI: Chọn giáo viên và yêu cầu xóa
+    UI -> Controller: xóaGiáoViên(mãGiáoViên)
+    Controller -> Service: kiểmTraVàXóa(mãGiáoViên)
+    Service -> DB: kiểmTraPhânCôngVàChủNhiệm()
+    DB --> Service: Kết quả kiểm tra
+    alt Đã có phân công hoặc đang chủ nhiệm
+        Service --> Controller: Không cho phép xóa
+        Controller --> UI: Trả về dữ liệu liên quan
+        UI --> User: Hiển thị thông báo không thể xóa
+    else Có thể xóa
+        Service -> DB: xóaGiáoViên()
+        DB --> Service: Xóa thành công
+        Service --> Controller: Kết quả xóa
+        Controller --> UI: Trả về kết quả
+        UI --> User: Cập nhật danh sách
+    end
+end
+@enduml

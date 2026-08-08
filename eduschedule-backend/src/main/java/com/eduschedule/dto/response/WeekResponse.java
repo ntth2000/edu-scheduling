@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class WeekResponse {
     private Long id;
     private Integer weekNumber;
-    private LocalDate startDate;  // null khi chưa set
-    private LocalDate endDate;    // null khi startDate chưa set
+    private LocalDate startDate; 
+    private LocalDate endDate; 
     private Boolean isPublished;
 }

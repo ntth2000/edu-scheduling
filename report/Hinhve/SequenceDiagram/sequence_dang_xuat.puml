@@ -1,0 +1,30 @@
+@startuml
+title Biểu đồ trình tự - Đăng xuất
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện\nứng dụng" as UI
+control "Điều khiển\nxác thực" as Controller
+control "Xử lý\nxác thực" as AuthService
+database "CSDL\nphiên đăng nhập" as DB
+
+User -> UI: Chọn chức năng "Đăng xuất"
+UI -> Controller: đăngXuất(thôngTinPhiên)
+Controller -> AuthService: thuHồiPhiên(thôngTinPhiên)
+AuthService -> DB: tìmPhiênĐăngNhập()
+DB --> AuthService: Phiên đăng nhập hoặc rỗng
+
+alt Phiên đăng nhập còn hiệu lực
+    AuthService -> DB: thuHồiMãLàmMới()
+    DB --> AuthService: Thu hồi thành công
+    AuthService --> Controller: Đăng xuất thành công
+else Phiên đăng nhập đã hết hạn
+    AuthService --> Controller: Phiên không còn hiệu lực
+end
+
+Controller --> UI: Yêu cầu xóa thông tin xác thực
+UI -> UI: xóaTokenVàCookie()
+UI --> User: Chuyển về trang đăng nhập
+@enduml

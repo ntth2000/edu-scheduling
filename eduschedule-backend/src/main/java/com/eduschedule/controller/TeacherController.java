@@ -18,9 +18,11 @@ public class TeacherController {
     private final TeacherService teacherService;
 
     // GET /api/teachers
+    // GET /api/teachers?year=2026-2027 — year tuỳ chọn, giới hạn thông tin chủ nhiệm về năm học đó
     @GetMapping
-    public ResponseEntity<List<TeacherResponse>> getAll() {
-        return ResponseEntity.ok(teacherService.getAll());
+    public ResponseEntity<List<TeacherResponse>> getAll(
+            @RequestParam(required = false) String year) {
+        return ResponseEntity.ok(teacherService.getAll(year));
     }
 
     // GET /api/teachers/{id}

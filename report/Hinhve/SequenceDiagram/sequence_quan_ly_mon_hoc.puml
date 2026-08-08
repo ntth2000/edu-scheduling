@@ -1,0 +1,67 @@
+@startuml
+title Biểu đồ trình tự - Quản lý môn học
+
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện quản lý\nmôn học" as SubjectUI
+control "Điều khiển\nmôn học" as SubjectController
+control "Xử lý nghiệp vụ\nmôn học" as SubjectService
+database "CSDL\nmôn học" as SubjectDB
+
+User -> SubjectUI: Truy cập chức năng "Quản lý môn học"
+SubjectUI -> SubjectController: lấyDanhSáchMônHọc()
+SubjectController -> SubjectService: lấyDanhSáchMônHọc()
+SubjectService -> SubjectDB: truyVấnDanhSáchMônHọc()
+SubjectDB --> SubjectService: Danh sách môn học
+SubjectService --> SubjectController: Danh sách môn học
+SubjectController --> SubjectUI: Danh sách môn học và số tiết theo khối
+SubjectUI --> User: Hiển thị danh sách môn học
+
+alt Thêm mới hoặc cập nhật môn học
+    User -> SubjectUI: Nhập thông tin và xác nhận lưu
+    SubjectUI -> SubjectController: lưuMônHọc(thôngTinMônHọc)
+    SubjectController -> SubjectController: kiểmTraDữLiệuVàTênTrùng()
+
+    alt Dữ liệu không hợp lệ hoặc tên môn học bị trùng
+        SubjectController --> SubjectUI: Trả về thông báo lỗi
+        SubjectUI --> User: Hiển thị lỗi, không lưu thay đổi
+    else Dữ liệu hợp lệ
+        SubjectController -> SubjectService: lưuMônHọc(thôngTinMônHọc)
+        SubjectService -> SubjectDB: thêmHoặcCậpNhậtMônHọc()
+        SubjectDB --> SubjectService: Lưu thành công
+        SubjectService --> SubjectController: Môn học đã cập nhật
+        SubjectController --> SubjectUI: Trả về kết quả
+        SubjectUI --> User: Cập nhật danh sách và thông báo thành công
+    end
+
+else Xóa môn học
+    User -> SubjectUI: Chọn môn học và yêu cầu xóa
+    SubjectUI -> SubjectController: xóaMônHọc(mãMônHọc)
+    SubjectController -> SubjectService: kiểmTraVàXóa(mãMônHọc)
+    SubjectService -> SubjectDB: kiểmTraDữLiệuLiênQuan(mãMônHọc)
+    SubjectDB --> SubjectService: Kết quả kiểm tra
+
+    alt Môn học có dữ liệu liên quan
+        SubjectService --> SubjectController: Yêu cầu xác nhận
+        SubjectController --> SubjectUI: Hiển thị yêu cầu xác nhận
+        SubjectUI --> User: Yêu cầu xác nhận xóa
+        User -> SubjectUI: Xác nhận hoặc hủy thao tác
+        SubjectUI -> SubjectController: kếtQuảXácNhận()
+    end
+
+    alt Người dùng xác nhận xóa
+        SubjectController -> SubjectService: xóaMônHọc(mãMônHọc)
+        SubjectService -> SubjectDB: xóaMônHọc(mãMônHọc)
+        SubjectDB --> SubjectService: Xóa thành công
+        SubjectService --> SubjectController: Kết quả xóa
+        SubjectController --> SubjectUI: Trả về kết quả
+        SubjectUI --> User: Cập nhật danh sách và thông báo thành công
+    else Người dùng hủy
+        SubjectUI --> User: Giữ nguyên danh sách môn học
+    end
+end
+
+@enduml

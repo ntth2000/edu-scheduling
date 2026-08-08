@@ -190,294 +190,6 @@ phòng chức năng, đồng thời lưu bản chụp thông tin giáo viên và
 ngoại trong mô hình giúp hạn chế dữ liệu trùng lặp, duy trì tính toàn vẹn và hỗ
 trợ hệ thống truy xuất lịch học một cách nhất quán.
 
-\iffalse
-
-Từ sơ đồ ER, ta có thể thiết kế chi tiết cấu trúc bảng và ràng buộc cho từng bảng như sau:
-
-\subsubsection*{Bảng users}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng users}
-\label{table:db_users}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-username & VARCHAR(255) & NOT NULL, UNIQUE & Tên đăng nhập \\
-\hline
-password & VARCHAR(255) & NOT NULL & Mật khẩu (BCrypt hash) \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng teachers}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng teachers}
-\label{table:db_teachers}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-full\_name & VARCHAR(255) & NOT NULL & Họ và tên giáo viên \\
-\hline
-user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
-\hline
-type & VARCHAR(20) & NOT NULL & Loại: BO\_MON, CHU\_NHIEM, KHAC \\
-\hline
-max\_periods\_per\_week & INTEGER & NOT NULL & Số tiết tối đa mỗi tuần \\
-\hline
-is\_active & BOOLEAN & NOT NULL, DEFAULT true & Trạng thái hoạt động \\
-\hline
-created\_at & TIMESTAMP & NOT NULL & Thời điểm tạo bản ghi \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng subjects}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng subjects}
-\label{table:db_subjects}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
-\hline
-name & VARCHAR(100) & NOT NULL & Tên môn học \\
-\hline
-periods\_grade1 & INTEGER & NOT NULL & Số tiết/tuần khối 1 \\
-\hline
-periods\_grade2 & INTEGER & NOT NULL & Số tiết/tuần khối 2 \\
-\hline
-periods\_grade3 & INTEGER & NOT NULL & Số tiết/tuần khối 3 \\
-\hline
-periods\_grade4 & INTEGER & NOT NULL & Số tiết/tuần khối 4 \\
-\hline
-periods\_grade5 & INTEGER & NOT NULL & Số tiết/tuần khối 5 \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng teacher\_subjects}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng teacher\_subjects}
-\label{table:db_teacher_subjects}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-teacher\_id & BIGINT & PK, FK $\rightarrow$ teachers & Khoá ngoại giáo viên \\
-\hline
-subject\_id & BIGINT & PK, FK $\rightarrow$ subjects & Khoá ngoại môn học \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-Bảng trung gian thể hiện quan hệ nhiều–nhiều giữa giáo viên và các môn học họ có thể dạy.
-
-\subsubsection*{Bảng school\_years}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng school\_years}
-\label{table:db_school_years}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
-\hline
-start\_year & INTEGER & NOT NULL & Năm bắt đầu (VD: 2024) \\
-\hline
-\multicolumn{4}{|l|}{\textit{UNIQUE(user\_id, start\_year)}} \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng special\_rooms}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng special\_rooms}
-\label{table:db_special_rooms}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-user\_id & BIGINT & NOT NULL, FK $\rightarrow$ users & Tài khoản sở hữu \\
-\hline
-name & VARCHAR(100) & NOT NULL & Tên phòng chức năng \\
-\hline
-subject\_id & BIGINT & FK $\rightarrow$ subjects, NULL & Môn học sử dụng phòng này \\
-\hline
-quantity & INTEGER & NOT NULL, DEFAULT 1 & Số lượng phòng hiện có \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng classes}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng classes}
-\label{table:db_classes}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-name & VARCHAR(10) & NOT NULL & Tên lớp (VD: 1A, 3B) \\
-\hline
-grade & INTEGER & NOT NULL & Khối lớp (1–5) \\
-\hline
-homeroom\_teacher\_id & BIGINT & FK $\rightarrow$ teachers, NULL & Giáo viên chủ nhiệm \\
-\hline
-school\_year\_id & BIGINT & FK $\rightarrow$ school\_years, NULL & Năm học \\
-\hline
-\multicolumn{4}{|l|}{\textit{UNIQUE(name, school\_year\_id)}} \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng assignments}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng assignments}
-\label{table:db_assignments}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-class\_id & BIGINT & NOT NULL, FK $\rightarrow$ classes & Lớp học được phân công \\
-\hline
-subject\_id & BIGINT & NOT NULL, FK $\rightarrow$ subjects & Môn học được phân công \\
-\hline
-teacher\_id & BIGINT & FK $\rightarrow$ teachers, NULL & Giáo viên được phân công \\
-\hline
-periods\_per\_week & INTEGER & NOT NULL, DEFAULT 0 & Số tiết/tuần được phân công \\
-\hline
-\multicolumn{4}{|l|}{\textit{UNIQUE(class\_id, subject\_id, teacher\_id)}} \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng timetables}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng timetables}
-\label{table:db_timetables}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-school\_year\_id & BIGINT & NOT NULL, FK $\rightarrow$ school\_years & Năm học \\
-\hline
-semester\_order & INTEGER & NOT NULL & Thứ tự học kì (1 hoặc 2) \\
-\hline
-\multicolumn{4}{|l|}{\textit{UNIQUE(school\_year\_id, semester\_order)}} \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng weeks}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng weeks}
-\label{table:db_weeks}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-timetable\_id & BIGINT & NOT NULL, FK $\rightarrow$ timetables & Thời khoá biểu chứa tuần này \\
-\hline
-week\_number & INTEGER & NOT NULL & Số thứ tự tuần trong học kì \\
-\hline
-start\_date & DATE & NULL & Ngày bắt đầu của tuần \\
-\hline
-\multicolumn{4}{|l|}{\textit{UNIQUE(timetable\_id, week\_number)}} \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\subsubsection*{Bảng slots}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Mô tả bảng slots}
-\label{table:db_slots}
-\begin{tabular}{|p{3.5cm}|p{3cm}|p{4cm}|p{3cm}|}
-\hline
-\textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
-\hline
-id & BIGINT & PK, AUTO\_INCREMENT & Khoá chính \\
-\hline
-week\_id & BIGINT & NOT NULL, FK $\rightarrow$ weeks & Tuần học chứa tiết này \\
-\hline
-assignment\_id & BIGINT & FK $\rightarrow$ assignments, NULL & Phân công tương ứng \\
-\hline
-day & INTEGER & NOT NULL & Thứ trong tuần (2–6) \\
-\hline
-session & INTEGER & NOT NULL & Buổi học (1: sáng, 2: chiều) \\
-\hline
-period & INTEGER & NOT NULL & Tiết trong buổi (1–4 sáng, 1–3 chiều) \\
-\hline
-special\_room\_id & BIGINT & FK $\rightarrow$ special\_rooms, NULL & Phòng chức năng sử dụng \\
-\hline
-\multicolumn{4}{|l|}{\textit{UNIQUE(week\_id, assignment\_id, day, session, period)}} \\
-\hline
-\end{tabular}
-\end{table}
-\vspace{-8pt}
-
-\fi
 
 \section{Xây dựng ứng dụng}
 \subsection{Thư viện và công cụ sử dụng}
@@ -536,11 +248,11 @@ Thư viện thành phần giao diện & shadcn/ui & 4.1.0 \\
 \hline
 Kiểm tra dữ liệu biểu mẫu & Zod & 4.3.6 \\
 \hline
-Xuất tệp Excel & SheetJS (xlsx) & 0.18.5 \\
-\hline
 Hiển thị thông báo phản hồi & Sonner & 2.0.7 \\
 \hline
 Kiểm thử thành phần giao diện & Vitest và React Testing Library & 4.1.8 và 16.3.2 \\
+\hline
+Kiểm thử tự động giao diện đầu cuối & Playwright & 1.55.0 \\
 \hline
 \multicolumn{3}{|l|}{\textit{Công cụ phát triển và triển khai}} \\
 \hline
@@ -564,6 +276,8 @@ Quản lý mã nguồn & Git và GitHub & -- \\
 
 \subsection{Kết quả đạt được và minh họa các chức năng chính}
 \label{subsection:4.3.2}
+\begingroup
+\raggedbottom
 
 Sản phẩm EduSchedule gồm hai thành phần độc lập được triển khai riêng biệt:
 \begin{itemize}[noitemsep]
@@ -587,8 +301,7 @@ công chủ nhiệm, phân công chuyên môn và xếp thời khóa biểu.
 Giao diện quản lý giáo viên (Hình~\ref{fig:ui_teacher}) cho phép người dùng theo
 dõi hồ sơ giáo viên thông qua các thông tin gồm mã giáo viên, họ tên và định mức
 số tiết giảng dạy mỗi tuần. Người dùng có thể tìm kiếm theo tên, thêm mới, chỉnh
-sửa, xóa một hoặc nhiều giáo viên, đồng thời nhập danh sách từ file Excel hoặc
-tải file mẫu để chuẩn bị dữ liệu đúng định dạng.
+sửa, xóa một hoặc nhiều giáo viên.
 
 \begin{figure}[H]
     \centering
@@ -671,17 +384,12 @@ buổi và tiết; mỗi ô thể hiện môn học cùng giáo viên phụ trá
 dùng có thể chuyển đổi giữa chế độ xem theo lớp và theo giáo viên, nhờ đó thuận
 tiện theo dõi lịch giảng dạy và phát hiện các thông tin cần điều chỉnh.
 
+\endgroup
+
 \section{Kiểm thử}
 \label{section:4.4}
 
-Quá trình kiểm thử được xây dựng dựa trên các ca sử dụng đã phân tích trong
-Chương~2, tập trung kiểm tra luồng chính, các trường hợp dữ liệu không hợp lệ
-và những ràng buộc nghiệp vụ quan trọng của hệ thống. Các ca kiểm thử API
-backend được thực hiện bằng JUnit, Spring Boot Test và MockMvc; các thành phần
-giao diện được kiểm tra bằng Vitest, React Testing Library và kiểm thử thủ công
-trên trình duyệt Chrome. Mỗi mục dưới đây tương ứng với một ca sử dụng, trong
-đó bảng kiểm thử trình bày điều kiện hoặc dữ liệu đầu vào, thao tác thực hiện và
-kết quả mong đợi.
+Dưới đây là các trường hợp kiểm thử cho một số ca sử dụng chính của hệ thống.
 
 \newcommand{\testcaseTableHeader}{%
 \hline
@@ -697,61 +405,30 @@ kết quả mong đợi.
 }
 
 \Needspace{12\baselineskip}
-\subsection{Kiểm thử ca sử dụng Đăng nhập}
-\label{subsection:test_uc01}
-
-Bảng~\ref{table:test_uc01} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC01 - Đăng nhập.
-
-{\small
-\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
-\caption{Kiểm thử ca sử dụng Đăng nhập}
-\label{table:test_uc01} \\
-\testcaseTableHeader
-TC01-01 & Tên đăng nhập và mật khẩu hợp lệ. &
-Nhập thông tin và chọn ``Đăng nhập''. &
-Đăng nhập thành công và chuyển người dùng đến trang chính. \\
-\hline
-TC01-02 & Tên đăng nhập hợp lệ, mật khẩu không đúng. &
-Nhập thông tin và chọn ``Đăng nhập''. &
-Hệ thống từ chối đăng nhập, hiển thị thông báo tên đăng nhập hoặc mật khẩu không chính xác. \\
-\hline
-TC01-03 & Bỏ trống tên đăng nhập hoặc mật khẩu. &
-Chọn ``Đăng nhập''. &
-Hệ thống cảnh báo trường bắt buộc và không gửi yêu cầu đăng nhập. \\
-\hline
-TC01-04 & Không có token xác thực hợp lệ. &
-Truy cập trực tiếp một trang quản lý. &
-Hệ thống không cho phép truy cập và chuyển người dùng về trang đăng nhập. \\
-\hline
-\end{longtable}
-}
-
-\Needspace{12\baselineskip}
 \subsection{Kiểm thử ca sử dụng Phân công giáo viên chủ nhiệm}
-\label{subsection:test_uc02}
+\label{subsection:test_uc071}
 
-Bảng~\ref{table:test_uc02} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC02 - Phân công giáo viên chủ nhiệm.
+Bảng~\ref{table:test_uc071} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC07.1 - Phân công giáo viên chủ nhiệm.
 
 {\small
 \begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
 \caption{Kiểm thử ca sử dụng Phân công giáo viên chủ nhiệm}
-\label{table:test_uc02} \\
+\label{table:test_uc071} \\
 \testcaseTableHeader
-TC02-01 & Lớp chưa có giáo viên chủ nhiệm; giáo viên thuộc loại chủ nhiệm và chưa chủ nhiệm lớp khác. &
+TC07.1-01 & Lớp chưa có giáo viên chủ nhiệm; giáo viên thuộc loại chủ nhiệm và chưa chủ nhiệm lớp khác. &
 Chọn lớp, chọn giáo viên và lưu phân công. &
 Giáo viên được gán làm chủ nhiệm của lớp và dữ liệu được cập nhật trên giao diện. \\
 \hline
-TC02-02 & Lớp đã có giáo viên chủ nhiệm. &
+TC07.1-02 & Lớp đã có giáo viên chủ nhiệm. &
 Chọn một giáo viên chủ nhiệm hợp lệ khác và lưu. &
 Phân công cũ được thay thế bằng giáo viên mới. \\
 \hline
-TC02-03 & Giáo viên đã là chủ nhiệm của một lớp khác trong cùng năm học. &
+TC07.1-03 & Giáo viên đã là chủ nhiệm của một lớp khác trong cùng năm học. &
 Chọn giáo viên đó cho lớp mới. &
 Giáo viên không xuất hiện trong danh sách có thể chọn hoặc hệ thống từ chối lưu và thông báo nguyên nhân. \\
 \hline
-TC02-04 & Lớp đang có giáo viên chủ nhiệm. &
+TC07.1-04 & Lớp đang có giáo viên chủ nhiệm. &
 Chọn giá trị trống và xác nhận xoá phân công. &
 Giáo viên chủ nhiệm được gỡ khỏi lớp và giao diện được cập nhật. \\
 \hline
@@ -760,29 +437,29 @@ Giáo viên chủ nhiệm được gỡ khỏi lớp và giao diện được c�
 
 \Needspace{12\baselineskip}
 \subsection{Kiểm thử ca sử dụng Phân công giáo viên bộ môn}
-\label{subsection:test_uc03}
+\label{subsection:test_uc072}
 
-Bảng~\ref{table:test_uc03} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC03 - Phân công giáo viên bộ môn.
+Bảng~\ref{table:test_uc072} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC07.2 - Phân công giáo viên bộ môn.
 
 {\small
 \begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
 \caption{Kiểm thử ca sử dụng Phân công giáo viên bộ môn}
-\label{table:test_uc03} \\
+\label{table:test_uc072} \\
 \testcaseTableHeader
-TC03-01 & Lớp, môn học và giáo viên hợp lệ; môn học của lớp chưa được phân công. &
+TC07.2-01 & Lớp, môn học và giáo viên hợp lệ; môn học của lớp chưa được phân công. &
 Chọn giáo viên tương ứng với môn học của lớp và lưu. &
 Phân công được lưu; tổng số tiết đã phân công của giáo viên được cập nhật. \\
 \hline
-TC03-02 & Môn học của lớp đã được phân công cho một giáo viên khác. &
+TC07.2-02 & Môn học của lớp đã được phân công cho một giáo viên khác. &
 Chọn giáo viên mới và lưu. &
 Hệ thống xoá phân công cũ và lưu phân công cho giáo viên mới. \\
 \hline
-TC03-03 & Có dữ liệu phân công giảng dạy. &
+TC07.2-03 & Có dữ liệu phân công giảng dạy. &
 Chuyển giữa chế độ xem theo giáo viên và theo lớp. &
 Hệ thống hiển thị cùng dữ liệu phân công theo đúng đối tượng được lựa chọn. \\
 \hline
-TC03-04 & Tổng số tiết sau khi phân công vượt định mức của giáo viên. &
+TC07.2-04 & Tổng số tiết sau khi phân công vượt định mức của giáo viên. &
 Thực hiện và lưu phân công. &
 Hệ thống vẫn lưu dữ liệu và hiển thị số tiết vượt định mức bằng trạng thái cảnh báo. \\
 \hline
@@ -790,81 +467,75 @@ Hệ thống vẫn lưu dữ liệu và hiển thị số tiết vượt định
 }
 
 \Needspace{12\baselineskip}
-\subsection{Kiểm thử ca sử dụng Xếp và điều chỉnh thời khoá biểu thủ công}
-\label{subsection:test_uc04}
+\subsection{Kiểm thử ca sử dụng Xếp thời khoá biểu}
+\label{subsection:test_uc08}
 
-Bảng~\ref{table:test_uc04} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC04 - Xếp và điều chỉnh thời khoá biểu thủ công.
+Bảng~\ref{table:test_uc081} và Bảng~\ref{table:test_uc082} trình bày các
+trường hợp kiểm thử tương ứng cho UC08.1 - Xếp và điều chỉnh thời khoá biểu
+thủ công và UC08.2 - Xếp thời khoá biểu tự động.
 
 {\small
 \begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
 \caption{Kiểm thử ca sử dụng Xếp và điều chỉnh thời khoá biểu thủ công}
-\label{table:test_uc04} \\
+\label{table:test_uc081} \\
 \testcaseTableHeader
-TC04-01 & Tuần, lớp, môn học và phân công hợp lệ; ô thời khoá biểu đang trống. &
+TC08.1-01 & Tuần, lớp, môn học và phân công hợp lệ; ô thời khoá biểu đang trống. &
 Chọn ô theo thứ, buổi và tiết; chọn môn học cần xếp. &
 Tiết học được lưu vào đúng ô và lưới thời khoá biểu được cập nhật. \\
 \hline
-TC04-02 & Ô đã có một tiết học. &
+TC08.1-02 & Ô đã có một tiết học. &
 Chọn môn học khác để thay thế nội dung của ô. &
 Hệ thống kiểm tra lại các ràng buộc và cập nhật tiết học khi dữ liệu hợp lệ. \\
 \hline
-TC04-03 & Giáo viên đang dạy một lớp khác tại cùng thứ, buổi và tiết. &
+TC08.1-03 & Giáo viên đang dạy một lớp khác tại cùng thứ, buổi và tiết. &
 Xếp môn học do giáo viên đó phụ trách vào ô. &
 Hệ thống hiển thị xung đột giáo viên và không tạo lịch trùng ngoài lựa chọn xử lý của người dùng. \\
 \hline
-TC04-04 & Môn học chưa được phân công giáo viên cho lớp. &
+TC08.1-04 & Môn học chưa được phân công giáo viên cho lớp. &
 Chọn môn học để xếp vào ô. &
 Hệ thống thông báo cần hoàn tất phân công và không lưu tiết học. \\
 \hline
-TC04-05 & Môn học đã được xếp đủ số tiết quy định trong tuần. &
+TC08.1-05 & Môn học đã được xếp đủ số tiết quy định trong tuần. &
 Mở danh sách môn học tại một ô trống trên lưới thời khoá biểu. &
 Môn học đã đủ số tiết không còn khả dụng để lựa chọn, do đó người dùng không thể xếp thêm tiết cho môn học này. \\
 \hline
-TC04-06 & Môn học cần phòng chức năng nhưng không còn phòng trống tại khung giờ đã chọn. &
+TC08.1-06 & Môn học cần phòng chức năng nhưng không còn phòng trống tại khung giờ đã chọn. &
 Xếp môn học vào ô tương ứng. &
 Hệ thống thông báo xung đột phòng chức năng và không lưu tiết học. \\
 \hline
-TC04-07 & Thời khoá biểu đã có tiết Toán của một lớp; giáo viên phụ trách môn Toán của lớp được thay đổi và giáo viên mới đang dạy lớp khác tại cùng thời điểm. &
+TC08.1-07 & Thời khoá biểu đã có tiết Toán của một lớp; giáo viên phụ trách môn Toán của lớp được thay đổi và giáo viên mới đang dạy lớp khác tại cùng thời điểm. &
 Mở lại thời khoá biểu sau khi thay đổi phân công giảng dạy. &
 Hệ thống kiểm tra tiết đã xếp theo phân công hiện tại, làm nổi bật các ô bị xung đột và hiển thị thông báo nêu rõ giáo viên, lớp học và thời điểm xảy ra xung đột. \\
 \hline
 \end{longtable}
 }
 
-\Needspace{12\baselineskip}
-\subsection{Kiểm thử ca sử dụng Xếp thời khoá biểu tự động}
-\label{subsection:test_uc05}
-
-Bảng~\ref{table:test_uc05} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC05 - Xếp thời khoá biểu tự động.
-
 {\small
 \begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
-\caption{Kiểm thử ca sử dụng Xếp thời khoá biểu tự động}
-\label{table:test_uc05} \\
+\caption{Kiểm thử ca sử dụng Xếp thời khoá biểu tự động (UC08.2)}
+\label{table:test_uc082} \\
 \testcaseTableHeader
-TC05-01 & Các lớp và môn học đã được phân công đầy đủ; dữ liệu có phương án xếp khả thi. &
+TC08.2-01 & Các lớp và môn học đã được phân công đầy đủ; dữ liệu có phương án xếp khả thi. &
 Chọn tuần và thực hiện ``Tự động xếp TKB''. &
 Hệ thống tạo đủ các tiết cần thiết, không trùng lớp, giáo viên hoặc phòng chức năng. \\
 \hline
-TC05-02 & Tuần đã có một số tiết được xếp thủ công. &
+TC08.2-02 & Tuần đã có một số tiết được xếp thủ công. &
 Thực hiện xếp tự động. &
 Hệ thống giữ nguyên các tiết đã có và chỉ tạo phương án cho những tiết còn thiếu. \\
 \hline
-TC05-03 & Còn lớp hoặc môn học chưa được phân công giáo viên. &
+TC08.2-03 & Còn lớp hoặc môn học chưa được phân công giáo viên. &
 Thực hiện xếp tự động. &
 Hệ thống liệt kê dữ liệu chưa hoàn tất và không gửi yêu cầu xếp lịch. \\
 \hline
-TC05-04 & Không tồn tại phương án đáp ứng toàn bộ yêu cầu xếp lịch. &
+TC08.2-04 & Không tồn tại phương án đáp ứng toàn bộ yêu cầu xếp lịch. &
 Thực hiện xếp tự động. &
 Hệ thống hiển thị các tiết xếp được và danh sách tiết chưa thể xếp để người dùng tiếp tục xử lý thủ công. \\
 \hline
-TC05-05 & Kết quả tự động đang ở trạng thái chưa lưu. &
+TC08.2-05 & Kết quả tự động đang ở trạng thái chưa lưu. &
 Chọn lưu tuần hiện tại hoặc áp dụng từ tuần hiện tại trở đi. &
 Hệ thống lưu kết quả theo đúng phạm vi người dùng lựa chọn. \\
 \hline
-TC05-06 & Kết quả tự động đang ở trạng thái chưa lưu. &
+TC08.2-06 & Kết quả tự động đang ở trạng thái chưa lưu. &
 Đóng màn hình hoặc chuyển tuần rồi xác nhận huỷ thay đổi. &
 Kết quả chưa lưu bị loại bỏ và thời khoá biểu trở về trạng thái trước khi xếp tự động. \\
 \hline
@@ -872,86 +543,28 @@ Kết quả chưa lưu bị loại bỏ và thời khoá biểu trở về trạ
 }
 
 \Needspace{12\baselineskip}
-\subsection{Kiểm thử ca sử dụng Tra cứu thời khoá biểu}
-\label{subsection:test_uc06}
-
-Bảng~\ref{table:test_uc06} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC06 - Tra cứu thời khoá biểu.
-
-{\small
-\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
-\caption{Kiểm thử ca sử dụng Tra cứu thời khoá biểu}
-\label{table:test_uc06} \\
-\testcaseTableHeader
-TC06-01 & Có thời khoá biểu đã được công khai. &
-Người dùng vãng lai chọn năm học, học kì, tuần và một lớp cần tra cứu. &
-Hệ thống hiển thị đúng thời khoá biểu của lớp dưới dạng lưới mà không yêu cầu đăng nhập. \\
-\hline
-TC06-02 & Có dữ liệu thời khoá biểu theo giáo viên hoặc theo khối. &
-Thay đổi chế độ xem và chọn đối tượng cần tra cứu. &
-Lưới thời khoá biểu được cập nhật theo đúng chế độ xem và đối tượng đã chọn. \\
-\hline
-TC06-03 & Người dùng chưa chọn lớp, khối hoặc giáo viên. &
-Yêu cầu hiển thị thời khoá biểu. &
-Hệ thống yêu cầu lựa chọn đối tượng cần tra cứu. \\
-\hline
-TC06-04 & Không có thời khoá biểu công khai phù hợp với tiêu chí. &
-Chọn các tiêu chí tra cứu tương ứng. &
-Hệ thống hiển thị thông báo chưa có dữ liệu và không hiển thị dữ liệu chưa được công khai. \\
-\hline
-\end{longtable}
-}
-
-\Needspace{12\baselineskip}
 \subsection{Kiểm thử ca sử dụng Công khai thời khoá biểu}
-\label{subsection:test_uc13}
+\label{subsection:test_uc09}
 
-Bảng~\ref{table:test_uc13} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC13 - Công khai thời khoá biểu.
+Bảng~\ref{table:test_uc09} trình bày các trường hợp kiểm thử cho ca sử dụng
+UC09 - Công khai thời khoá biểu.
 
 {\small
 \begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
 \caption{Kiểm thử ca sử dụng Công khai thời khoá biểu}
-\label{table:test_uc13} \\
+\label{table:test_uc09} \\
 \testcaseTableHeader
-TC13-01 & Thời khoá biểu đã có dữ liệu và chưa được công khai. &
+TC09-01 & Thời khoá biểu đã có dữ liệu và chưa được công khai. &
 Chọn ``Công khai thời khoá biểu'' và xác nhận. &
 Trạng thái thời khoá biểu được cập nhật; người dùng vãng lai có thể tra cứu dữ liệu. \\
 \hline
-TC13-02 & Hộp thoại xác nhận công khai đang hiển thị. &
+TC09-02 & Hộp thoại xác nhận công khai đang hiển thị. &
 Chọn huỷ thao tác. &
 Trạng thái thời khoá biểu không thay đổi. \\
 \hline
-TC13-03 & Thời khoá biểu chưa có tiết học. &
+TC09-03 & Thời khoá biểu chưa có tiết học. &
 Thực hiện công khai. &
 Hệ thống thông báo không thể công khai thời khoá biểu chưa có dữ liệu. \\
-\hline
-\end{longtable}
-}
-
-\Needspace{12\baselineskip}
-\subsection{Kiểm thử ca sử dụng Xuất thời khoá biểu}
-\label{subsection:test_uc14}
-
-Bảng~\ref{table:test_uc14} trình bày các trường hợp kiểm thử cho ca sử dụng
-UC14 - Xuất thời khoá biểu.
-
-{\small
-\begin{longtable}{|L{1.7cm}|L{3.2cm}|L{3cm}|L{4.9cm}|}
-\caption{Kiểm thử ca sử dụng Xuất thời khoá biểu}
-\label{table:test_uc14} \\
-\testcaseTableHeader
-TC14-01 & Thời khoá biểu có dữ liệu; đã chọn năm học, học kì, tuần và lớp. &
-Chọn chế độ xem theo lớp và chọn ``Xuất Excel''. &
-Hệ thống tải xuống tệp \texttt{.xlsx} chứa đúng thời khoá biểu của lớp đã chọn. \\
-\hline
-TC14-02 & Thời khoá biểu có dữ liệu theo khối hoặc theo giáo viên. &
-Chọn chế độ xem, chọn đối tượng tương ứng và xuất tệp. &
-Tệp Excel được tạo với đúng dữ liệu và tiêu đề theo chế độ xem đã chọn. \\
-\hline
-TC14-03 & Không có dữ liệu phù hợp với tiêu chí đã chọn. &
-Chọn ``Xuất Excel''. &
-Hệ thống thông báo chưa có dữ liệu để xuất và không tạo tệp rỗng. \\
 \hline
 \end{longtable}
 }
@@ -966,6 +579,45 @@ Hệ thống EduSchedule được triển khai thử nghiệm theo mô hình clo
 \textbf{Backend — Docker + Render.} Ứng dụng Spring Boot được đóng gói thành Docker image thông qua Dockerfile. Image chạy trên cổng 8080 bên trong container. Biến môi trường nhạy cảm (chuỗi kết nối database, JWT secret) được truyền vào container qua biến môi trường, không hardcode trong image. Backend được triển khai lên Render — nền tảng cloud hỗ trợ chạy Docker container miễn phí. Render tự động pull image từ Docker Hub, khởi chạy container và cấp URL dạng \textit{*.onrender.com}. Ở gói miễn phí, container tự tắt sau 15 phút không có request và khởi động lại khi có request tiếp theo (cold start).
 
 \textbf{Cơ sở dữ liệu — PostgreSQL.} Database PostgreSQL được cung cấp bởi dịch vụ Render PostgreSQL (gói miễn phí). Schema được Flyway tự động khởi tạo và migrate khi backend khởi động lần đầu, đảm bảo môi trường production đồng bộ với development.
+
+Bên cạnh phiên bản được triển khai trên nền tảng đám mây, EduSchedule có thể
+được cài đặt và chạy trên máy cá nhân. Môi trường cục bộ cần có Java 21, Maven
+3.9 trở lên, Node.js 20 trở lên, npm và PostgreSQL. Sau khi tải mã nguồn, người
+dùng thực hiện lần lượt các bước sau.
+
+\textbf{Khởi chạy phía máy chủ.} Trước tiên, di chuyển vào thư mục
+\texttt{eduschedule-backend} và sao chép tệp cấu hình mẫu:
+
+\begin{lstlisting}[basicstyle=\ttfamily\fontsize{12}{15}\selectfont,columns=fullflexible,keepspaces=true,xleftmargin=1em]
+cp src/main/resources/application.properties.example \
+   src/main/resources/application.properties
+\end{lstlisting}
+
+Tiếp theo, cập nhật tệp \texttt{application.properties} với thông tin kết nối cơ
+sở dữ liệu, khóa bí mật JWT và tài khoản quản trị mặc định. Người dùng tạo một
+cơ sở dữ liệu PostgreSQL có tên \texttt{eduschedule}, hoặc thay đổi tên cơ sở dữ
+liệu trong cấu hình \texttt{DB\_URL}, rồi chạy ứng dụng bằng lệnh:
+
+\begin{lstlisting}[basicstyle=\ttfamily\fontsize{12}{15}\selectfont,columns=fullflexible,keepspaces=true,xleftmargin=1em]
+mvn spring-boot:run
+\end{lstlisting}
+
+Sau khi khởi động thành công, API phía máy chủ hoạt động tại địa chỉ
+\url{http://localhost:8080}.
+
+\textbf{Khởi chạy phía giao diện.} Trong thư mục
+\texttt{eduschedule-frontend}, người dùng cài đặt các thư viện phụ thuộc bằng
+lệnh \texttt{npm install}. Sau đó, tạo tệp \texttt{.env.local} từ tệp
+\texttt{.env.example} và khai báo các biến môi trường như sau:
+
+\begin{lstlisting}[basicstyle=\ttfamily\fontsize{12}{15}\selectfont,columns=fullflexible,keepspaces=true,xleftmargin=1em]
+NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+\end{lstlisting}
+
+Cuối cùng, khởi chạy giao diện bằng lệnh \texttt{npm run dev}. Ứng dụng có thể
+được truy cập tại địa chỉ \url{http://localhost:3000} và gửi các yêu cầu API
+đến phía máy chủ đang chạy trên cổng 8080.
 
 Kết chương: Chương này đã trình bày toàn bộ quá trình thiết kế và xây dựng hệ thống EduSchedule, từ kiến trúc phần mềm, thiết kế chi tiết các lớp và cơ sở dữ liệu, đến kết quả cài đặt, kiểm thử và triển khai. Chương 5 tiếp theo sẽ trình bày các giải pháp và đóng góp nổi bật của đề tài.
 

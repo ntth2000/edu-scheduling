@@ -19,7 +19,6 @@ public class SlotResponse {
     private Integer period;
     private Long specialRoomId;
 
-    // Flattened assignment info
     private Long subjectId;
     private String subjectName;
     private Long teacherId;

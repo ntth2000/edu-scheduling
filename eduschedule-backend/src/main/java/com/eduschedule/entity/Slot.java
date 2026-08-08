@@ -34,11 +34,6 @@ public class Slot {
     private Integer session;
     private Integer period;
 
-    // Đóng băng tên GV/môn tại thời điểm công bố (publish) — chỉ được đọc khi
-    // week.isPublished()==true, xem TimetableService#publish và
-    // SlotService/PublicTimetableService#toResponse. Giữ Assignment sống ở
-    // trên làm nguồn cho ràng buộc/tiến độ; các cột này chỉ phục vụ hiển thị
-    // để tuần đã công bố không đổi theo khi phân công bị sửa sau đó.
     @Column(name = "teacher_id_snapshot")
     private Long teacherIdSnapshot;
 

@@ -18,7 +18,6 @@ public class SlotRequest {
 
     private Long assignmentId;
 
-    // Alternative to assignmentId for GVCN-taught subjects (no teacher assignment)
     private Long classId;
     private Long subjectId;
 

@@ -1,0 +1,55 @@
+@startuml
+title Biểu đồ trình tự - Quản lý phòng chức năng
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện quản lý\nphòng chức năng" as UI
+control "Điều khiển\nphòng chức năng" as Controller
+control "Xử lý nghiệp vụ\nphòng chức năng" as Service
+database "CSDL" as DB
+
+User -> UI: Truy cập chức năng quản lý phòng
+UI -> Controller: lấyDanhSáchPhòngVàMônHọc()
+Controller -> Service: lấyDữLiệuQuảnLýPhòng()
+Service -> DB: truyVấnPhòngVàMônHọc()
+DB --> Service: Danh sách phòng và môn học
+Service --> Controller: Dữ liệu quản lý phòng
+Controller --> UI: Trả về dữ liệu
+UI --> User: Hiển thị danh sách phòng chức năng
+
+alt Thêm mới hoặc cập nhật phòng
+    User -> UI: Nhập tên, số lượng, môn học liên kết
+    UI -> Controller: lưuPhòng(thôngTinPhòng)
+    Controller -> Controller: kiểmTraDữLiệu()
+    alt Dữ liệu không hợp lệ
+        Controller --> UI: Trả về thông báo lỗi
+        UI --> User: Hiển thị lỗi, không lưu thay đổi
+    else Dữ liệu hợp lệ
+        Controller -> Service: lưuPhòng(thôngTinPhòng)
+        Service -> DB: thêmHoặcCậpNhậtPhòng()
+        DB --> Service: Lưu thành công
+        Service --> Controller: Phòng đã cập nhật
+        Controller --> UI: Trả về kết quả
+        UI --> User: Cập nhật danh sách
+    end
+else Xóa phòng chức năng
+    User -> UI: Chọn phòng và yêu cầu xóa
+    UI -> Controller: xóaPhòng(mãPhòng)
+    Controller -> Service: kiểmTraVàXóa(mãPhòng)
+    Service -> DB: kiểmTraSửDụngTrongThờiKhóaBiểu()
+    DB --> Service: Kết quả kiểm tra
+    alt Phòng đang được sử dụng
+        Service --> Controller: Không cho phép xóa
+        Controller --> UI: Trả về thông báo lỗi
+        UI --> User: Hiển thị thông báo không thể xóa
+    else Phòng chưa được sử dụng
+        Service -> DB: xóaPhòng()
+        DB --> Service: Xóa thành công
+        Service --> Controller: Kết quả xóa
+        Controller --> UI: Trả về kết quả
+        UI --> User: Cập nhật danh sách
+    end
+end
+@enduml

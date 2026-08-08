@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Stage 1: build ----
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Cache deps first for faster rebuilds
@@ -13,7 +13,7 @@ RUN mvn -B -q clean package -DskipTests \
  && mv target/*.jar app.jar
 
 # ---- Stage 2: runtime ----
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Non-root user

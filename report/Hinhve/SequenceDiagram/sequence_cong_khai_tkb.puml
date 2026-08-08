@@ -1,0 +1,45 @@
+@startuml
+title Biểu đồ trình tự - Công khai thời khóa biểu
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện\nthời khóa biểu" as UI
+control "Điều khiển\nthời khóa biểu" as Controller
+control "Xử lý nghiệp vụ\nthời khóa biểu" as Service
+database "CSDL\nthời khóa biểu" as DB
+
+User -> UI: Mở thời khóa biểu cần công khai
+UI -> Controller: lấyThờiKhóaBiểu(mãThờiKhóaBiểu)
+Controller -> Service: lấyThờiKhóaBiểu()
+Service -> DB: truyVấnThờiKhóaBiểuVàTiếtHọc()
+DB --> Service: Thời khóa biểu và danh sách tiết
+Service --> Controller: Dữ liệu thời khóa biểu
+Controller --> UI: Trả về dữ liệu
+UI --> User: Hiển thị thời khóa biểu
+
+User -> UI: Chọn "Công khai thời khóa biểu"
+UI --> User: Hiển thị yêu cầu xác nhận
+alt Người dùng hủy xác nhận
+    User -> UI: Hủy thao tác
+    UI --> User: Giữ nguyên trạng thái thời khóa biểu
+else Người dùng xác nhận
+    User -> UI: Xác nhận công khai
+    UI -> Controller: côngKhaiThờiKhóaBiểu(mãThờiKhóaBiểu)
+    Controller -> Service: kiểmTraVàCôngKhai()
+    Service -> DB: kiểmTraDữLiệuTiếtHọc()
+    DB --> Service: Kết quả kiểm tra
+    alt Thời khóa biểu không có dữ liệu
+        Service --> Controller: Không thể công khai
+        Controller --> UI: Trả về thông báo lỗi
+        UI --> User: Hiển thị thông báo không thể công khai
+    else Thời khóa biểu có dữ liệu
+        Service -> DB: cậpNhậtTrạngTháiCôngKhai()
+        DB --> Service: Cập nhật thành công
+        Service --> Controller: Thời khóa biểu đã công khai
+        Controller --> UI: Trả về kết quả
+        UI --> User: Hiển thị thông báo hoàn tất
+    end
+end
+@enduml

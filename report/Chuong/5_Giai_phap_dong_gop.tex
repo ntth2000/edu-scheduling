@@ -5,7 +5,7 @@
 \section{Kết luận chung}
 \label{section:5.1}
 
-Đề tài \textit{``Xây dựng hệ thống xếp thời khoá biểu tự động cho trường tiểu
+Đề tài \textit{``Xây dựng hệ thống xếp thời khoá biểu cho trường tiểu
 học -- EduSchedule''} đã xây dựng được một ứng dụng web hỗ trợ Người xếp thời
 khoá biểu thực hiện các công việc từ thiết lập dữ liệu đầu vào, phân công giảng
 dạy, xếp và điều chỉnh thời khoá biểu đến công khai kết quả cho người dùng vãng
@@ -19,19 +19,15 @@ Các giải pháp và đóng góp nổi bật của đề tài gồm:
     buộc}: hệ thống xác định các ràng buộc bắt buộc về lớp học, giáo viên, phòng
     chức năng, số tiết và cấu trúc buổi học; đồng thời sử dụng ràng buộc mềm để
     đánh giá cách phân bố các tiết trong phương án.
-    \item \textbf{Kết hợp thuật toán tham lam với Timefold Solver}: thuật toán
-    tham lam tạo phương án khởi tạo, sau đó Timefold Solver tiếp tục cải thiện
-    phương án theo các ràng buộc mềm. Khi không thể xếp toàn bộ, hệ thống vẫn
-    trả về các tiết đã xếp được cùng danh sách tiết chưa thể bố trí để người dùng
-    tiếp tục xử lý.
+    \item \textbf{Ứng dụng Timefold Solver để xếp thời khoá biểu tự động}:
+    Timefold Solver phân bổ các tiết còn thiếu dựa trên các ràng buộc cứng và
+    cải thiện phương án theo các ràng buộc mềm. Khi không thể xếp toàn bộ, hệ
+    thống vẫn trả về các tiết đã xếp được cùng danh sách tiết chưa thể bố trí để
+    người dùng tiếp tục xử lý.
     \item \textbf{Kết hợp xếp thủ công và xếp tự động}: các tiết do người dùng
     bố trí trước được giữ nguyên, chức năng tự động chỉ phân bổ những tiết còn
     thiếu. Kết quả được hiển thị ở trạng thái chưa lưu để người dùng xem xét,
     điều chỉnh và lựa chọn phạm vi áp dụng.
-    \item \textbf{Kiểm soát tính nhất quán của thời khoá biểu}: hệ thống kiểm
-    tra xung đột giáo viên, lớp học và phòng chức năng trong quá trình xếp; đồng
-    thời phát hiện và làm nổi bật các tiết không còn phù hợp khi thông tin phân
-    công giảng dạy thay đổi.
     \item \textbf{Hỗ trợ đầy đủ vòng đời của thời khoá biểu}: dữ liệu được tổ
     chức theo năm học, học kì và tuần; người dùng có thể lưu riêng một tuần hoặc
     áp dụng từ tuần đang chỉnh sửa cho các tuần tiếp theo, xuất thời khoá biểu
@@ -66,15 +62,12 @@ Trong quá trình thực hiện, đề tài đã hoàn thành các nội dung ch
     \item Xây dựng chức năng xếp và điều chỉnh thời khoá biểu thủ công trên
     giao diện dạng lưới, kiểm tra số tiết còn thiếu và phát hiện các trường hợp
     xung đột liên quan đến giáo viên hoặc phòng chức năng.
-    \item Xây dựng chức năng xếp thời khoá biểu tự động bằng cách kết hợp thuật
-    toán tham lam với Timefold Solver, giữ nguyên các tiết đã xếp trước và trả về
-    kết quả chưa lưu để người dùng kiểm tra.
+    \item Xây dựng chức năng xếp thời khoá biểu tự động bằng Timefold Solver,
+    giữ nguyên các tiết đã xếp trước và trả về kết quả chưa lưu để người dùng
+    kiểm tra.
     \item Xây dựng cơ chế lưu thời khoá biểu theo tuần hoặc áp dụng từ một tuần
     cho các tuần tiếp theo; hỗ trợ xuất dữ liệu và công khai thời khoá biểu qua
     đường dẫn để người dùng vãng lai tra cứu.
-    \item Triển khai cơ chế xác thực bằng JWT, mã hoá mật khẩu bằng BCrypt và
-    kiểm thử các chức năng cốt lõi với cả luồng chính và các trường hợp dữ liệu
-    không hợp lệ.
 \end{itemize}
 
 \subsection{Những điều chưa làm được}
@@ -82,9 +75,11 @@ Trong quá trình thực hiện, đề tài đã hoàn thành các nội dung ch
 Bên cạnh các kết quả đạt được, đề tài còn một số hạn chế:
 
 \begin{itemize}[noitemsep]
-    \item Chưa thực hiện đo lường đầy đủ thời gian xếp tự động và chất lượng
-    phương án trên nhiều bộ dữ liệu có quy mô khác nhau. Vì vậy, đề tài chưa đưa
-    ra được kết luận định lượng về khả năng mở rộng của bộ xếp lịch.
+    \item Việc mô hình hóa tập ràng buộc và cấu hình solver chưa được thử
+    nghiệm, đánh giá và tối ưu trên nhiều bộ dữ liệu thực tế có quy mô và đặc
+    điểm khác nhau. Vì vậy, đề tài chưa xác định được cấu hình phù hợp cho từng
+    trường và chưa đưa ra được kết luận định lượng về khả năng mở rộng cũng như
+    chất lượng phương án của bộ xếp lịch.
     \item Kết quả xếp tự động phụ thuộc vào tính đầy đủ của dữ liệu phân công
     và tập ràng buộc đã cấu hình. Trong trường hợp dữ liệu không có phương án
     thoả mãn toàn bộ yêu cầu, hệ thống chỉ trả về kết quả một phần và người dùng
