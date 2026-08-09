@@ -1,6 +1,5 @@
 package com.eduschedule.entity;
 
-import com.eduschedule.entity.enums.TeacherType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -27,10 +26,6 @@ public class Teacher {
 
     @Column(nullable = false, length = 100)
     private String fullName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 20)
-    private TeacherType type;
 
     @Column(nullable = false)
     private Integer maxPeriodsPerWeek;

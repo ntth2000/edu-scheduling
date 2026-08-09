@@ -14,7 +14,7 @@ bảo trì, cập nhật và mở rộng mà không làm thay đổi toàn bộ 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{Hinhve/Kientruc/client_server_model.png}
+    \includegraphics[width=\textwidth]{Hinhve/Kientruc/client_server_model.png}
     \caption{Mô hình kiến trúc Client--Server của hệ thống EduSchedule}
     \label{fig:client_server_model}
 \end{figure}
@@ -58,7 +58,7 @@ giữa các gói.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Hinhve/Kientruc/overall_system.png}
+    \includegraphics[width=\textwidth]{Hinhve/Kientruc/overall_system.png}
     \caption{Biểu đồ gói tổng quan của hệ thống EduSchedule}
     \label{fig:package_diagram}
 \end{figure}
@@ -72,10 +72,20 @@ Services để gửi yêu cầu đến các RESTful API do Server cung cấp.
 Phía Server được xây dựng bằng Spring Boot và tổ chức theo kiến trúc phân
 tầng. Gói Controllers tiếp nhận yêu cầu từ API Services, kiểm tra dữ liệu đầu
 vào và chuyển yêu cầu đến gói Services. Services thực hiện các nghiệp vụ của hệ
-thống như quản lý dữ liệu, phân công giảng dạy, kiểm tra xung đột và xếp thời
-khóa biểu. Khi cần đọc hoặc ghi dữ liệu, Services sử dụng các interface trong
+thống như quản lý dữ liệu, phân công giảng dạy và kiểm tra xung đột. Khi cần đọc
+hoặc ghi dữ liệu, Services sử dụng các interface trong
 gói Repositories; các đối tượng trong gói Entities đảm nhiệm việc ánh xạ dữ liệu
 giữa ứng dụng Java và các bảng trong cơ sở dữ liệu.
+
+Gói Scheduler đảm nhiệm chức năng xếp thời khóa biểu tự động. Khác với các gói
+còn lại vốn được phân chia theo tầng kiến trúc, gói này được tổ chức theo tính
+năng vì nó giải quyết một bài toán tối ưu hóa có bản chất khác hẳn các nghiệp vụ
+quản lý dữ liệu thông thường. Gói gồm ba nhóm thành phần: lớp dịch vụ điều phối
+toàn bộ quá trình xếp, nhóm lớp mô hình hóa bài toán cho bộ giải Timefold, và
+lớp cấu hình chứa các hằng số về khung thời gian cùng trọng số của ràng buộc
+mềm. Việc gom các thành phần này vào một gói riêng giúp chi tiết của bộ giải
+không lan sang phần xử lý nghiệp vụ, đồng thời cho phép thay đổi thuật toán xếp
+mà không ảnh hưởng tới các chức năng quản lý dữ liệu.
 
 PostgreSQL nằm ngoài các gói mã nguồn và đóng vai trò lưu trữ dữ liệu lâu dài
 cho hệ thống. Việc truy cập cơ sở dữ liệu được thực hiện tập trung thông qua
@@ -107,45 +117,30 @@ trì, kiểm thử hoặc mở rộng tương đối độc lập.
 Biểu đồ lớp mô tả cấu trúc tĩnh của hệ thống EduSchedule thông qua các lớp
 nghiệp vụ chính và mối quan hệ giữa chúng. Sơ đồ tập trung vào ba nhóm chức
 năng gồm quản lý dữ liệu nhà trường, phân công giảng dạy và tổ chức thời khóa
-biểu. Các quan hệ kết hợp thể hiện sự liên hệ giữa các đối tượng nghiệp vụ,
-trong khi quan hệ hợp thành biểu diễn các thành phần phụ thuộc vào vòng đời của
-đối tượng chứa chúng.
+biểu.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/Kientruc/class_design_diagram.png}
+    \includegraphics[width=\textwidth,height=0.88\textheight,keepaspectratio]{Hinhve/Kientruc/class_design_diagram.png}
     \caption{Biểu đồ lớp thiết kế của hệ thống EduSchedule}
     \label{fig:class_design_diagram}
 \end{figure}
 
-Hình~\ref{fig:class_design_diagram} cho thấy các lớp chính của hệ thống được
-tổ chức như sau:
-
-Lớp User đại diện cho tài khoản quản trị và duy trì các phiên đăng nhập thông
-qua lớp RefreshToken. Các lớp Teacher, Subject, SpecialRoom, SchoolYear và
-SchoolClass biểu diễn nhóm dữ liệu nghiệp vụ nền của nhà trường. Các lớp này
-hỗ trợ quản lý giáo viên, môn học, phòng chức năng, năm học và lớp học, qua đó
-cung cấp dữ liệu cần thiết cho quá trình phân công giảng dạy và xây dựng thời
-khóa biểu.
-
-Lớp Assignment biểu diễn một phân công giảng dạy, trong đó xác định lớp học,
-môn học, giáo viên phụ trách và số tiết cần thực hiện trong tuần. Đối tượng
-Assignment được sử dụng làm đầu vào cho quá trình xếp lịch, đồng thời giúp tách
-biệt thông tin phân công giảng dạy khỏi vị trí thực tế của tiết học trên thời
-khóa biểu.
-
-Lớp Timetable đại diện cho thời khóa biểu của một học kỳ và quản lý các đối
-tượng Week thuộc thời khóa biểu đó. Mỗi Week đại diện cho một tuần học và quản
-lý tập hợp Slot tương ứng. Quan hệ hợp thành giữa các lớp thể hiện rằng Week
-phụ thuộc vào vòng đời của Timetable, còn Slot phụ thuộc vào vòng đời của Week.
-
-Lớp Slot biểu diễn một tiết học đã được bố trí tại ngày, buổi và tiết cụ thể
-trong tuần. Mỗi Slot gắn với một Assignment để xác định lớp học, môn học và
-giáo viên phụ trách; đồng thời có thể gắn với một SpecialRoom nếu tiết học yêu
-cầu phòng chức năng. Thông qua Timetable, Week và Slot, hệ thống hỗ trợ xếp và
-điều chỉnh tiết học, cập nhật ngày bắt đầu của các tuần, sao chép lịch của một
-tuần sang các tuần tiếp theo, kiểm tra điều kiện công bố và công bố thời khóa
-biểu theo từng tuần.
+Biểu đồ thiết kế lớp gồm các lớp với vai trò sau:
+\begin{itemize}[noitemsep, topsep=2pt]
+    \interlinepenalty=10000
+    \item \textbf{User}: quản lý tài khoản người dùng và cung cấp các thao tác đăng ký, đăng nhập, đăng xuất.
+    \item \textbf{RefreshToken}: lưu thông tin token làm mới để duy trì và gia hạn phiên đăng nhập của người dùng.
+    \item \textbf{SchoolYear}: quản lý năm học, làm cơ sở tổ chức lớp học và thời khoá biểu theo từng năm.
+    \item \textbf{SchoolClass}: quản lý thông tin lớp học, khối lớp và giáo viên chủ nhiệm trong một năm học.
+    \item \textbf{Teacher}: quản lý hồ sơ giáo viên, loại giáo viên, định mức tiết dạy và các môn có thể phụ trách.
+    \item \textbf{Subject}: quản lý môn học và số tiết cần giảng dạy mỗi tuần theo từng khối lớp.
+    \item \textbf{SpecialRoom}: quản lý loại phòng chức năng, môn học sử dụng phòng và số phòng hiện có.
+    \item \textbf{Assignment}: biểu diễn phân công giảng dạy giữa một lớp, một môn học và một giáo viên; đồng thời xác định số tiết cần xếp mỗi tuần.
+    \item \textbf{Timetable}: quản lý thời khoá biểu của một học kì, trạng thái công khai và mã dùng để tra cứu công khai.
+    \item \textbf{Week}: quản lý từng tuần thuộc thời khoá biểu, gồm số tuần, ngày bắt đầu và trạng thái công bố.
+    \item \textbf{Slot}: biểu diễn một tiết học đã được bố trí theo ngày, buổi và tiết; liên kết với phân công và phòng chức năng tương ứng.
+\end{itemize}
 
 \subsection{Thiết kế cơ sở dữ liệu}
 \label{subsection:4.2.3}
@@ -160,35 +155,152 @@ liệu.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Hinhve/database/dbdesign.png}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/database/fina.png}
     \caption{Thiết kế cơ sở dữ liệu cho hệ thống EduSchedule}
     \label{fig:db_design}
 \end{figure}
+Bảng dưới đây mô tả ý nghĩa của các trường trong cơ sở dữ liệu của hệ thống.
 
-Trong sơ đồ tại Hình~\ref{fig:db_design}, nhóm dữ liệu xác thực gồm bảng
-users lưu thông tin đăng nhập và bảng refresh\_tokens quản lý phiên làm việc.
-Nhóm dữ liệu chuyên môn gồm các bảng teachers, subjects và bảng liên kết
-teacher\_subjects; cấu trúc này biểu
-diễn quan hệ nhiều - nhiều giữa giáo viên và các môn học mà giáo viên có khả
-năng giảng dạy. Bảng special\_rooms lưu số lượng phòng chức năng và có
-thể liên kết với môn học tương ứng để phục vụ kiểm tra điều kiện phòng khi xếp
-lịch.
+\begin{longtable}{|L{2.2cm}|L{3.2cm}|L{2.3cm}|L{5.1cm}|}
+\caption{Mô tả các bảng và trường trong cơ sở dữ liệu}
+\label{tab:database_field_description} \\
+\hline
+\textbf{Bảng} & \textbf{Trường} & \textbf{Loại} & \textbf{Mô tả} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Bảng} & \textbf{Trường} & \textbf{Loại} & \textbf{Mô tả} \\
+\hline
+\endhead
 
-Nhóm dữ liệu tổ chức năm học gồm bảng school\_years và classes. Mỗi lớp thuộc
-một năm học và có thể được gán một giáo viên chủ nhiệm. Bảng assignments kết
-nối lớp học, môn học và giáo viên, đồng thời
-lưu số tiết phải thực hiện trong tuần; đây là dữ liệu đầu vào trực tiếp cho quá
-trình xây dựng thời khóa biểu.
+\multirow{3}{2.2cm}{users} & id (PK) & bigint & Mã định danh người dùng, tự tăng. \\
+\cline{2-4}
+ & username (UK) & varchar(255) & Tên đăng nhập, duy nhất trong toàn hệ thống. \\
+\cline{2-4}
+ & password & varchar(255) & Mật khẩu đã được băm, không lưu dạng thuần văn. \\
+\hline
 
-Nhóm dữ liệu thời khóa biểu được tổ chức theo ba cấp gồm timetables, weeks và
-slots. Một thời khóa biểu thuộc
-một năm học và học kỳ, bao gồm nhiều tuần; mỗi tuần chứa các tiết học xác định
-theo thứ, buổi và tiết. Bảng slots liên kết với phân công giảng dạy và
-phòng chức năng, đồng thời lưu bản chụp thông tin giáo viên và môn học tại thời
-điểm công bố tuần. Cơ chế này giúp nội dung thời khóa biểu đã công bố không thay
-đổi khi dữ liệu phân công được cập nhật về sau. Các ràng buộc duy nhất và khóa
-ngoại trong mô hình giúp hạn chế dữ liệu trùng lặp, duy trì tính toàn vẹn và hỗ
-trợ hệ thống truy xuất lịch học một cách nhất quán.
+\multirow{5}{2.2cm}{\shortstack[l]{refresh\_tokens}} & id (PK) & bigint & Mã định danh token. \\
+\cline{2-4}
+ & user\_id (FK) & bigint & Tài khoản sở hữu token, tham chiếu users.id. \\
+\cline{2-4}
+ & token (UK) & varchar(512) & Chuỗi token làm mới, duy nhất. \\
+\cline{2-4}
+ & expires\_at & timestamp & Thời điểm token hết hiệu lực. \\
+\cline{2-4}
+ & created\_at & timestamp & Thời điểm tạo token, mặc định là thời điểm hiện tại. \\
+\hline
+
+\multirow{5}{2.2cm}{teachers} & id (PK) & bigint & Mã định danh giáo viên. \\
+\cline{2-4}
+ & user\_id (FK) & bigint & Tài khoản quản lý hồ sơ giáo viên. \\
+\cline{2-4}
+ & full\_name & varchar(100) & Họ và tên đầy đủ của giáo viên. \\
+\cline{2-4}
+ & \shortstack[l]{max\_periods\_\\per\_week} & integer & Định mức tiết dạy tối đa mỗi tuần, dùng để cảnh báo khi phân công vượt mức. \\
+\cline{2-4}
+ & created\_at & timestamp & Thời điểm tạo hồ sơ giáo viên. \\
+\hline
+
+\multirow{4}{2.2cm}{subjects} & id (PK) & bigint & Mã định danh môn học. \\
+\cline{2-4}
+ & user\_id (FK) & bigint & Tài khoản quản lý môn học. \\
+\cline{2-4}
+ & name & varchar(100) & Tên môn học. \\
+\cline{2-4}
+ & \shortstack[l]{periods\_grade1 đến\\periods\_grade5} & integer & Số tiết mỗi tuần của môn học tại khối 1 đến khối 5. Giá trị 0 nghĩa là khối đó không học môn này. \\
+\hline
+
+\multirow{2}{2.2cm}{\shortstack[l]{teacher\_\\subjects}} & \shortstack[l]{teacher\_id\\(PK, FK)} & bigint & Giáo viên trong cặp, tham chiếu teachers.id. \\
+\cline{2-4}
+ & subject\_id (PK, FK) & bigint & Môn học giáo viên có thể phụ trách, tham chiếu subjects.id. Khóa chính là tổ hợp hai trường. \\
+\hline
+
+\multirow{5}{2.2cm}{\shortstack[l]{special\_\\rooms}} & id (PK) & bigint & Mã định danh loại phòng chức năng. \\
+\cline{2-4}
+ & user\_id (FK) & bigint & Tài khoản quản lý phòng chức năng. \\
+\cline{2-4}
+ & name & varchar(100) & Tên loại phòng chức năng. \\
+\cline{2-4}
+ & subject\_id (FK) & bigint & Môn học sử dụng loại phòng này; mỗi môn gắn với tối đa một loại phòng. \\
+\cline{2-4}
+ & quantity & integer & Số phòng hiện có và giới hạn số lớp có thể sử dụng cùng một tiết. \\
+\hline
+
+\multirow{3}{2.2cm}{\shortstack[l]{school\_years}} & id (PK) & bigint & Mã định danh năm học. \\
+\cline{2-4}
+ & user\_id (FK) & bigint & Tài khoản sở hữu năm học. \\
+\cline{2-4}
+ & start\_year & integer & Năm bắt đầu của năm học. Tổ hợp user\_id và start\_year là duy nhất. \\
+\hline
+
+\multirow{5}{2.2cm}{classes} & id (PK) & bigint & Mã định danh lớp học. \\
+\cline{2-4}
+ & name & varchar(10) & Tên lớp, duy nhất trong cùng một năm học. \\
+\cline{2-4}
+ & grade & integer & Khối lớp, nhận giá trị từ 1 đến 5. \\
+\cline{2-4}
+ & \shortstack[l]{homeroom\_\\teacher\_id (FK)} & bigint & Giáo viên chủ nhiệm; mỗi giáo viên chỉ chủ nhiệm tối đa một lớp trong cùng năm học. \\
+\cline{2-4}
+ & school\_year\_id (FK) & bigint & Năm học chứa lớp, tham chiếu school\_years.id. \\
+\hline
+
+\multirow{5}{2.2cm}{assignments} & id (PK) & bigint & Mã định danh phân công giảng dạy. \\
+\cline{2-4}
+ & class\_id (FK) & bigint & Lớp được phân công, tham chiếu classes.id. \\
+\cline{2-4}
+ & subject\_id (FK) & bigint & Môn học được phân công, tham chiếu subjects.id. \\
+\cline{2-4}
+ & teacher\_id (FK) & bigint & Giáo viên phụ trách; tổ hợp lớp, môn và giáo viên là duy nhất. \\
+\cline{2-4}
+ & \shortstack[l]{periods\_per\_\\week} & integer & Số tiết cần xếp mỗi tuần theo phân công. \\
+\hline
+
+\multirow{5}{2.2cm}{timetables} & id (PK) & bigint & Mã định danh thời khóa biểu. \\
+\cline{2-4}
+ & school\_year\_id (FK) & bigint & Năm học chứa thời khóa biểu. \\
+\cline{2-4}
+ & semester\_order & integer & Thứ tự học kì, nhận giá trị 1 hoặc 2; mỗi năm học có hai thời khóa biểu. \\
+\cline{2-4}
+ & is\_public & boolean & Cho biết thời khóa biểu đã được mở tra cứu công khai hay chưa. \\
+\cline{2-4}
+ & public\_token (UK) & varchar(64) & Mã dùng trong đường dẫn tra cứu công khai. \\
+\hline
+\pagebreak
+
+\multirow{5}{2.2cm}{weeks} & id (PK) & bigint & Mã định danh tuần học. \\
+\cline{2-4}
+ & timetable\_id (FK) & bigint & Thời khóa biểu chứa tuần, tham chiếu timetables.id. \\
+\cline{2-4}
+ & week\_number & integer & Số thứ tự tuần trong học kì, duy nhất trong cùng một thời khóa biểu. \\
+\cline{2-4}
+ & start\_date & date & Ngày bắt đầu của tuần. \\
+\cline{2-4}
+ & is\_published & boolean & Cho biết tuần đã được công bố hay chưa. \\
+\hline
+\pagebreak
+
+\multirow{10}{2.2cm}{slots} & id (PK) & bigint & Mã định danh tiết học. \\
+\cline{2-4}
+ & week\_id (FK) & bigint & Tuần chứa tiết học, tham chiếu weeks.id. \\
+\cline{2-4}
+ & assignment\_id (FK) & bigint & Phân công tương ứng, cho biết lớp, môn và giáo viên của tiết học. \\
+\cline{2-4}
+ & day & integer & Thứ trong tuần, nhận giá trị từ 2 đến 6. \\
+\cline{2-4}
+ & session & integer & Buổi học, giá trị 1 là buổi sáng và 2 là buổi chiều. \\
+\cline{2-4}
+ & period & integer & Tiết trong buổi. \\
+\cline{2-4}
+ & special\_room\_id (FK) & bigint & Phòng chức năng được sử dụng cho tiết học, nếu có. \\
+\cline{2-4}
+ & \shortstack[l]{teacher\_id\_\\snapshot} & bigint & Mã giáo viên tại thời điểm công bố. \\
+\cline{2-4}
+ & \shortstack[l]{teacher\_name\_\\snapshot} & varchar(255) & Tên giáo viên tại thời điểm công bố. \\
+\cline{2-4}
+ & \shortstack[l]{subject\_name\_\\snapshot} & varchar(255) & Tên môn học tại thời điểm công bố. \\
+\hline
+\end{longtable}
 
 
 \section{Xây dựng ứng dụng}
@@ -416,7 +528,7 @@ UC07.1 - Phân công giáo viên chủ nhiệm.
 \caption{Kiểm thử ca sử dụng Phân công giáo viên chủ nhiệm}
 \label{table:test_uc071} \\
 \testcaseTableHeader
-TC07.1-01 & Lớp chưa có giáo viên chủ nhiệm; giáo viên thuộc loại chủ nhiệm và chưa chủ nhiệm lớp khác. &
+TC07.1-01 & Lớp chưa có giáo viên chủ nhiệm. &
 Chọn lớp, chọn giáo viên và lưu phân công. &
 Giáo viên được gán làm chủ nhiệm của lớp và dữ liệu được cập nhật trên giao diện. \\
 \hline
@@ -425,8 +537,8 @@ Chọn một giáo viên chủ nhiệm hợp lệ khác và lưu. &
 Phân công cũ được thay thế bằng giáo viên mới. \\
 \hline
 TC07.1-03 & Giáo viên đã là chủ nhiệm của một lớp khác trong cùng năm học. &
-Chọn giáo viên đó cho lớp mới. &
-Giáo viên không xuất hiện trong danh sách có thể chọn hoặc hệ thống từ chối lưu và thông báo nguyên nhân. \\
+Chọn giáo viên cho 1 lớp mới. &
+Giáo viên không xuất hiện trong danh sách có thể chọn. \\
 \hline
 TC07.1-04 & Lớp đang có giáo viên chủ nhiệm. &
 Chọn giá trị trống và xác nhận xoá phân công. &
@@ -515,9 +627,9 @@ Hệ thống kiểm tra tiết đã xếp theo phân công hiện tại, làm n�
 \caption{Kiểm thử ca sử dụng Xếp thời khoá biểu tự động (UC08.2)}
 \label{table:test_uc082} \\
 \testcaseTableHeader
-TC08.2-01 & Các lớp và môn học đã được phân công đầy đủ; dữ liệu có phương án xếp khả thi. &
+TC08.2-01 & Các lớp và môn học đã được phân công đầy đủ; &
 Chọn tuần và thực hiện ``Tự động xếp TKB''. &
-Hệ thống tạo đủ các tiết cần thiết, không trùng lớp, giáo viên hoặc phòng chức năng. \\
+Hệ thống hiển thị các tiết xếp được và danh sách tiết chưa thể xếp để người dùng tiếp tục xử lý thủ công. \\
 \hline
 TC08.2-02 & Tuần đã có một số tiết được xếp thủ công. &
 Thực hiện xếp tự động. &
@@ -527,15 +639,11 @@ TC08.2-03 & Còn lớp hoặc môn học chưa được phân công giáo viên.
 Thực hiện xếp tự động. &
 Hệ thống liệt kê dữ liệu chưa hoàn tất và không gửi yêu cầu xếp lịch. \\
 \hline
-TC08.2-04 & Không tồn tại phương án đáp ứng toàn bộ yêu cầu xếp lịch. &
-Thực hiện xếp tự động. &
-Hệ thống hiển thị các tiết xếp được và danh sách tiết chưa thể xếp để người dùng tiếp tục xử lý thủ công. \\
-\hline
-TC08.2-05 & Kết quả tự động đang ở trạng thái chưa lưu. &
+TC08.2-04 & Kết quả tự động đang ở trạng thái chưa lưu. &
 Chọn lưu tuần hiện tại hoặc áp dụng từ tuần hiện tại trở đi. &
 Hệ thống lưu kết quả theo đúng phạm vi người dùng lựa chọn. \\
 \hline
-TC08.2-06 & Kết quả tự động đang ở trạng thái chưa lưu. &
+TC08.2-05 & Kết quả tự động đang ở trạng thái chưa lưu. &
 Đóng màn hình hoặc chuyển tuần rồi xác nhận huỷ thay đổi. &
 Kết quả chưa lưu bị loại bỏ và thời khoá biểu trở về trạng thái trước khi xếp tự động. \\
 \hline
@@ -562,9 +670,9 @@ TC09-02 & Hộp thoại xác nhận công khai đang hiển thị. &
 Chọn huỷ thao tác. &
 Trạng thái thời khoá biểu không thay đổi. \\
 \hline
-TC09-03 & Thời khoá biểu chưa có tiết học. &
+TC09-03 & Thời khoá biểu chưa hợp lệ. &
 Thực hiện công khai. &
-Hệ thống thông báo không thể công khai thời khoá biểu chưa có dữ liệu. \\
+Không thể chọn tuần chưa hợp lệ. \\
 \hline
 \end{longtable}
 }
@@ -572,18 +680,42 @@ Hệ thống thông báo không thể công khai thời khoá biểu chưa có d
 \section{Triển khai}
 \label{section:4.5}
 
-Hệ thống EduSchedule được triển khai thử nghiệm theo mô hình cloud-based miễn phí, tách biệt hoàn toàn giữa frontend và backend.
+Hệ thống EduSchedule gồm ba thành phần máy chủ tách biệt về vai trò, giao tiếp
+với nhau thông qua giao thức mạng. Tùy quy mô triển khai, ba thành phần này có
+thể được đặt trên ba máy chủ riêng biệt, hoặc cùng chạy trên một máy tính.
 
-\textbf{Frontend — Vercel.} Ứng dụng Next.js được triển khai trực tiếp từ repository GitHub lên Vercel. Mỗi lần push code lên nhánh main, Vercel tự động chạy build và deploy phiên bản mới (CI/CD). Vercel cung cấp HTTPS tự động qua TLS, CDN toàn cầu, và đảm bảo tỷ lệ uptime cao theo SLA của nền tảng. URL truy cập frontend được Vercel cấp theo dạng *.vercel.app.
+Thứ nhất là máy chủ giao diện, chạy ứng dụng Next.js trên nền tảng Node.js. Máy
+chủ này phục vụ các trang web cho người dùng, đảm nhiệm việc kết xuất giao diện
+và gửi các yêu cầu tới máy chủ ứng dụng thông qua các API. Do toàn bộ nghiệp vụ
+được xử lý ở phía máy chủ ứng dụng, thành phần này chỉ cần tài nguyên ở mức
+thấp.
 
-\textbf{Backend — Docker + Render.} Ứng dụng Spring Boot được đóng gói thành Docker image thông qua Dockerfile. Image chạy trên cổng 8080 bên trong container. Biến môi trường nhạy cảm (chuỗi kết nối database, JWT secret) được truyền vào container qua biến môi trường, không hardcode trong image. Backend được triển khai lên Render — nền tảng cloud hỗ trợ chạy Docker container miễn phí. Render tự động pull image từ Docker Hub, khởi chạy container và cấp URL dạng \textit{*.onrender.com}. Ở gói miễn phí, container tự tắt sau 15 phút không có request và khởi động lại khi có request tiếp theo (cold start).
+Thứ hai là máy chủ cơ sở dữ liệu, cài đặt hệ quản trị PostgreSQL để lưu trữ toàn
+bộ dữ liệu của hệ thống như tài khoản người dùng, hồ sơ giáo viên, môn học,
+phòng chức năng, lớp học, phân công giảng dạy và các tiết đã xếp theo từng tuần.
+Dữ liệu được tổ chức chặt chẽ với các ràng buộc khóa ngoại, còn cấu trúc bảng do
+công cụ Flyway quản lý dưới dạng các tệp migration đánh số phiên bản và được
+thực thi tự động khi máy chủ ứng dụng khởi động.
 
-\textbf{Cơ sở dữ liệu — PostgreSQL.} Database PostgreSQL được cung cấp bởi dịch vụ Render PostgreSQL (gói miễn phí). Schema được Flyway tự động khởi tạo và migrate khi backend khởi động lần đầu, đảm bảo môi trường production đồng bộ với development.
+Thứ ba là máy chủ ứng dụng, chạy ứng dụng Spring Boot trên nền tảng Java. Đây là
+thành phần trung tâm, tiếp nhận yêu cầu từ giao diện, xác thực người dùng bằng
+JSON Web Token, xử lý các nghiệp vụ và truy vấn cơ sở dữ liệu để đọc hoặc ghi
+thông tin. Bộ giải Timefold Solver phục vụ chức năng xếp thời khóa biểu tự động
+cũng nằm tại đây, nên máy chủ này cần nhiều bộ nhớ và năng lực xử lý hơn hai
+thành phần còn lại. Ứng dụng đã được đóng gói sẵn thành Docker image nên có thể
+đưa lên bất kỳ nền tảng chạy container nào mà không cần thay đổi mã nguồn; các
+giá trị nhạy cảm như chuỗi kết nối cơ sở dữ liệu và khóa bí mật JWT được truyền
+vào qua biến môi trường thay vì ghi cứng trong image.
 
-Bên cạnh phiên bản được triển khai trên nền tảng đám mây, EduSchedule có thể
-được cài đặt và chạy trên máy cá nhân. Môi trường cục bộ cần có Java 21, Maven
-3.9 trở lên, Node.js 20 trở lên, npm và PostgreSQL. Sau khi tải mã nguồn, người
-dùng thực hiện lần lượt các bước sau.
+Ở giai đoạn hiện tại, trong phạm vi đồ án, hệ thống đang được triển khai và kiểm
+thử trên môi trường cục bộ, trong đó cả ba thành phần cùng chạy trên một máy
+tính cá nhân và giao tiếp với nhau qua địa chỉ nội bộ. Cách làm này đủ để kiểm
+chứng đầy đủ các chức năng nghiệp vụ cũng như chất lượng của thuật toán xếp thời
+khóa biểu, đồng thời rút ngắn vòng lặp phát triển và thử nghiệm. Việc đưa hệ
+thống lên hạ tầng đám mây được xem là bước tiếp theo và không thuộc phạm vi của
+đồ án. Môi trường cục bộ cần có Java 21, Maven 3.9 trở lên, Node.js 20 trở lên,
+npm và PostgreSQL. Sau khi tải mã nguồn, người dùng thực hiện lần lượt các bước
+sau.
 
 \textbf{Khởi chạy phía máy chủ.} Trước tiên, di chuyển vào thư mục
 \texttt{eduschedule-backend} và sao chép tệp cấu hình mẫu:

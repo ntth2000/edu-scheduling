@@ -17,16 +17,9 @@ UI -> Controller: xuấtExcel(tiêuChíXuất)
 Controller -> ExportService: tạoTệpExcel(tiêuChíXuất)
 ExportService -> DB: truyVấnDữLiệuTheoTiêuChí()
 DB --> ExportService: Dữ liệu thời khóa biểu
-
-alt Không có dữ liệu phù hợp
-    ExportService --> Controller: Không có dữ liệu để xuất
-    Controller --> UI: Trả về thông báo
-    UI --> User: Hiển thị thông báo chưa có dữ liệu
-else Có dữ liệu phù hợp
-    ExportService -> ExportService: tổngHợpTheoChếĐộXem()
-    ExportService -> ExportService: tạoTệpXlsx()
-    ExportService --> Controller: Tệp Excel
-    Controller --> UI: Trả về tệp .xlsx
-    UI --> User: Tải tệp xuống trình duyệt
-end
+ExportService -> ExportService: tổngHợpTheoChếĐộXem()
+ExportService -> ExportService: tạoTệpXlsx()
+ExportService --> Controller: Tệp Excel
+Controller --> UI: Trả về tệp .xlsx
+UI --> User: Tải tệp xuống trình duyệt
 @enduml

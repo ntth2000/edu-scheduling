@@ -223,7 +223,6 @@ public class WeekService {
                     .className(a.getSchoolClass().getName())
                     .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
                     .teacherFullName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
-                    .teacherMaxPeriodsPerWeek(a.getTeacher() != null ? a.getTeacher().getMaxPeriodsPerWeek() : null)
                     .subjectId(a.getSubject().getId())
                     .subjectName(a.getSubject().getName())
                     .specialRoomId(slot.getSpecialRoom() != null ? slot.getSpecialRoom().getId() : null)

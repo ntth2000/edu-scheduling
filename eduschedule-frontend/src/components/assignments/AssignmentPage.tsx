@@ -47,7 +47,7 @@ export function AssignmentPage({ year }: { year: string | null }) {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(year), assignmentApi.getAll(year)])
+    Promise.all([teacherApi.getAll(year), subjectApi.getAll(), classApi.getAll(year), assignmentApi.getAll(year)])
       .then(([t, s, c, a]) => {
         setTeachers(t);
         setSubjects(s);

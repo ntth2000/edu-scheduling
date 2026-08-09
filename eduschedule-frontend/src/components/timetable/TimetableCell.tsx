@@ -10,7 +10,6 @@ interface TimetableCellProps {
 }
 
 export function TimetableCell({ slot, onClick, readOnly = false }: TimetableCellProps) {
-  // Empty cell
   if (!slot) {
     if (readOnly) {
       return (
@@ -27,8 +26,12 @@ export function TimetableCell({ slot, onClick, readOnly = false }: TimetableCell
     );
   }
 
-  // Conflict cell
-  if (slot.isConflict) {
+  if (slot.isConflict || slot.isRoomConflict || slot.isRuleViolation) {
+    const reason = slot.isConflict
+      ? "Trùng lịch GV"
+      : slot.isRoomConflict
+        ? "Trùng phòng chức năng"
+        : "Sai cấu trúc buổi";
     return (
       <div
         onClick={onClick}
@@ -41,12 +44,11 @@ export function TimetableCell({ slot, onClick, readOnly = false }: TimetableCell
         {slot.teacherName && (
           <span className="text-[10px] text-md-error font-medium">{slot.teacherName}</span>
         )}
-        <span className="text-[10px] text-md-error/80">Trùng lịch GV</span>
+        <span className="text-[10px] text-md-error/80">{reason}</span>
       </div>
     );
   }
 
-  // Dirty (unsaved) slot
   if (slot.isDirty) {
     return (
       <div
@@ -62,7 +64,6 @@ export function TimetableCell({ slot, onClick, readOnly = false }: TimetableCell
     );
   }
 
-  // GVCN slot (teacherId = null)
   if (!slot.teacherId) {
     return (
       <div
@@ -74,7 +75,6 @@ export function TimetableCell({ slot, onClick, readOnly = false }: TimetableCell
     );
   }
 
-  // GV Bộ môn slot
   return (
     <div
       onClick={onClick}

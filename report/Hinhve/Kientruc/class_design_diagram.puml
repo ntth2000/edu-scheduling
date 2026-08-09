@@ -1,19 +1,22 @@
 @startuml EduSchedule_ClassDiagram
-!pragma layout elk
-left to right direction
+top to bottom direction
 
-skinparam defaultFontSize 18
-skinparam classFontSize 20
-skinparam classAttributeFontSize 18
-skinparam arrowFontSize 16
+skinparam dpi 180
+skinparam defaultFontSize 26
+skinparam classFontSize 30
+skinparam classAttributeFontSize 26
+skinparam arrowFontSize 23
+skinparam nodesep 135
+skinparam ranksep 95
+skinparam linetype ortho
 
 class User {
   -Long id
   -String username
   -String password
   --
-  +register(request: RegisterRequest): RegisterResponse
-  +login(request: LoginRequest): LoginResponse
+  +register(request: RegisterRequest):\nRegisterResponse
+  +login(request: LoginRequest):\nLoginResponse
   +logout(): void
 }
 
@@ -23,7 +26,7 @@ class RefreshToken {
   -Instant expiresAt
   -Instant createdAt
   --
-  +refresh(refreshToken: String): TokenResponse
+  +refresh(refreshToken: String):\nTokenResponse
 }
 
 class Teacher {
@@ -35,9 +38,9 @@ class Teacher {
   --
   +getAll(): List<TeacherResponse>
   +getById(id: Long): TeacherResponse
-  +create(request: TeacherRequest): TeacherResponse
-  +update(id: Long, request: TeacherRequest): TeacherResponse
-  +deleteBatch(ids: List<Long>): BatchDeleteCascadeResponse
+  +create(request: TeacherRequest):\nTeacherResponse
+  +update(id: Long, request: TeacherRequest):\nTeacherResponse
+  +deleteBatch(ids: List<Long>):\nBatchDeleteCascadeResponse
 }
 
 class Subject {
@@ -51,8 +54,8 @@ class Subject {
   --
   +getAll(): List<SubjectResponse>
   +getById(id: Long): SubjectResponse
-  +create(request: SubjectRequest): SubjectResponse
-  +update(id: Long, request: SubjectRequest): SubjectResponse
+  +create(request: SubjectRequest):\nSubjectResponse
+  +update(id: Long, request: SubjectRequest):\nSubjectResponse
   +delete(id: Long): void
   +deleteBatch(ids: List<Long>): void
 }
@@ -63,8 +66,8 @@ class SpecialRoom {
   -Integer quantity
   --
   +getAll(): List<SpecialRoomResponse>
-  +create(request: SpecialRoomRequest): SpecialRoomResponse
-  +update(id: Long, request: SpecialRoomRequest): SpecialRoomResponse
+  +create(request: SpecialRoomRequest):\nSpecialRoomResponse
+  +update(id: Long, request: SpecialRoomRequest):\nSpecialRoomResponse
   +delete(id: Long): void
 }
 
@@ -72,8 +75,8 @@ class SchoolYear {
   -Long id
   -Integer startYear
   --
-  +getAll(username: String): List<SchoolYearResponse>
-  +create(request: SchoolYearRequest, username: String): SchoolYearResponse
+  +getAll(username: String):\nList<SchoolYearResponse>
+  +create(request: SchoolYearRequest,\nusername: String): SchoolYearResponse
   +delete(id: Long, username: String): void
 }
 
@@ -85,7 +88,7 @@ class SchoolClass {
   +getAll(year: String): List<ClassResponse>
   +getById(id: Long): ClassResponse
   +create(request: ClassRequest): ClassResponse
-  +update(id: Long, request: ClassRequest): ClassResponse
+  +update(id: Long, request: ClassRequest):\nClassResponse
   +delete(id: Long): void
   +deleteBatch(ids: List<Long>): void
 }
@@ -94,11 +97,11 @@ class Assignment {
   -Long id
   -Integer periodsPerWeek
   --
-  +getAll(year: String): List<AssignmentResponse>
-  +getByClass(classId: Long): List<AssignmentResponse>
-  +getByTeacher(teacherId: Long): List<AssignmentResponse>
-  +assignHomeroom(request: HomeroomAssignmentRequest): void
-  +assign(request: AssignmentRequest): AssignmentResponse
+  +getAll(year: String):\nList<AssignmentResponse>
+  +getByClass(classId: Long):\nList<AssignmentResponse>
+  +getByTeacher(teacherId: Long):\nList<AssignmentResponse>
+  +assignHomeroom(\nrequest: HomeroomAssignmentRequest): void
+  +assign(request: AssignmentRequest):\nAssignmentResponse
   +delete(id: Long): void
 }
 
@@ -109,12 +112,12 @@ class Timetable {
   -String publicToken
   --
   +getAll(): List<TimetableResponse>
-  +getBySchoolYear(schoolYearId: Long): List<TimetableResponse>
+  +getBySchoolYear(schoolYearId: Long):\nList<TimetableResponse>
   +getById(id: Long): TimetableResponse
-  +create(request: TimetableRequest): TimetableResponse
-  +publish(id: Long, weekIds: List<Long>): TimetableResponse
+  +create(request: TimetableRequest):\nTimetableResponse
+  +publish(id: Long, weekIds: List<Long>):\nTimetableResponse
   +unpublishWeek(id: Long, weekId: Long): void
-  +getPublishStatus(id: Long): List<WeekPublishStatusResponse>
+  +getPublishStatus(id: Long):\nList<WeekPublishStatusResponse>
 }
 
 class Week {
@@ -123,10 +126,10 @@ class Week {
   -LocalDate startDate
   -Boolean isPublished
   --
-  +getByTimetable(timetableId: Long): List<WeekResponse>
-  +updateStartDate(weekId: Long, newStartDate: LocalDate): List<WeekResponse>
+  +getByTimetable(timetableId: Long):\nList<WeekResponse>
+  +updateStartDate(weekId: Long,\nnewStartDate: LocalDate): List<WeekResponse>
   +applyFromWeek(sourceWeekId: Long): void
-  +getPublishEligibility(weekId: Long): WeekEligibility
+  +getPublishEligibility(weekId: Long):\nWeekEligibility
 }
 
 class Slot {
@@ -140,8 +143,8 @@ class Slot {
   --
   +getAll(): List<SlotResponse>
   +getByWeek(weekId: Long): List<SlotResponse>
-  +saveOrUpdateSlot(request: SlotRequest): SlotResponse
-  +deleteByTeacherFromWeek(teacherId: Long, timetableId: Long, fromWeekNumber: Integer): void
+  +saveOrUpdateSlot(request: SlotRequest):\nSlotResponse
+  +deleteByTeacherFromWeek(teacherId: Long,\ntimetableId: Long, fromWeekNumber: Integer): void
   +deleteSlot(id: Long): void
 }
 
@@ -155,10 +158,10 @@ User "1" -- "0..*" SchoolYear
 
 Teacher "0..*" -- "0..*" Subject
 
-SpecialRoom "0..1" --> "0..1" Subject : mỗi môn tối đa 1 phòng
+SpecialRoom "0..1" --> "0..1" Subject
 
 SchoolYear "1" -- "0..*" SchoolClass
-SchoolClass "0..1" --> "0..1" Teacher : mỗi GV chủ nhiệm tối đa 1 lớp
+SchoolClass "0..1" --> "0..1" Teacher
 
 SchoolClass "1" -- "0..*" Assignment
 Subject "1" -- "0..*" Assignment
@@ -171,5 +174,17 @@ Week "1" *-- "0..*" Slot
 
 Slot "0..*" --> "0..1" Assignment
 Slot "0..*" --> "0..1" SpecialRoom
+
+' Bố trí biểu đồ thành các tầng dọc để phù hợp với trang tài liệu.
+User -[hidden]right-> RefreshToken
+User -[hidden]down-> Teacher
+Teacher -[hidden]right-> Subject
+Teacher -[hidden]down-> SpecialRoom
+SpecialRoom -[hidden]right-> SchoolYear
+SpecialRoom -[hidden]down-> SchoolClass
+SchoolClass -[hidden]right-> Assignment
+SchoolClass -[hidden]down-> Timetable
+Timetable -[hidden]right-> Week
+Timetable -[hidden]down-> Slot
 
 @enduml

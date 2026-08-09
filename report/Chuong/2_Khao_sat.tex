@@ -79,7 +79,7 @@ Người dùng vãng lai không cần đăng nhập và chỉ được phép xem
 % Sinh viên vẽ biểu đồ ca sử dụng tổng quan và giải thích các tác nhân tham gia là gì, nêu vai trò của từng tác nhân, và mô tả ngắn gọn các ca sử dụng chính.
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ usecase tổng quát EduSchedule.png}
+	\includegraphics[width=\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ usecase tổng quát EduSchedule.png}
 	\caption{Biểu đồ ca sử dụng hệ thống}
     
 	\label{fig:usecase}
@@ -102,7 +102,7 @@ thay đổi dữ liệu của hệ thống.
 \subsection{Biểu đồ ca sử dụng phân rã phân công giảng dạy}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ ca sử dụng phân rã Phân công giảng dạy.png}
+	\includegraphics[width=\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ ca sử dụng phân rã Phân công giảng dạy.png}
 	\caption{Biểu đồ ca sử dụng phân rã phân công giảng dạy}
 	\label{fig:usecase_phan_cong_giang_day}
 \end{figure}
@@ -115,7 +115,7 @@ Phân công giáo viên bộ môn.
 \subsection{Biểu đồ ca sử dụng phân rã xếp thời khoá biểu}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.9\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ phân rã Xếp thời khoá biểu.png}
+	\includegraphics[width=\textwidth]{Hinhve/UsecaseDiagram/Sơ đồ phân rã Xếp thời khoá biểu.png}
 	\caption{Biểu đồ ca sử dụng phân rã xếp thời khóa biểu}
 	\label{fig:usecase_xep_thoi_khoa_bieu}
 \end{figure}
@@ -257,10 +257,6 @@ sự kiện thay thế và hậu điều kiện.
 \cline{2-4}
 & 5. & Hệ thống & Kiểm tra dữ liệu, lưu thay đổi và cập nhật danh sách. \\
 \hline
-\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\cline{2-4}
-& 5a. & Hệ thống & Nếu dữ liệu không hợp lệ hoặc phòng đang được sử dụng trong thời khoá biểu, thông báo lỗi và không thực hiện thao tác không hợp lệ. \\
-\hline
 \multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Danh mục phòng chức năng được cập nhật.} \\
 \hline
 \end{longtable}
@@ -281,11 +277,11 @@ sự kiện thay thế và hậu điều kiện.
 \cline{2-4}
 & 1. & Người dùng & Truy cập chức năng quản lý năm học. \\
 \cline{2-4}
-& 2. & Người dùng & Chọn tạo năm học mới và nhập năm bắt đầu cùng ngày bắt đầu của hai học kì. \\
+& 2. & Người dùng & Chọn tạo năm học mới. \\
 \cline{2-4}
 & 3. & Hệ thống & Tạo năm học, hai thời khoá biểu học kì và danh sách tuần học tương ứng. \\
 \cline{2-4}
-& 4. & Người dùng & Có thể điều chỉnh ngày bắt đầu của tuần học; hệ thống cập nhật các tuần tiếp theo. \\
+& 4. & Người dùng & Có thể điều chỉnh ngày bắt đầu của kì học; hệ thống cập nhật các tuần tiếp theo. \\
 \hline
 \multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
 \cline{2-4}
@@ -321,11 +317,9 @@ sự kiện thay thế và hậu điều kiện.
 \cline{2-4}
 & 6. & Hệ thống & Kiểm tra dữ liệu, lưu thay đổi và cập nhật danh sách lớp. \\
 \hline
-\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
 \cline{2-4}
 & 6a. & Hệ thống & Nếu tên lớp bị trùng trong cùng năm học hoặc khối không hợp lệ, thông báo lỗi và không lưu. \\
-\cline{2-4}
-& 6b. & Hệ thống & Khi xoá lớp có dữ liệu liên quan, yêu cầu xác nhận trước khi xoá các phân công và tiết học liên quan. \\
 \hline
 \multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Danh sách lớp của năm học được cập nhật theo thao tác hợp lệ của người dùng.} \\
 \hline
@@ -346,33 +340,19 @@ sự kiện thay thế và hậu điều kiện.
     \item Đã tạo năm học; danh sách giáo viên và danh sách lớp học.
 \end{enumerate}} \\
 \hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện chính}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Vào mục ``Phân công giảng dạy'', chọn tab ``Phân công Chủ nhiệm''. \\
+\cline{2-4}
+& 2. & Người dùng & Chọn một lớp và chọn giáo viên chủ nhiệm từ danh sách; danh sách hiển thị các giáo viên chưa là giáo viên chủ nhiệm trong năm học. \\
+\cline{2-4}
+& 3. & Hệ thống & Lưu thông tin và cập nhật giao diện. \\
+\cline{2-4}
+& 4. & Người dùng & Chọn xoá giáo viên chủ nhiệm. \\
+\cline{2-4}
+& 5. & Hệ thống & Kiểm tra và xoá giáo viên chủ nhiệm, sau đó cập nhật giao diện. \\
 \hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-1. & Người dùng & Vào mục ``Phân công giảng dạy'', chọn tab ``Phân công Chủ nhiệm''. \\
-\hline
-2. & Người dùng & Chọn một lớp và chọn giáo viên chủ nhiệm từ danh sách; danh sách hiển thị tất cả giáo viên, trừ những giáo viên hiện đã là GVCN của lớp khác trong năm học. \\
-\hline
-3. & Hệ thống & Lưu thông tin và cập nhật giao diện. \\
-\hline
-\end{tabular}} \\
-\hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện thay thế}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
-\hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-2a. & Người dùng & Thay vì chọn giáo viên mới, chọn xoá giáo viên chủ nhiệm hiện tại của lớp (chọn giá trị trống). \\
-\hline
-2b. & Hệ thống & Hiển thị hộp thoại xác nhận xoá GVCN của lớp; nếu người dùng xác nhận, hệ thống xoá giáo viên chủ nhiệm khỏi lớp và cập nhật giao diện. \\
-\hline
-\end{tabular}} \\
-\hline
-\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Giáo viên chủ nhiệm được gán cho lớp; dữ liệu được lưu vào cơ sở dữ liệu.} \\
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Thông tin giáo viên chủ nhiệm của lớp được cập nhật và lưu vào cơ sở dữ liệu.} \\
 \hline
 \end{longtable}
 
@@ -391,37 +371,25 @@ sự kiện thay thế và hậu điều kiện.
     \item Đã tạo năm học; danh sách giáo viên, lớp học và môn học đã được thiết lập.
 \end{enumerate}} \\
 \hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện chính}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\multirow{7}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Vào mục ``Phân công giảng dạy'', chọn tab ``Phân công Chuyên môn''. \\
+\cline{2-4}
+& 2. & Người dùng & Chọn hiển thị theo giáo viên hoặc theo lớp. \\
+\cline{2-4}
+& 3. & Hệ thống & Hiển thị danh sách giáo viên hoặc lớp học tương ứng. \\
+\cline{2-4}
+& 4. & Người dùng & Chọn một môn học của một lớp và chọn giáo viên phụ trách từ danh sách. \\
+\cline{2-4}
+& 5. & Hệ thống & Lưu phân công và cập nhật giao diện. \\
+\cline{2-4}
+& 6. & Hệ thống & Cập nhật tổng số tiết đã phân công của giáo viên đó so với định mức. \\
 \hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-1. & Người dùng & Vào mục ``Phân công giảng dạy'', chọn tab ``Phân công Chuyên môn''. \\
-\hline
-2. & Người dùng & Chọn hiển thị theo giáo viên hoặc theo lớp. \\
-\hline
-3. & Hệ thống & Hiển thị danh sách giáo viên hoặc lớp học tương ứng; \\
-\hline
-4. & Người dùng & Chọn một môn học của một lớp và chọn giáo viên phụ trách từ danh sách. \\
-\hline
-5. & Hệ thống & Lưu phân công và cập nhật giao diện. \\
-\hline
-6. & Hệ thống & Cập nhật tổng số tiết đã phân công của giáo viên đó so với định mức. \\
-\hline
-\end{tabular}} \\
-\hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện thay thế}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
-\hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-4a. & Hệ thống & Nếu môn học của lớp đã được phân công cho một giáo viên khác trước đó, hệ thống tự động thay thế bằng giáo viên mới được chọn ngay khi lưu, không hiển thị xác nhận trước khi ghi đè. \\
-\hline
-6a. & Hệ thống & Khi tổng số tiết đã phân công của giáo viên vượt định mức, số tiết hiển thị màu đỏ trong bảng ``Theo giáo viên''; hệ thống không chặn lưu. \\
-\hline
-\end{tabular}} \\
+\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 4a. & Hệ thống & Nếu môn học của lớp đã được phân công cho một giáo viên khác trước đó, hệ thống tự động thay thế bằng giáo viên mới được chọn ngay khi lưu, không hiển thị xác nhận trước khi ghi đè. \\
+\cline{2-4}
+& 6a. & Hệ thống & Khi tổng số tiết đã phân công của giáo viên vượt định mức, số tiết hiển thị màu đỏ trong bảng ``Theo giáo viên''; hệ thống không chặn lưu. \\
 \hline
 \multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Bản ghi phân công được lưu và tổng số tiết phân công của giáo viên được cập nhật.} \\
 \hline
@@ -432,7 +400,7 @@ sự kiện thay thế và hậu điều kiện.
 \caption{Đặc tả ca sử dụng Xếp và điều chỉnh thời khoá biểu thủ công}
 \label{tab:uc_xep_tkb_thu_cong} \\
 \hline
-\multicolumn{1}{|l|}{\textbf{Mã ca sử dụng}} & \multicolumn{1}{c|}{UC08.1} & \multicolumn{1}{c|}{\textbf{Tên ca sử dụng}} & \multicolumn{1}{c|}{Xếp và điều chỉnh thời khoá biểu thủ công} \\
+\multicolumn{1}{|l|}{\textbf{Mã ca sử dụng}} & \multicolumn{1}{c|}{UC08.1} & \multicolumn{1}{c|}{\textbf{Tên ca sử dụng}} & \multicolumn{1}{>{\centering\arraybackslash}p{6.3cm}|}{Xếp và điều chỉnh thời khoá biểu thủ công} \\
 \hline
 \multicolumn{1}{|l|}{\textbf{Tác nhân}} & \multicolumn{3}{l|}{Người xếp thời khoá biểu} \\
 \hline
@@ -443,52 +411,41 @@ sự kiện thay thế và hậu điều kiện.
     \item Các lớp học, môn học và phân công giảng dạy đã được thiết lập đầy đủ.
 \end{enumerate}} \\
 \hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện chính}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\multirow{11}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập trang ``Thời khoá biểu'' và chọn năm học, học kì và tuần cần xếp. \\
+\cline{2-4}
+& 2. & Hệ thống & Tải các tiết đã được xếp và kiểm tra lại giáo viên của từng tiết theo thông tin phân công giảng dạy hiện tại. \\
+\cline{2-4}
+& 3. & Người dùng & Chọn một ô trống hoặc một ô đã có tiết học trên lưới (xác định thứ, buổi và tiết). \\
+\cline{2-4}
+& 4. & Hệ thống & Hiển thị danh sách môn học tương ứng và số tiết chưa xếp của lớp đó. \\
+\cline{2-4}
+& 5. & Người dùng & Chọn môn học cần bố trí hoặc thay thế trong ô. \\
+\cline{2-4}
+& 6. & Hệ thống & Kiểm tra xung đột giáo viên, phòng chức năng và các ràng buộc liên quan tại vị trí được chọn. \\
+\cline{2-4}
+& 7. & Hệ thống & Cập nhật tiết học trên giao diện lưới ở trạng thái chưa lưu. \\
+\cline{2-4}
+& 8. & Người dùng & Tiếp tục xếp hoặc điều chỉnh các tiết còn lại cho đến khi thời khoá biểu được hoàn thiện. \\
+\cline{2-4}
+& 9. & Người dùng & Nhấn ``Lưu tuần N (ngày)'' để lưu tuần đang chỉnh sửa, hoặc ``Áp dụng từ tuần N (ngày) trở đi'' để áp dụng thời khoá biểu cho tuần đó và các tuần tiếp theo. \\
+\cline{2-4}
+& 10. & Hệ thống & Lưu các thay đổi theo phạm vi được người dùng lựa chọn và cập nhật giao diện lưới. \\
 \hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-1. & Người dùng & Truy cập trang ``Thời khoá biểu'' và chọn năm học, học kì và tuần cần xếp. \\
-\hline
-2. & Hệ thống & Tải các tiết đã được xếp và kiểm tra lại giáo viên của từng tiết theo thông tin phân công giảng dạy hiện tại. \\
-\hline
-3. & Người dùng & Chọn một ô trống hoặc một ô đã có tiết học trên lưới (xác định thứ, buổi và tiết). \\
-\hline
-4. & Hệ thống & Hiển thị danh sách môn học tương ứng và số tiết chưa xếp của lớp đó. \\
-\hline
-5. & Người dùng & Chọn môn học cần bố trí hoặc thay thế trong ô. \\
-\hline
-6. & Hệ thống & Kiểm tra xung đột giáo viên, phòng chức năng và các ràng buộc liên quan tại vị trí được chọn. \\
-\hline
-7. & Hệ thống & Cập nhật tiết học trên giao diện lưới ở trạng thái chưa lưu. \\
-\hline
-8. & Người dùng & Tiếp tục xếp hoặc điều chỉnh các tiết còn lại cho đến khi thời khoá biểu được hoàn thiện. \\
-\hline
-9. & Người dùng & Nhấn ``Lưu tuần N (ngày)'' để lưu tuần đang chỉnh sửa, hoặc ``Áp dụng từ tuần N (ngày) trở đi'' để áp dụng thời khoá biểu cho tuần đó và các tuần tiếp theo. \\
-\hline
-10. & Hệ thống & Lưu các thay đổi theo phạm vi được người dùng lựa chọn và cập nhật giao diện lưới. \\
-\hline
-\end{tabular}} \\
-\hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện thay thế}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
-\hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-2a. & Hệ thống & Nếu việc thay đổi phân công làm cho giáo viên hiện tại của một tiết học bị trùng lịch với lớp khác, hệ thống làm nổi bật các ô bị xung đột và hiển thị thông báo nêu rõ giáo viên, lớp học và thời điểm xảy ra xung đột để người dùng điều chỉnh. \\
-\hline
-3a. & Hệ thống & Nếu ô đã có tiết học, hệ thống cho phép người dùng chọn môn học khác để thay thế hoặc loại bỏ tiết học; các ràng buộc được kiểm tra lại sau khi điều chỉnh. \\
-\hline
-4a. & Hệ thống & Nếu môn học chưa được phân công giáo viên, hệ thống hiển thị thông báo chưa được phân công và không cho phép lựa chọn môn học đó. \\
-\hline
-4b. & Hệ thống & Nếu môn học đã được xếp đủ số tiết, hệ thống hiển thị trạng thái đã đủ và không cho phép người dùng lựa chọn môn học đó. \\
-\hline
-6a. & Hệ thống & Nếu giáo viên đang dạy lớp khác vào tiết này, hệ thống hiển thị thông báo xung đột và cho phép người dùng lựa chọn loại bỏ tiết học xung đột ở lớp khác trước khi lưu tiết mới. \\
-\hline
-6b. & Hệ thống & Nếu môn học cần phòng chức năng nhưng không có phòng trống, hiển thị thông báo xung đột phòng và không cho phép xếp môn học vào ô đó. \\
-\end{tabular}} \\
+\multirow{7}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 2a. & Hệ thống & Nếu việc thay đổi phân công làm cho giáo viên hiện tại của một tiết học bị trùng lịch với lớp khác, hệ thống làm nổi bật các ô bị xung đột và hiển thị thông báo nêu rõ giáo viên, lớp học và thời điểm xảy ra xung đột để người dùng điều chỉnh. \\
+\cline{2-4}
+& 3a. & Hệ thống & Nếu ô đã có tiết học, hệ thống cho phép người dùng chọn môn học khác để thay thế hoặc loại bỏ tiết học; các ràng buộc được kiểm tra lại sau khi điều chỉnh. \\
+\cline{2-4}
+& 4a. & Hệ thống & Nếu môn học chưa được phân công giáo viên, hệ thống hiển thị thông báo chưa được phân công và không cho phép lựa chọn môn học đó. \\
+\cline{2-4}
+& 4b. & Hệ thống & Nếu môn học đã được xếp đủ số tiết, hệ thống hiển thị trạng thái đã đủ và không cho phép người dùng lựa chọn môn học đó. \\
+\cline{2-4}
+& 6a. & Hệ thống & Nếu giáo viên đang dạy lớp khác vào tiết này, hệ thống hiển thị thông báo xung đột và cho phép người dùng lựa chọn loại bỏ tiết học xung đột ở lớp khác trước khi lưu tiết mới. \\
+\cline{2-4}
+& 6b. & Hệ thống & Nếu môn học cần phòng chức năng nhưng không có phòng trống, hiển thị thông báo xung đột phòng và không cho phép xếp môn học vào ô đó. \\
 \hline
 \multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Các tiết học được lưu với thông tin thời khoá biểu, thứ, tiết và phân công tương ứng. Giao diện lưới phản ánh trạng thái mới nhất; các tiết còn xung đột với phân công hiện tại được làm nổi bật kèm thông báo lỗi để người dùng tiếp tục điều chỉnh.} \\
 \hline
@@ -508,45 +465,33 @@ sự kiện thay thế và hậu điều kiện.
     \item Người dùng đã đăng nhập thành công.
 \end{enumerate}} \\
 \hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện chính}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\multirow{9}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng & Truy cập trang ``Thời khoá biểu'' và chọn năm học, học kì, tuần cần xếp. \\
+\cline{2-4}
+& 2. & Người dùng & Nhấn nút ``Tự động xếp TKB''. \\
+\cline{2-4}
+& 3. & Hệ thống & Hiển thị màn hình chờ toàn trang trong khi thuật toán xử lý. \\
+\cline{2-4}
+& 4. & Hệ thống & Chạy thuật toán xếp lịch tự động để phân bổ các tiết còn thiếu, giữ nguyên các tiết đã xếp trước đó. \\
+\cline{2-4}
+& 5. & Hệ thống & Trả về danh sách tiết đã xếp ở trạng thái chưa lưu và danh sách tiết không thể xếp được (nếu có). \\
+\cline{2-4}
+& 6. & Người dùng & Xem xét kết quả trên lưới thời khoá biểu. \\
+\cline{2-4}
+& 7. & Người dùng & Nhấn ``Lưu tuần N (ngày)'' để lưu tuần đang chỉnh sửa, hoặc ``Áp dụng từ tuần N (ngày) trở đi'' để áp dụng kết quả cho tuần đó và các tuần tiếp theo. \\
+\cline{2-4}
+& 8. & Hệ thống & Lưu kết quả xếp thời khoá biểu theo phạm vi người dùng đã lựa chọn và cập nhật lưới thời khoá biểu. \\
 \hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-1. & Người dùng & Truy cập trang ``Thời khoá biểu'' và chọn năm học, học kì, tuần cần xếp. \\
-\hline
-2. & Người dùng & Nhấn nút ``Tự động xếp TKB''. \\
-\hline
-3. & Hệ thống & Hiển thị màn hình chờ toàn trang trong khi thuật toán xử lý. \\
-\hline
-4. & Hệ thống & Chạy thuật toán xếp lịch tự động để phân bổ các tiết còn thiếu, giữ nguyên các tiết đã xếp trước đó. \\
-\hline
-5. & Hệ thống & Trả về danh sách tiết đã xếp ở trạng thái chưa lưu và danh sách tiết không thể xếp được (nếu có). \\
-\hline
-6. & Người dùng & Xem xét kết quả trên lưới thời khoá biểu. \\
-\hline
-7. & Người dùng & Nhấn ``Lưu tuần N (ngày)'' để lưu tuần đang chỉnh sửa, hoặc ``Áp dụng từ tuần N (ngày) trở đi'' để áp dụng kết quả cho tuần đó và các tuần tiếp theo. \\
-\hline
-8. & Hệ thống & Lưu kết quả xếp thời khoá biểu theo phạm vi người dùng đã lựa chọn và cập nhật lưới thời khoá biểu. \\
-\hline
-\end{tabular}} \\
-\hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện thay thế}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
-\hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-2a. & Hệ thống & Nếu còn lớp hoặc môn học chưa có giáo viên phụ trách, hiển thị thông báo liệt kê danh sách và yêu cầu hoàn tất phân công trước; không gửi yêu cầu xếp tự động. \\
-\hline
-5a. & Hệ thống & Nếu có tiết không thể xếp được, vẫn hiển thị các tiết đã xếp ở trạng thái chưa lưu kèm thông báo cảnh báo số tiết đã xếp và số môn không xếp được; người dùng có thể lưu kết quả một phần và xử lý thủ công các tiết còn lại. \\
-\hline
-7a. & Người dùng & Nhấn nút đóng màn hình chỉnh sửa hoặc chuyển sang tuần khác khi còn thay đổi chưa lưu; hệ thống hiển thị hộp thoại xác nhận huỷ thay đổi. \\
-\hline
-7b. & Hệ thống & Nếu người dùng xác nhận huỷ, toàn bộ kết quả tự động bị loại bỏ, thời khoá biểu giữ nguyên trạng thái trước khi xếp; nếu chọn ở lại, kết quả chưa lưu vẫn được giữ nguyên trên giao diện. \\
-\hline
-\end{tabular}} \\
+\multirow{5}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 2a. & Hệ thống & Nếu còn lớp hoặc môn học chưa có giáo viên phụ trách, hiển thị thông báo liệt kê danh sách và yêu cầu hoàn tất phân công trước; không gửi yêu cầu xếp tự động. \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu có tiết không thể xếp được, vẫn hiển thị các tiết đã xếp ở trạng thái chưa lưu kèm thông báo cảnh báo số tiết đã xếp và số môn không xếp được; người dùng có thể lưu kết quả một phần và xử lý thủ công các tiết còn lại. \\
+\cline{2-4}
+& 7a. & Người dùng & Nhấn nút đóng màn hình chỉnh sửa hoặc chuyển sang tuần khác khi còn thay đổi chưa lưu; hệ thống hiển thị hộp thoại xác nhận huỷ thay đổi. \\
+\cline{2-4}
+& 7b. & Hệ thống & Nếu người dùng xác nhận huỷ, toàn bộ kết quả tự động bị loại bỏ, thời khoá biểu giữ nguyên trạng thái trước khi xếp; nếu chọn ở lại, kết quả chưa lưu vẫn được giữ nguyên trên giao diện. \\
 \hline
 \multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Các tiết học được lưu vào cơ sở dữ liệu. Giao diện lưới cập nhật phản ánh thời khoá biểu mới. Các tiết không xếp được vẫn để trống và có thể tiếp tục xếp thủ công.} \\
 \hline
@@ -568,21 +513,13 @@ sự kiện thay thế và hậu điều kiện.
 \cline{2-4}
 & 1. & Người dùng & Mở thời khoá biểu cần công khai. \\
 \cline{2-4}
-& 2. & Người dùng & Chọn chức năng ``Công khai thời khoá biểu''. \\
+& 2. & Hệ thống & Hiển thị danh sách các tuần và trạng thái công khai tương ứng. \\
 \cline{2-4}
-& 3. & Hệ thống & Hiển thị yêu cầu xác nhận công khai. \\
+& 3. & Người dùng & Chọn các tuần cần công khai và nhấn nút ``Cập nhật''. \\
 \cline{2-4}
-& 4. & Người dùng & Xác nhận thao tác. \\
-\cline{2-4}
-& 5. & Hệ thống & Cập nhật trạng thái công khai và thông báo hoàn tất. \\
+& 4. & Hệ thống & Cập nhật trạng thái công khai của các tuần đã chọn và thông báo hoàn tất. \\
 \hline
-\multirow{3}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\cline{2-4}
-& 4a. & Người dùng & Huỷ xác nhận; hệ thống không thay đổi trạng thái thời khoá biểu. \\
-\cline{2-4}
-& 5a. & Hệ thống & Nếu thời khoá biểu không có dữ liệu, thông báo không thể công khai. \\
-\hline
-\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Thời khoá biểu được đánh dấu công khai và có thể được Người dùng vãng lai tra cứu.} \\
+\multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Các tuần được chọn được công khai và có thể được Người dùng vãng lai tra cứu.} \\
 \hline
 \end{longtable}
 
@@ -609,10 +546,6 @@ sự kiện thay thế và hậu điều kiện.
 & 4. & Hệ thống & Tổng hợp dữ liệu thời khoá biểu theo chế độ xem đã chọn. \\
 \cline{2-4}
 & 5. & Hệ thống & Tạo tệp .xlsx và tải tệp xuống trình duyệt. \\
-\hline
-\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\cline{2-4}
-& 4a. & Hệ thống & Nếu không có dữ liệu phù hợp với tiêu chí đã chọn, thông báo chưa có dữ liệu để xuất. \\
 \hline
 \multicolumn{1}{|l|}{\textbf{Hậu điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Tệp Excel chứa thời khoá biểu theo tiêu chí đã chọn được tạo và tải xuống thiết bị của người dùng.} \\
 \hline
@@ -657,33 +590,21 @@ sự kiện thay thế và hậu điều kiện.
 \hline
 \multicolumn{1}{|l|}{\textbf{Tiền điều kiện}} & \multicolumn{3}{p{10.5cm}|}{Thời khoá biểu đã được Người xếp thời khoá biểu công khai; hệ thống đã sinh UID và URL công khai tương ứng.} \\
 \hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện chính}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
+\multirow{6}{2.8cm}{\textbf{Luồng sự kiện chính}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 1. & Người dùng vãng lai & Mở URL công khai của thời khoá biểu có chứa UID tương ứng. \\
+\cline{2-4}
+& 2. & Hệ thống & Tiếp nhận UID từ URL và tra cứu thời khoá biểu đã được công khai. \\
+\cline{2-4}
+& 3. & Hệ thống & Hiển thị thời khoá biểu công khai dưới dạng lưới tương ứng với năm học và học kì cố định. \\
+\cline{2-4}
+& 4. & Người dùng vãng lai & Chọn tuần học, chế độ xem và lớp, khối hoặc giáo viên cần tra cứu. \\
+\cline{2-4}
+& 5. & Hệ thống & Hiển thị thời khoá biểu đã được công khai dưới dạng lưới theo lựa chọn; mỗi ô thể hiện môn học và giáo viên phụ trách. \\
 \hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-1. & Người dùng vãng lai & Mở URL công khai của thời khoá biểu có chứa UID tương ứng. \\
-\hline
-2. & Hệ thống & Tiếp nhận UID từ URL và tra cứu thời khoá biểu đã được công khai. \\
-\hline
-3. & Hệ thống & Hiển thị thời khoá biểu công khai dưới dạng lưới tương ứng với năm học và học kì cố định. \\
-\hline
-4. & Người dùng vãng lai & Chọn tuần học, chế độ xem và lớp, khối hoặc giáo viên cần tra cứu. \\
-\hline
-5. & Hệ thống & Hiển thị thời khoá biểu đã được công khai dưới dạng lưới theo lựa chọn; mỗi ô thể hiện môn học và giáo viên phụ trách. \\
-\hline
-\end{tabular}} \\
-\hline
-\multirow{1}{2.8cm}{\textbf{Luồng sự kiện thay thế}} &
-\multicolumn{3}{c|}{%
-\begin{tabular}{|p{0.8cm}|p{2.8cm}|p{6.2cm}|}
-\hline
-\textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
-\hline
-5a. & Hệ thống & Nếu UID không hợp lệ hoặc không tìm thấy thời khoá biểu công khai tương ứng, hiển thị thông báo thời khoá biểu công khai không tồn tại. \\
-\hline
-\end{tabular}} \\
+\multirow{2}{2.8cm}{\textbf{Luồng sự kiện thay thế}} & \textbf{STT} & \textbf{Thực hiện bởi} & \textbf{Hành động} \\
+\cline{2-4}
+& 5a. & Hệ thống & Nếu UID không hợp lệ hoặc không tìm thấy thời khoá biểu công khai tương ứng, hiển thị thông báo thời khoá biểu công khai không tồn tại. \\
 \hline
 \end{longtable}
 
@@ -699,7 +620,7 @@ mã ca sử dụng nhằm bảo đảm sự thống nhất với phần đặc t
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth,height=0.72\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_dang_nhap.png}
+    \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_dang_nhap.png}
     \caption{Biểu đồ tuần tự ca sử dụng Đăng nhập}
     \label{fig:sequence_dang_nhap}
 \end{figure}
@@ -712,7 +633,7 @@ giao diện hiển thị thông báo lỗi tương ứng.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_mon_hoc.png}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_mon_hoc.png}
     \caption{Biểu đồ tuần tự ca sử dụng Quản lý môn học}
     \label{fig:sequence_quan_ly_mon_hoc}
 \end{figure}
@@ -727,7 +648,7 @@ cầu người dùng xác nhận; danh sách chỉ được cập nhật sau khi
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_giao_vien.png}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_giao_vien.png}
     \caption{Biểu đồ tuần tự ca sử dụng Quản lý giáo viên}
     \label{fig:sequence_quan_ly_giao_vien}
 \end{figure}
@@ -739,43 +660,42 @@ viên chủ nhiệm, hệ thống từ chối thao tác xóa và trả về dữ
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_phong_chuc_nang.png}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_phong_chuc_nang.png}
     \caption{Biểu đồ tuần tự ca sử dụng Quản lý phòng chức năng}
     \label{fig:sequence_quan_ly_phong_chuc_nang}
 \end{figure}
 
 Hình~\ref{fig:sequence_quan_ly_phong_chuc_nang} thể hiện quá trình tải danh sách
 phòng và môn học liên kết, thêm mới hoặc cập nhật thông tin phòng, cùng thao tác
-xóa. Dữ liệu không hợp lệ bị từ chối tại bộ điều khiển; phòng đang được sử dụng
-trong thời khóa biểu không được phép xóa.
+xóa. Dữ liệu không hợp lệ bị từ chối tại bộ điều khiển; sau khi thao tác hợp lệ
+được thực hiện thành công, hệ thống cập nhật lại danh sách phòng.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_nam_hoc.png}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_nam_hoc.png}
     \caption{Biểu đồ tuần tự ca sử dụng Quản lý năm học}
     \label{fig:sequence_quan_ly_nam_hoc}
 \end{figure}
 
 Hình~\ref{fig:sequence_quan_ly_nam_hoc} mô tả việc tải danh sách năm học, tạo
 năm học mới cùng hai học kỳ và các tuần học, cũng như điều chỉnh ngày bắt đầu
-của một tuần. Hệ thống không tạo dữ liệu nếu năm học đã tồn tại hoặc các ngày
-bắt đầu không hợp lệ.
+của một kỳ học. Hệ thống không tạo dữ liệu nếu năm học đã tồn tại.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_lop_hoc.png}
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_quan_ly_lop_hoc.png}
     \caption{Biểu đồ tuần tự ca sử dụng Quản lý lớp học}
     \label{fig:sequence_quan_ly_lop_hoc}
 \end{figure}
 
 Hình~\ref{fig:sequence_quan_ly_lop_hoc} mô tả quá trình tải danh sách lớp theo
 năm học, thêm mới hoặc cập nhật lớp và xóa lớp. Bộ điều khiển kiểm tra tên lớp
-trùng và khối không hợp lệ; khi lớp có phân công hoặc tiết học liên quan, hệ
-thống yêu cầu người dùng xác nhận trước khi xóa.
+trùng và khối không hợp lệ trước khi lưu; thao tác xóa lớp được thực hiện và
+danh sách lớp được cập nhật sau khi xóa thành công.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sequence_phan_cong_chu_nhiem.png}
+    \includegraphics[width=\textwidth]{Hinhve/SequenceDiagram/sequence_phan_cong_chu_nhiem.png}
     \caption{Biểu đồ tuần tự ca sử dụng Phân công giáo viên chủ nhiệm}
     \label{fig:sequence_phan_cong_chu_nhiem}
 \end{figure}
@@ -788,7 +708,7 @@ giáo viên chủ nhiệm hiện tại của lớp.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{Hinhve/SequenceDiagram/sequence_phan_cong_bo_mon.png}
+    \includegraphics[width=\textwidth]{Hinhve/SequenceDiagram/sequence_phan_cong_bo_mon.png}
     \caption{Biểu đồ tuần tự ca sử dụng Phân công giáo viên bộ môn}
     \label{fig:sequence_phan_cong_bo_mon}
 \end{figure}
@@ -801,7 +721,7 @@ công và hiển thị cảnh báo nếu số tiết của giáo viên vượt �
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.78\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_xep_tkb_thu_cong.png}
+    \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_xep_tkb_thu_cong.png}
     \caption{Biểu đồ tuần tự ca sử dụng Xếp và điều chỉnh thời khoá biểu thủ công}
     \label{fig:sequence_xep_tkb_thu_cong}
 \end{figure}
@@ -816,7 +736,7 @@ thái chưa lưu. Khi hoàn tất, người dùng có thể lưu riêng tuần �
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_xep_tkb_tu_dong.png}
+    \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_xep_tkb_tu_dong.png}
     \caption{Biểu đồ tuần tự ca sử dụng Xếp thời khoá biểu tự động}
     \label{fig:sequence_xep_tkb_tu_dong}
 \end{figure}
@@ -830,31 +750,29 @@ phạm vi tuần được lựa chọn và cập nhật lại lưới thời kho
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.78\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_cong_khai_tkb.png}
+    \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_cong_khai_tkb.png}
     \caption{Biểu đồ tuần tự ca sử dụng Công khai thời khoá biểu}
     \label{fig:sequence_cong_khai_tkb}
 \end{figure}
 
-Hình~\ref{fig:sequence_cong_khai_tkb} mô tả quá trình mở thời khóa biểu, xác
-nhận công khai và cập nhật trạng thái. Nếu người dùng hủy xác nhận, trạng thái
-được giữ nguyên; nếu thời khóa biểu chưa có tiết học, hệ thống từ chối công khai
-và hiển thị thông báo tương ứng.
+Hình~\ref{fig:sequence_cong_khai_tkb} mô tả quá trình mở thời khóa biểu, hiển
+thị trạng thái công khai của các tuần và cập nhật những tuần được người dùng lựa
+chọn.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.72\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_xuat_tkb.png}
+    \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_xuat_tkb.png}
     \caption{Biểu đồ tuần tự ca sử dụng Xuất thời khoá biểu}
     \label{fig:sequence_xuat_tkb}
 \end{figure}
 
 Hình~\ref{fig:sequence_xuat_tkb} thể hiện quá trình tiếp nhận tiêu chí xuất,
-truy vấn dữ liệu theo chế độ xem và tạo tệp Excel. Khi không có dữ liệu phù hợp,
-hệ thống trả về thông báo; ngược lại, tệp .xlsx được tạo và gửi về trình duyệt
-để người dùng tải xuống.
+truy vấn dữ liệu theo chế độ xem, tạo tệp .xlsx và gửi tệp về trình duyệt để
+người dùng tải xuống.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.68\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_dang_xuat.png}
+    \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_dang_xuat.png}
     \caption{Biểu đồ tuần tự ca sử dụng Đăng xuất}
     \label{fig:sequence_dang_xuat}
 \end{figure}
@@ -865,7 +783,7 @@ phiên đã hết hạn, hệ thống vẫn xóa thông tin xác thực còn l�
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_tra_cuu_tkb.png}
+    \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{Hinhve/SequenceDiagram/sequence_tra_cuu_tkb.png}
     \caption{Biểu đồ tuần tự ca sử dụng Tra cứu thời khoá biểu}
     \label{fig:sequence_tra_cuu_tkb}
 \end{figure}

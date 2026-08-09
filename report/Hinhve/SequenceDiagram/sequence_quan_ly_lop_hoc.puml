@@ -37,25 +37,11 @@ alt Thêm mới hoặc cập nhật lớp
 else Xóa lớp học
     User -> UI: Chọn lớp và yêu cầu xóa
     UI -> Controller: xóaLớp(mãLớp)
-    Controller -> Service: kiểmTraDữLiệuLiênQuan(mãLớp)
-    Service -> DB: tìmPhânCôngVàTiếtHọcLiênQuan()
-    DB --> Service: Kết quả kiểm tra
-    alt Lớp có dữ liệu liên quan
-        Service --> Controller: Yêu cầu xác nhận
-        Controller --> UI: Hiển thị yêu cầu xác nhận
-        UI --> User: Yêu cầu xác nhận xóa dữ liệu liên quan
-        User -> UI: Xác nhận hoặc hủy
-        UI -> Controller: kếtQuảXácNhận()
-    end
-    alt Người dùng xác nhận xóa
-        Controller -> Service: xóaLớpVàDữLiệuLiênQuan()
-        Service -> DB: thựcHiệnXóa()
-        DB --> Service: Xóa thành công
-        Service --> Controller: Kết quả xóa
-        Controller --> UI: Trả về kết quả
-        UI --> User: Cập nhật danh sách lớp
-    else Người dùng hủy
-        UI --> User: Giữ nguyên danh sách lớp
-    end
+    Controller -> Service: xóaLớp(mãLớp)
+    Service -> DB: thựcHiệnXóa()
+    DB --> Service: Xóa thành công
+    Service --> Controller: Kết quả xóa
+    Controller --> UI: Trả về kết quả
+    UI --> User: Cập nhật danh sách lớp
 end
 @enduml

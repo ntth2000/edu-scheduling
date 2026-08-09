@@ -1,0 +1,76 @@
+@startuml
+title Biểu đồ trình tự - Phân công giáo viên bộ môn
+hide footbox
+skinparam defaultFontSize 16
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequence {
+    TitleFontSize 20
+    ParticipantFontSize 18
+    MessageFontSize 18
+    GroupFontSize 16
+}
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện\nphân công" as UI
+control "Điều khiển\nphân công" as Controller
+database "CSDL\nlớp học" as ClassDB
+database "CSDL\nmôn học" as SubjectDB
+database "CSDL\ngiáo viên" as TeacherDB
+database "CSDL\nphân công" as AssignmentDB
+
+User -> UI: Chọn tab "Phân công Chuyên môn"
+User -> UI: Chọn hiển thị theo giáo viên hoặc theo lớp
+||10||
+UI -> Controller: yêuCầuDữLiệu(nămHọc, chếĐộXem)
+Controller -> ClassDB: lấyDanhSáchLớp(nămHọc)
+ClassDB --> Controller: danhSáchLớp
+||10||
+Controller -> SubjectDB: lấyDanhSáchMônHọc()
+SubjectDB --> Controller: danhSáchMônHọc
+||10||
+Controller -> TeacherDB: lấyDanhSáchGiáoViên()
+TeacherDB --> Controller: danhSáchGiáoViên
+||10||
+Controller -> AssignmentDB: lấyDanhSáchPhânCông(nămHọc)
+AssignmentDB --> Controller: danhSáchPhânCông
+Controller --> UI: trảVềDữLiệu()
+||10||
+alt Hiển thị theo giáo viên
+||10||
+    UI --> User: Hiển thị danh sách giáo viên
+||10||
+else Hiển thị theo lớp
+||10||
+    UI --> User: Hiển thị danh sách lớp
+||10||
+end
+
+||10||
+User -> UI: Chọn lớp, môn học và giáo viên
+UI -> Controller: lưuPhânCông(lớp, mônHọc, giáoViên)
+
+||10||
+alt Đã có giáo viên phụ trách
+    Controller -> AssignmentDB: thayThếGiáoViên(giáoViênMới)
+else Chưa có giáo viên phụ trách
+    Controller -> AssignmentDB: tạoPhânCông(lớp, mônHọc, giáoViên)
+end
+
+||10||
+AssignmentDB --> Controller: lưuThànhCông
+Controller -> AssignmentDB: tínhTổngSốTiếtĐãPhânCông(giáoViên)
+AssignmentDB --> Controller: tổngSốTiếtĐãPhânCông
+Controller --> UI: kếtQuảPhânCông(tổngSốTiết, địnhMức)
+
+||10||
+alt Tổng số tiết vượt định mức
+||10||
+    UI --> User: Cập nhật giao diện và hiển thị số tiết màu đỏ\ntrong bảng "Theo giáo viên"
+||10||
+else Không vượt định mức
+||10||
+    UI --> User: Cập nhật giao diện
+||10||
+end
+@enduml

@@ -1,0 +1,38 @@
+@startuml
+title Biểu đồ trình tự - Phân công giáo viên chủ nhiệm
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Người xếp\nthời khóa biểu" as User
+boundary "Giao diện phân công\ngiáo viên chủ nhiệm" as UI
+control "Điều khiển\nphân công" as Controller
+database "CSDL\nlớp học" as ClassDB
+database "CSDL\ngiáo viên" as TeacherDB
+
+User -> UI: Truy cập chức năng phân công chủ nhiệm
+UI -> Controller: lấyDữLiệuPhânCông(nămHọc)
+Controller -> ClassDB: lấyDanhSáchLớp(nămHọc)
+ClassDB --> Controller: Danh sách lớp
+Controller -> TeacherDB: lấyGiáoViênChưaLàGVCN(nămHọc)
+TeacherDB --> Controller: Danh sách giáo viên chưa là GVCN
+Controller --> UI: Trả về dữ liệu phân công
+UI --> User: Hiển thị danh sách lớp và giáo viên
+
+alt Phân công giáo viên chủ nhiệm
+    User -> UI: Chọn lớp và giáo viên chủ nhiệm
+    UI -> Controller: lưuGiáoViênChủNhiệm(mãLớp, mãGiáoViên)
+    Controller -> ClassDB: cậpNhậtGiáoViênChủNhiệm()
+    ClassDB --> Controller: Cập nhật thành công
+    Controller --> UI: Trả về kết quả
+    UI --> User: Cập nhật giao diện
+else Xóa giáo viên chủ nhiệm
+    User -> UI: Chọn xóa giáo viên chủ nhiệm
+    UI -> Controller: xóaGiáoViênChủNhiệm(mãLớp)
+    Controller -> Controller: kiểmTraDữLiệu()
+    Controller -> ClassDB: xóaGiáoViênChủNhiệm()
+    ClassDB --> Controller: Xóa thành công
+    Controller --> UI: Trả về kết quả
+    UI --> User: Cập nhật giao diện
+end
+@enduml

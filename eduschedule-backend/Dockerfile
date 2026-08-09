@@ -22,9 +22,14 @@ USER app
 
 COPY --from=build /app/app.jar /app/app.jar
 
-# Render injects PORT; default to 8080 locally
+# Most PaaS platforms (Render, Railway, Heroku, Cloud Run, Fly.io) inject PORT;
+# default to 8080 when running the image locally or on a plain VPS.
 ENV PORT=8080
 EXPOSE 8080
+
+# The image ships only application-prod.properties, so the prod profile must be active.
+# Set here rather than on the platform dashboard so the image is self-contained.
+ENV SPRING_PROFILES_ACTIVE=prod
 
 # JVM tuned for 512MB containers:
 #  - MaxRAMPercentage caps heap at ~70% of container memory

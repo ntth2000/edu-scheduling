@@ -4,8 +4,6 @@ import ai.timefold.solver.core.api.score.HardSoftScore;
 import ai.timefold.solver.core.api.score.stream.*;
 import com.eduschedule.scheduler.ScheduleConfig;
 
-// Rules here mirror the checks that used to live in ScheduleGrid.canPlace() (hard)
-// and ScheduleGrid.computeFitness() / SC1-SC6 (soft, weights in ScheduleConfig).
 public class TimetableConstraintProvider implements ConstraintProvider {
 
     @Override
@@ -15,12 +13,6 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 teacherConflict(factory),
                 specialRoomCapacity(factory),
                 noGapWithinSession(factory),
-                minimizeTeacherSessions(factory),
-                teacherMaxSessionsPerWeek(factory),
-                noThreeConsecutiveSameSubject(factory),
-//                noSameSubjectMorningAndAfternoon(factory),
-//                teacherMaxConsecutivePeriods(factory),
-//                teacherWeeklyLimit(factory),
                 afternoonRequiresCompleteMorningSession(factory)
         };
     }
@@ -58,7 +50,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
 
     //HC4: A class's periods within a session must be contiguous from period 1, no empty period
-    // in between (was: ScheduleGrid.nextPeriodInSession() enforcing front-to-back placement).
+    // in between.
     private Constraint noGapWithinSession(ConstraintFactory factory) {
         return factory.forEach(Lesson.class)
                 .filter(lesson -> lesson.getTimeslot().getPeriod() > 1)
@@ -124,89 +116,4 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                         "Afternoon requires complete morning session"
                 );
     }
-
-    // --- Soft constraints (SC1-SC5, weights from ScheduleConfig) ---
-
-    // SC1: minimize the number of distinct (teacher, day, session) groups a teacher is split across.
-    private Constraint minimizeTeacherSessions(ConstraintFactory factory) {
-        return factory.forEach(Lesson.class)
-                .groupBy(Lesson::getTeacherId, l -> l.getTimeslot().getDay(), l -> l.getTimeslot().getSession())
-                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W1))
-                .asConstraint("Minimize teacher sessions");
-    }
-
-    // SC7: soft cap on how many sessions ("buổi") a teacher comes to school per week.
-    // No penalty at or below MAX_TEACHER_SESSIONS_SOFT; each session beyond it adds W7 (linear).
-    private Constraint teacherMaxSessionsPerWeek(ConstraintFactory factory) {
-        return factory.forEach(Lesson.class)
-                .groupBy(Lesson::getTeacherId,
-                        ConstraintCollectors.toSet(l -> l.getTimeslot().getDay() + "_" + l.getTimeslot().getSession()))
-                .filter((teacherId, sessions) -> sessions.size() > ScheduleConfig.MAX_TEACHER_SESSIONS_SOFT)
-                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W7),
-                        (teacherId, sessions) -> sessions.size() - ScheduleConfig.MAX_TEACHER_SESSIONS_SOFT)
-                .asConstraint("Teacher max sessions per week (soft cap)");
-    }
-
-    // SC2: no 3 consecutive periods of the same subject, same class, same session.
-    private Constraint noThreeConsecutiveSameSubject(ConstraintFactory factory) {
-        return factory.forEach(Lesson.class)
-                .join(Lesson.class,
-                        Joiners.equal(Lesson::getClassId, Lesson::getClassId),
-                        Joiners.equal(l -> l.getTimeslot().getDay(), l2 -> l2.getTimeslot().getDay()),
-                        Joiners.equal(l -> l.getTimeslot().getSession(), l2 -> l2.getTimeslot().getSession()),
-                        Joiners.equal(l -> l.getTimeslot().getPeriod() + 1, l2 -> l2.getTimeslot().getPeriod()))
-                .filter((l1, l2) -> l1.getSubjectId().equals(l2.getSubjectId()))
-                .join(Lesson.class,
-                        Joiners.equal((l1, l2) -> l1.getClassId(), Lesson::getClassId),
-                        Joiners.equal((l1, l2) -> l1.getTimeslot().getDay(), l3 -> l3.getTimeslot().getDay()),
-                        Joiners.equal((l1, l2) -> l1.getTimeslot().getSession(), l3 -> l3.getTimeslot().getSession()),
-                        Joiners.equal((l1, l2) -> l1.getTimeslot().getPeriod() + 2, l3 -> l3.getTimeslot().getPeriod()))
-                .filter((l1, l2, l3) -> l1.getSubjectId().equals(l3.getSubjectId()))
-                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W2))
-                .asConstraint("No 3 consecutive same subject");
-    }
-
-//    // SC3: same class shouldn't have the same subject both in the morning and the afternoon of one day.
-//    private Constraint noSameSubjectMorningAndAfternoon(ConstraintFactory factory) {
-//        return factory.forEach(Lesson.class)
-//                .filter(l -> l.getTimeslot().getSession() == 1)
-//                .join(factory.forEach(Lesson.class).filter(l -> l.getTimeslot().getSession() == 2),
-//                        Joiners.equal(Lesson::getClassId, Lesson::getClassId),
-//                        Joiners.equal(l -> l.getTimeslot().getDay(), l2 -> l2.getTimeslot().getDay()),
-//                        Joiners.equal(Lesson::getSubjectId, Lesson::getSubjectId))
-//                // collapse back to one match per (class, day, subject) — matches the original
-//                // Set-based check instead of penalizing once per morning/afternoon period pair.
-//                .groupBy((l1, l2) -> l1.getClassId(), (l1, l2) -> l1.getTimeslot().getDay(), (l1, l2) -> l1.getSubjectId())
-//                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W3))
-//                .asConstraint("No same subject morning and afternoon");
-//    }
-
-    // SC4: a teacher shouldn't teach more than MAX_CONSECUTIVE_TEACHER_PERIODS periods in a row in one day
-    // (morning+afternoon treated as one continuous run, via Timeslot.getFlatPeriod()).
-    // Fires once for every period beyond the limit, same as the original consec-counter loop.
-//    private Constraint teacherMaxConsecutivePeriods(ConstraintFactory factory) {
-//        var stream = factory.forEach(Lesson.class);
-//        for (int offset = 1; offset <= ScheduleConfig.MAX_CONSECUTIVE_TEACHER_PERIODS; offset++) {
-//            final int o = offset;
-//            stream = stream.ifExists(Lesson.class,
-//                    Joiners.equal(Lesson::getTeacherId, Lesson::getTeacherId),
-//                    Joiners.equal(l -> l.getTimeslot().getDay(), l2 -> l2.getTimeslot().getDay()),
-//                    Joiners.equal(l -> l.getTimeslot().getFlatPeriod() - o, l2 -> l2.getTimeslot().getFlatPeriod()));
-//        }
-//        return stream
-//                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W4))
-//                .asConstraint("Teacher max consecutive periods");
-//    }
-
-    // SC5: a teacher shouldn't be scheduled beyond their Teacher.maxPeriodsPerWeek.
-//    private Constraint teacherWeeklyLimit(ConstraintFactory factory) {
-//        return factory.forEach(Lesson.class)
-//                .groupBy(Lesson::getTeacherId, ConstraintCollectors.toList())
-//                .filter((teacherId, lessons) -> {
-//                    Integer max = lessons.get(0).getTeacherMaxPeriodsPerWeek();
-//                    return max != null && lessons.size() > max;
-//                })
-//                .penalize(HardSoftScore.ofSoft(ScheduleConfig.W5))
-//                .asConstraint("Teacher weekly period limit");
-//    }
 }

@@ -7,6 +7,7 @@ import {
   type SpecialRoomResponse,
   type SubjectResponse,
 } from "@/lib/api";
+import { emitSpecialRoomsChanged } from "@/lib/special-room-events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -113,6 +114,7 @@ export function SpecialRoomTable() {
         setRooms((prev) => [...prev, created]);
         toast.success("Đã thêm phòng chức năng mới");
       }
+      emitSpecialRoomsChanged();
       setIsModalOpen(false);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Không thể lưu phòng chức năng");
@@ -126,6 +128,7 @@ export function SpecialRoomTable() {
     try {
       await specialRoomApi.delete(roomToDelete.id);
       setRooms((prev) => prev.filter((r) => r.id !== roomToDelete.id));
+      emitSpecialRoomsChanged();
       toast.success(`Đã xóa phòng ${roomToDelete.name}`);
     } catch {
       toast.error("Không thể xóa phòng chức năng");

@@ -145,7 +145,6 @@ export function CellPopover({
 
   const renderPickerContent = (title: string, showBack: boolean) => (
     <PopoverContent className="w-72 p-0 rounded-xl overflow-hidden z-10000" align="start">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
         <div className="flex items-center gap-2">
           {showBack && (
@@ -165,7 +164,6 @@ export function CellPopover({
         </div>
       </div>
 
-      {/* Subject list */}
       <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
         {options.length === 0 ? (
           <p className="text-xs text-slate-400 italic text-center py-6">
@@ -261,6 +259,12 @@ export function CellPopover({
             <div className="flex items-center gap-1.5 bg-red-50 text-red-600 rounded-lg px-2.5 py-2 mb-3 text-xs mt-2">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               GV trùng lịch lớp khác
+            </div>
+          )}
+          {slot.isRoomConflict && (
+            <div className="flex items-center gap-1.5 bg-red-50 text-red-600 rounded-lg px-2.5 py-2 mb-3 text-xs mt-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              Phòng chức năng vượt sức chứa
             </div>
           )}
 

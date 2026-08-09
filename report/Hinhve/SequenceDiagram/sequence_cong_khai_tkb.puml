@@ -11,35 +11,21 @@ control "Xử lý nghiệp vụ\nthời khóa biểu" as Service
 database "CSDL\nthời khóa biểu" as DB
 
 User -> UI: Mở thời khóa biểu cần công khai
-UI -> Controller: lấyThờiKhóaBiểu(mãThờiKhóaBiểu)
-Controller -> Service: lấyThờiKhóaBiểu()
-Service -> DB: truyVấnThờiKhóaBiểuVàTiếtHọc()
-DB --> Service: Thời khóa biểu và danh sách tiết
-Service --> Controller: Dữ liệu thời khóa biểu
-Controller --> UI: Trả về dữ liệu
-UI --> User: Hiển thị thời khóa biểu
+UI -> Controller: lấyDanhSáchTuần(mãThờiKhóaBiểu)
+Controller -> Service: lấyDanhSáchTuần()
+Service -> DB: truyVấnTuầnVàTrạngTháiCôngKhai()
+DB --> Service: Danh sách tuần và trạng thái
+Service --> Controller: Dữ liệu các tuần
+Controller --> UI: Trả về danh sách tuần
+UI --> User: Hiển thị danh sách tuần và trạng thái công khai
 
-User -> UI: Chọn "Công khai thời khóa biểu"
-UI --> User: Hiển thị yêu cầu xác nhận
-alt Người dùng hủy xác nhận
-    User -> UI: Hủy thao tác
-    UI --> User: Giữ nguyên trạng thái thời khóa biểu
-else Người dùng xác nhận
-    User -> UI: Xác nhận công khai
-    UI -> Controller: côngKhaiThờiKhóaBiểu(mãThờiKhóaBiểu)
-    Controller -> Service: kiểmTraVàCôngKhai()
-    Service -> DB: kiểmTraDữLiệuTiếtHọc()
-    DB --> Service: Kết quả kiểm tra
-    alt Thời khóa biểu không có dữ liệu
-        Service --> Controller: Không thể công khai
-        Controller --> UI: Trả về thông báo lỗi
-        UI --> User: Hiển thị thông báo không thể công khai
-    else Thời khóa biểu có dữ liệu
-        Service -> DB: cậpNhậtTrạngTháiCôngKhai()
-        DB --> Service: Cập nhật thành công
-        Service --> Controller: Thời khóa biểu đã công khai
-        Controller --> UI: Trả về kết quả
-        UI --> User: Hiển thị thông báo hoàn tất
-    end
-end
+User -> UI: Chọn các tuần cần công khai
+User -> UI: Nhấn nút "Cập nhật"
+UI -> Controller: cậpNhậtCôngKhai(danhSáchMãTuần)
+Controller -> Service: cậpNhậtTrạngTháiCôngKhai()
+Service -> DB: cậpNhậtCácTuầnĐãChọn()
+DB --> Service: Cập nhật thành công
+Service --> Controller: Trạng thái mới của các tuần
+Controller --> UI: Trả về kết quả cập nhật
+UI --> User: Hiển thị thông báo hoàn tất
 @enduml

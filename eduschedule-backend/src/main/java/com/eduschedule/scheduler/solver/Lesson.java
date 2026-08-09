@@ -10,9 +10,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Planning entity: one period of an Assignment that needs (or already has) a Timeslot.
-// Denormalized (ids + names) on purpose so the solver clones plain data, not JPA proxies —
-// map back to Assignment/Slot only when persisting the solved result.
+// TẠM TẮT để thử nghiệm: bỏ khai báo comparatorClass thì Construction Heuristic không còn xếp
+// theo 4 tầng độ khó (ghim > GVBM+phòng > GVBM > GVCN) mà duyệt Lesson theo đúng thứ tự trong
+// lessonList. Khôi phục bằng cách bỏ comment dòng dưới và xoá dòng @PlanningEntity trống.
+// @PlanningEntity(comparatorClass = LessonDifficultyComparator.class)
 @PlanningEntity
 @Getter
 @Setter
@@ -22,18 +23,23 @@ import lombok.Setter;
 public class Lesson {
 
     @PlanningId
-    private String id; // assignmentId + "-" + index within that assignment's remaining periods
+    private String id;
 
     private Long assignmentId;
     private Long classId;
     private String className;
     private Long teacherId;
     private String teacherFullName;
-    private Integer teacherMaxPeriodsPerWeek; // Teacher.maxPeriodsPerWeek, for the SC5 weekly-limit constraint
     private Long subjectId;
     private String subjectName;
-    private Long specialRoomId; // null if the subject doesn't need a dedicated room
+    private Long specialRoomId;
     private Integer specialRoomCapacity; // SpecialRoom.quantity, only meaningful when specialRoomId != null
+
+    // How many distinct classes this lesson's teacher covers across the school year. A "giáo viên
+    // bộ môn" spans many classes and is therefore hard to place; a homeroom teacher usually has 1.
+    private int teacherClassCount;
+    // True when the teacher is the homeroom teacher (GVCN) of this lesson's own class.
+    private boolean homeroomTeacher;
 
     // True for slots that already exist in the DB for this week (see Slot) — the solver
     // must not move these, only fill in the remaining, unscheduled periods around them.

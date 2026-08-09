@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { schoolYearApi, type SchoolYearResponse } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -30,25 +31,20 @@ const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 + i);
 export function CreateSchoolYearDialog({ open, onOpenChange, onCreated }: Props) {
   const [startYear, setStartYear] = useState(String(CURRENT_YEAR - 1));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (open) {
-      setStartYear(String(CURRENT_YEAR - 1));
-      setError("");
-    }
+    if (open) setStartYear(String(CURRENT_YEAR - 1));
   }, [open]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    setError("");
     try {
       const created = await schoolYearApi.create(parseInt(startYear));
       window.dispatchEvent(new CustomEvent("schoolyear:created", { detail: created }));
       onCreated(created);
       onOpenChange(false);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Đã xảy ra lỗi");
+      toast.error(e instanceof Error ? e.message : "Đã xảy ra lỗi");
     } finally {
       setIsSubmitting(false);
     }
@@ -62,10 +58,7 @@ export function CreateSchoolYearDialog({ open, onOpenChange, onCreated }: Props)
         </DialogHeader>
 
         <div className="py-2 space-y-4">
-          <Select
-            value={startYear}
-            onValueChange={(v) => { setStartYear(v); setError(""); }}
-          >
+          <Select value={startYear} onValueChange={setStartYear}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -77,8 +70,6 @@ export function CreateSchoolYearDialog({ open, onOpenChange, onCreated }: Props)
               ))}
             </SelectContent>
           </Select>
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
 
         <DialogFooter>

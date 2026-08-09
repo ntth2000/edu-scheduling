@@ -20,13 +20,13 @@ Controller --> UI: Trả về danh sách
 UI --> User: Hiển thị danh sách năm học
 
 alt Tạo năm học mới
-    User -> UI: Nhập năm bắt đầu và ngày bắt đầu hai học kỳ
+    User -> UI: Chọn năm học mới
     UI -> Controller: tạoNămHọc(thôngTin)
     Controller -> Controller: kiểmTraDữLiệu()
     Controller -> Service: kiểmTraNămHọcTồnTại()
     Service -> DB: tìmNămHọc()
     DB --> Service: Kết quả kiểm tra
-    alt Năm học đã tồn tại hoặc ngày không hợp lệ
+    alt Năm học đã tồn tại
         Service --> Controller: Dữ liệu không hợp lệ
         Controller --> UI: Trả về thông báo lỗi
         UI --> User: Hiển thị lỗi, không tạo dữ liệu
@@ -38,14 +38,14 @@ alt Tạo năm học mới
         Controller --> UI: Trả về kết quả
         UI --> User: Cập nhật danh sách
     end
-else Điều chỉnh ngày bắt đầu tuần học
-    User -> UI: Chọn tuần và nhập ngày bắt đầu mới
-    UI -> Controller: cậpNhậtNgàyTuần(thôngTinTuần)
-    Controller -> Service: cậpNhậtTuầnVàCácTuầnTiếpTheo()
-    Service -> DB: lưuDanhSáchTuầnĐãCậpNhật()
+else Điều chỉnh ngày bắt đầu kỳ học
+    User -> UI: Chọn kỳ và nhập ngày bắt đầu
+    UI -> Controller: cậpNhậtNgàyBắtĐầuKỳ(thôngTinKỳ)
+    Controller -> Service: cậpNhậtNgàyBắtĐầuKỳ()
+    Service -> DB: lưuNgàyBắtĐầuKỳ()
     DB --> Service: Cập nhật thành công
-    Service --> Controller: Danh sách tuần mới
+    Service --> Controller: Thông tin kỳ học mới
     Controller --> UI: Trả về kết quả
-    UI --> User: Hiển thị các tuần đã cập nhật
+    UI --> User: Hiển thị kỳ học đã cập nhật
 end
 @enduml

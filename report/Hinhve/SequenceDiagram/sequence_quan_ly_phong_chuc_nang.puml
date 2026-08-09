@@ -37,19 +37,11 @@ alt Thêm mới hoặc cập nhật phòng
 else Xóa phòng chức năng
     User -> UI: Chọn phòng và yêu cầu xóa
     UI -> Controller: xóaPhòng(mãPhòng)
-    Controller -> Service: kiểmTraVàXóa(mãPhòng)
-    Service -> DB: kiểmTraSửDụngTrongThờiKhóaBiểu()
-    DB --> Service: Kết quả kiểm tra
-    alt Phòng đang được sử dụng
-        Service --> Controller: Không cho phép xóa
-        Controller --> UI: Trả về thông báo lỗi
-        UI --> User: Hiển thị thông báo không thể xóa
-    else Phòng chưa được sử dụng
-        Service -> DB: xóaPhòng()
-        DB --> Service: Xóa thành công
-        Service --> Controller: Kết quả xóa
-        Controller --> UI: Trả về kết quả
-        UI --> User: Cập nhật danh sách
-    end
+    Controller -> Service: xóaPhòng(mãPhòng)
+    Service -> DB: xóaPhòng()
+    DB --> Service: Xóa thành công
+    Service --> Controller: Kết quả xóa
+    Controller --> UI: Trả về kết quả
+    UI --> User: Cập nhật danh sách
 end
 @enduml

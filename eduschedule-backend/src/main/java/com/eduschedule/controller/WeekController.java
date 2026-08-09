@@ -2,6 +2,8 @@ package com.eduschedule.controller;
 
 import com.eduschedule.dto.request.WeekStartDateRequest;
 import com.eduschedule.dto.response.WeekResponse;
+import com.eduschedule.scheduler.ScheduleGeneratorService;
+import com.eduschedule.scheduler.model.AutoScheduleResult;
 import com.eduschedule.service.WeekService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WeekController {
     private final WeekService weekService;
+    private final ScheduleGeneratorService scheduleGeneratorService;
 
     @GetMapping
     public ResponseEntity<List<WeekResponse>> getByTimetable(@RequestParam Long timetableId) {
@@ -32,5 +35,12 @@ public class WeekController {
     public ResponseEntity<Void> applyFromWeek(@PathVariable Long sourceWeekId) {
         weekService.applyFromWeek(sourceWeekId);
         return ResponseEntity.noContent().build();
+    }
+
+    // Luôn trả 200 kể cả khi result.errors không rỗng — xếp tự động một phần vẫn là kết quả hợp lệ
+    // (client hiển thị các tiết xếp được + số tiết xếp được/tổng số tiết, không coi là lỗi request).
+    @PostMapping("/{weekId}/generate")
+    public ResponseEntity<AutoScheduleResult> generate(@PathVariable Long weekId) {
+        return ResponseEntity.ok(scheduleGeneratorService.generate(weekId));
     }
 }

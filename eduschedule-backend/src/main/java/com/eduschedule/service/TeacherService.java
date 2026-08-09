@@ -9,9 +9,9 @@ import com.eduschedule.entity.SchoolClass;
 import com.eduschedule.entity.Subject;
 import com.eduschedule.entity.Teacher;
 import com.eduschedule.entity.User;
-import com.eduschedule.entity.enums.TeacherType;
 import com.eduschedule.repository.AssignmentRepository;
 import com.eduschedule.repository.SchoolClassRepository;
+import com.eduschedule.repository.SchoolYearRepository;
 import com.eduschedule.repository.SlotRepository;
 import com.eduschedule.repository.SubjectRepository;
 import com.eduschedule.repository.TeacherRepository;
@@ -36,35 +36,44 @@ public class TeacherService {
     private final SubjectRepository subjectRepository;
     private final AssignmentRepository assignmentRepository;
     private final SlotRepository slotRepository;
+    private final SchoolYearRepository schoolYearRepository;
     private final UserRepository userRepository;
 
-    public List<TeacherResponse> getAll() {
-        return teacherRepository.findAllByUserId(getCurrentUser().getId())
+    // year (dạng "2026-2027", tuỳ chọn): giới hạn thông tin chủ nhiệm về đúng năm học đang xem.
+    // Giáo viên dùng chung cho mọi năm học, nên nếu không lọc thì một người chủ nhiệm ở nhiều năm
+    // sẽ trả về tất cả các lớp đó cùng lúc.
+    public List<TeacherResponse> getAll(String year) {
+        User user = getCurrentUser();
+        Long schoolYearId = null;
+        if (year != null) {
+            int startYear = Integer.parseInt(year.split("-")[0]);
+            schoolYearId = schoolYearRepository.findByStartYearAndUserId(startYear, user.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy năm học: " + year))
+                    .getId();
+        }
+        final Long yearId = schoolYearId;
+        return teacherRepository.findAllByUserId(user.getId())
                 .stream()
-                .map(this::toResponse)
+                .map(teacher -> toResponse(teacher, yearId))
                 .toList();
     }
 
     public TeacherResponse getById(Long id) {
-        return toResponse(findById(id));
+        return toResponse(findById(id), null);
     }
 
     @Transactional
     public TeacherResponse create(TeacherRequest request) {
         Set<Subject> subjects = getSubjects(request);
 
-        // "Loại giáo viên" không còn là khái niệm người dùng thao tác trực tiếp —
-        // GVCN được xác định qua SchoolClass.homeroomTeacherId. Trường type vẫn
-        // tồn tại trên entity chỉ để ScheduleGeneratorService dùng nội bộ.
         Teacher teacher = Teacher.builder()
                 .user(getCurrentUser())
                 .fullName(request.getFullName())
-                .type(TeacherType.BO_MON)
                 .maxPeriodsPerWeek(request.getMaxPeriodsPerWeek())
                 .subjects(subjects)
                 .build();
 
-        return toResponse(teacherRepository.save(teacher));
+        return toResponse(teacherRepository.save(teacher), null);
     }
 
     @Transactional
@@ -76,7 +85,7 @@ public class TeacherService {
         teacher.setMaxPeriodsPerWeek(request.getMaxPeriodsPerWeek());
         teacher.setSubjects(subjects);
 
-        return toResponse(teacherRepository.save(teacher));
+        return toResponse(teacherRepository.save(teacher), null);
     }
 
     // Xoá giáo viên: chặn nếu đang là GVCN hoặc đã có tiết được xếp trong thời
@@ -143,13 +152,25 @@ public class TeacherService {
         return new HashSet<>(subjectRepository.findAllById(request.getSubjectIds()));
     }
 
-    private TeacherResponse toResponse(Teacher teacher) {
-        List<String> classNames = classRepository
-                .findAllByHomeroomTeacherId(teacher.getId())
-                .stream()
-                .map(SchoolClass::getName)
-                .toList();
-        String homeroomClass = classNames.isEmpty() ? null : String.join(", ", classNames);
+    // schoolYearId != null -> chỉ lấy lớp chủ nhiệm trong năm học đó (mỗi năm nhiều nhất một lớp).
+    // schoolYearId == null -> gộp mọi năm học; tên lớp chỉ duy nhất trong phạm vi một năm
+    // (ràng buộc UNIQUE(name, school_year_id)) nên phải distinct, tránh ra "1B, 1B".
+    private TeacherResponse toResponse(Teacher teacher, Long schoolYearId) {
+        String homeroomClass;
+        if (schoolYearId != null) {
+            homeroomClass = classRepository
+                    .findByHomeroomTeacherIdAndSchoolYearId(teacher.getId(), schoolYearId)
+                    .map(SchoolClass::getName)
+                    .orElse(null);
+        } else {
+            List<String> classNames = classRepository
+                    .findAllByHomeroomTeacherId(teacher.getId())
+                    .stream()
+                    .map(SchoolClass::getName)
+                    .distinct()
+                    .toList();
+            homeroomClass = classNames.isEmpty() ? null : String.join(", ", classNames);
+        }
         boolean isScheduled = !slotRepository.findByAssignment_TeacherId(teacher.getId()).isEmpty();
         return TeacherResponse.builder()
                 .id(teacher.getId())

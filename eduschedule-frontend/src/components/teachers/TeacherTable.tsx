@@ -1,17 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { type Teacher } from "@/lib/types";
 import { TeacherModal } from "./TeacherModal";
-import {
-  Pencil,
-  Download,
-  UserX,
-  UserPlus,
-  FileUp,
-  Trash2,
-  Search,
-} from "lucide-react";
+import { Pencil, UserX, UserPlus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,7 +35,6 @@ import {
 } from "@/lib/api";
 import { CustomPagination } from "../shared/CustomPagination";
 import { usePagination } from "@/hooks/usePagination";
-import * as XLSX from "xlsx";
 
 export function TeacherTable() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -53,17 +44,6 @@ export function TeacherTable() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ ids: number[]; names: string[] } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Import progress state
-  const [importProgress, setImportProgress] = useState<{
-    active: boolean;
-    current: number;
-    total: number;
-    successCount: number;
-    failCount: number;
-    done: boolean;
-  } | null>(null);
 
   // Batch selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -146,66 +126,6 @@ export function TeacherTable() {
     }
   };
 
-  const downloadTemplate = () => {
-    const headers = ["Họ tên (*)", "Số tiết tối đa/tuần (*)", "Môn dạy (cách nhau bởi dấu phẩy)"];
-    const sample = ["Nguyễn Văn A", "23", "Toán, Tiếng Việt"];
-    const ws = XLSX.utils.aoa_to_sheet([headers, sample]);
-    ws["!cols"] = headers.map(() => ({ wch: 32 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Giáo viên");
-    XLSX.writeFile(wb, "mau_giao_vien.xlsx");
-  };
-
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!fileInputRef.current) return;
-    fileInputRef.current.value = "";
-    if (!file) return;
-
-    const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as string[][];
-    const dataRows = rows.slice(1).filter((r) => r[0]);
-
-    if (dataRows.length === 0) {
-      toast.error("File không có dữ liệu");
-      return;
-    }
-
-    let successCount = 0;
-    let failCount = 0;
-
-    setImportProgress({ active: true, current: 0, total: dataRows.length, successCount: 0, failCount: 0, done: false });
-
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-      const fullName = String(row[0] ?? "").trim();
-      const maxPeriodsPerWeek = parseInt(String(row[1] ?? "23"), 10) || 23;
-      const subjectNames = String(row[2] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-      const subjectIds = subjectNames
-        .map((name) => subjectList.find((s) => s.name === name)?.id)
-        .filter((id): id is number => id !== undefined);
-
-      try {
-        const created = await teacherApi.create({ fullName, maxPeriodsPerWeek, subjectIds });
-        setTeachers((prev) => [...prev, mapTeacher(created)]);
-        successCount++;
-      } catch {
-        failCount++;
-      }
-
-      setImportProgress({
-        active: true,
-        current: i + 1,
-        total: dataRows.length,
-        successCount,
-        failCount,
-        done: i + 1 === dataRows.length,
-      });
-    }
-  };
-
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -271,16 +191,7 @@ export function TeacherTable() {
             <UserPlus className="w-5 h-5" />
             Thêm giáo viên mới
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-            <FileUp className="w-5 h-5" />
-            Nhập dữ liệu từ Excel
-          </Button>
-          <Button size="lg" variant="outline" onClick={downloadTemplate}>
-            <Download className="w-5 h-5" />
-            Tải mẫu Excel
-          </Button>
         </div>
-        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
 
         <TeacherModal
           open={isModalOpen}
@@ -332,15 +243,6 @@ export function TeacherTable() {
               <UserPlus className="h-3.5 w-3.5" />
               Thêm mới
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()}>
-              <FileUp className="h-3.5 w-3.5" />
-              Nhập Excel
-            </Button>
-            <Button size="sm" variant="ghost" onClick={downloadTemplate}>
-              <Download className="h-3.5 w-3.5" />
-              Tải mẫu
-            </Button>
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -466,84 +368,6 @@ export function TeacherTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Import Progress Overlay */}
-      {importProgress?.active && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4">
-              <div className="flex items-center gap-3 mb-1">
-                {importProgress.done ? (
-                  <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                  </div>
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-base text-slate-800 font-heading">
-                    {importProgress.done ? "Nhập dữ liệu hoàn tất" : "Đang nhập dữ liệu..."}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {importProgress.done
-                      ? `Đã xử lý tất cả ${importProgress.total} giáo viên`
-                      : `Đang xử lý ${importProgress.current} / ${importProgress.total} giáo viên`}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="px-6 pb-4">
-              <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.round((importProgress.current / importProgress.total) * 100)}%`,
-                    background: importProgress.done
-                      ? "linear-gradient(90deg, #10b981, #059669)"
-                      : "linear-gradient(90deg, #3b82f6, #6366f1)",
-                  }}
-                />
-              </div>
-              <div className="flex justify-between mt-1.5 text-[11px] text-slate-400 font-medium">
-                <span>{Math.round((importProgress.current / importProgress.total) * 100)}%</span>
-                <span>{importProgress.current}/{importProgress.total}</span>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="px-6 pb-4 flex gap-3">
-              <div className="flex-1 bg-emerald-50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-extrabold text-emerald-600 font-heading">{importProgress.successCount}</p>
-                <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Thành công</p>
-              </div>
-              <div className="flex-1 bg-red-50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-extrabold text-red-500 font-heading">{importProgress.failCount}</p>
-                <p className="text-[11px] text-red-600 font-medium mt-0.5">Thất bại</p>
-              </div>
-            </div>
-
-            {/* Footer */}
-            {importProgress.done && (
-              <div className="px-6 pb-6">
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    if (importProgress.successCount > 0) toast.success(`Đã nhập ${importProgress.successCount} giáo viên thành công`);
-                    if (importProgress.failCount > 0) toast.error(`${importProgress.failCount} dòng nhập thất bại`);
-                    setImportProgress(null);
-                  }}
-                >
-                  Xong
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 }

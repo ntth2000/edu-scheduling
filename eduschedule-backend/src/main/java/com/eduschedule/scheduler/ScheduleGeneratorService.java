@@ -5,7 +5,6 @@ import com.eduschedule.entity.*;
 import com.eduschedule.repository.*;
 import com.eduschedule.scheduler.model.AutoScheduleResult;
 import com.eduschedule.scheduler.model.AutoScheduleSlot;
-import com.eduschedule.scheduler.model.SlotEntry;
 import com.eduschedule.scheduler.solver.Lesson;
 import com.eduschedule.scheduler.solver.Timeslot;
 import com.eduschedule.scheduler.solver.Timetable;
@@ -89,46 +88,6 @@ public class ScheduleGeneratorService {
             return new AutoScheduleResult(Collections.emptyList(), Collections.emptyList());
         }
 
-        // --- Greedy construction phase: DISABLED (2026-08-04, theo yêu cầu) — Timefold một
-        // mình vừa xây (Construction Heuristic) vừa tối ưu (Local Search) toàn bộ bài toán bên
-        // dưới. Giữ nguyên khối này ở dạng comment để dễ bật lại nếu cần.
-        //
-        // GreedyPhase greedy = new GreedyPhase();
-        // ScheduleGrid bestGrid = null;
-        // List<String> bestErrors = Collections.emptyList();
-        // int minErrorCount = Integer.MAX_VALUE;
-        //
-        // for (int attempt = 1; attempt <= ScheduleConfig.MAX_GREEDY_ATTEMPTS; attempt++) {
-        //     List<String> attemptErrors = new ArrayList<>();
-        //     ScheduleGrid startGrid = buildPrePopulatedGrid(rooms, existingSlots, allAssignments);
-        //     ScheduleGrid result = greedy.run(baseAssignments, periodsMap, startGrid, attemptErrors);
-        //     if (attemptErrors.isEmpty()) {
-        //         bestGrid = result;
-        //         bestErrors = Collections.emptyList();
-        //         break;
-        //     }
-        //     if (attemptErrors.size() < minErrorCount) {
-        //         minErrorCount = attemptErrors.size();
-        //         bestGrid = result;
-        //         bestErrors = new ArrayList<>(attemptErrors);
-        //     }
-        // }
-        //
-        // List<AutoScheduleSlot> newSlots;
-        // if (bestErrors.isEmpty()) {
-        //     List<Lesson> solvedLessons = new TimefoldPhase().run(bestGrid, solverFactory);
-        //     newSlots = solvedLessons.stream()
-        //             .filter(l -> !l.isPinned())
-        //             .map(this::toAutoSlot)
-        //             .collect(Collectors.toList());
-        // } else {
-        //     newSlots = bestGrid.toNewSlotEntries().stream()
-        //             .map(e -> toAutoSlot(e))
-        //             .collect(Collectors.toList());
-        // }
-        //
-        // return new AutoScheduleResult(newSlots, deduplicateErrors(bestErrors));
-
         List<Timeslot> timeslotList = Timeslot.generateAll();
         Map<String, Timeslot> timeslotIndex = new HashMap<>();
         for (Timeslot ts : timeslotList) {
@@ -136,6 +95,17 @@ public class ScheduleGeneratorService {
         }
         Map<Long, Assignment> assignmentMap = allAssignments.stream()
                 .collect(Collectors.toMap(Assignment::getId, a -> a, (a, b) -> a));
+
+        // Teacher -> how many distinct classes they cover this school year. Feeds
+        // LessonDifficultyComparator as a tie-break inside a tier: among equally ranked lessons, a
+        // teacher spread over more classes is the harder one to place, so it goes first.
+        Map<Long, Integer> teacherClassCounts = allAssignments.stream()
+                .filter(a -> a.getTeacher() != null)
+                .collect(Collectors.groupingBy(
+                        a -> a.getTeacher().getId(),
+                        Collectors.collectingAndThen(
+                                Collectors.mapping(a -> a.getSchoolClass().getId(), Collectors.toSet()),
+                                Set::size)));
 
         List<Lesson> lessonList = new ArrayList<>();
         Map<Long, Integer> occurrence = new HashMap<>();
@@ -150,7 +120,7 @@ public class ScheduleGeneratorService {
             int flatPeriod = slot.getPeriod();
             int session = flatPeriod <= 4 ? 1 : 2;
             int withinPeriod = flatPeriod <= 4 ? flatPeriod : flatPeriod - 4;
-            lessonList.add(buildLesson(a, occurrence, subjectToRoom, true,
+            lessonList.add(buildLesson(a, occurrence, subjectToRoom, teacherClassCounts, true,
                     timeslotIndex.get(timeslotKey(slot.getDay(), session, withinPeriod))));
         }
 
@@ -158,7 +128,7 @@ public class ScheduleGeneratorService {
         for (Assignment a : baseAssignments) {
             int count = periodsMap.get(a.getId());
             for (int i = 0; i < count; i++) {
-                lessonList.add(buildLesson(a, occurrence, subjectToRoom, false, null));
+                lessonList.add(buildLesson(a, occurrence, subjectToRoom, teacherClassCounts, false, null));
             }
         }
 
@@ -189,9 +159,13 @@ public class ScheduleGeneratorService {
     }
 
     private Lesson buildLesson(Assignment a, Map<Long, Integer> occurrence, Map<Long, SpecialRoom> subjectToRoom,
-                                boolean pinned, Timeslot timeslot) {
+                                Map<Long, Integer> teacherClassCounts, boolean pinned, Timeslot timeslot) {
         int idx = occurrence.merge(a.getId(), 1, Integer::sum) - 1;
         SpecialRoom room = subjectToRoom.get(a.getSubject().getId());
+        Teacher teacher = a.getTeacher();
+        Teacher homeroom = a.getSchoolClass().getHomeroomTeacher();
+        boolean taughtByOwnHomeroomTeacher = teacher != null && homeroom != null
+                && teacher.getId().equals(homeroom.getId());
         return Lesson.builder()
                 .id(a.getId() + "-" + idx)
                 .assignmentId(a.getId())
@@ -199,11 +173,13 @@ public class ScheduleGeneratorService {
                 .className(a.getSchoolClass().getName())
                 .teacherId(a.getTeacher() != null ? a.getTeacher().getId() : null)
                 .teacherFullName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
-                .teacherMaxPeriodsPerWeek(a.getTeacher() != null ? a.getTeacher().getMaxPeriodsPerWeek() : null)
                 .subjectId(a.getSubject().getId())
                 .subjectName(a.getSubject().getName())
                 .specialRoomId(room != null ? room.getId() : null)
                 .specialRoomCapacity(room != null ? room.getQuantity() : null)
+                .teacherClassCount(teacher != null
+                        ? teacherClassCounts.getOrDefault(teacher.getId(), 1) : 0)
+                .homeroomTeacher(taughtByOwnHomeroomTeacher)
                 .pinned(pinned)
                 .timeslot(timeslot)
                 .build();
@@ -244,30 +220,6 @@ public class ScheduleGeneratorService {
         return day + "_" + session + "_" + period;
     }
 
-    // private ScheduleGrid buildPrePopulatedGrid(List<SpecialRoom> rooms,
-    //                                            List<Slot> existingSlots,
-    //                                            List<Assignment> allAssignments) {
-    //     Map<Long, Assignment> assignmentMap = allAssignments.stream()
-    //             .collect(Collectors.toMap(Assignment::getId, a -> a, (a, b) -> a));
-    //
-    //     ScheduleGrid grid = new ScheduleGrid(rooms);
-    //
-    //     for (Slot slot : existingSlots) {
-    //         if (slot.getAssignment() == null) continue;
-    //         Assignment a = assignmentMap.get(slot.getAssignment().getId());
-    //         if (a == null) continue;
-    //
-    //         // Slots in DB use flat period (1-7); grid uses within-session period (1-4 / 1-3)
-    //         int flatPeriod = slot.getPeriod();
-    //         int session = flatPeriod <= 4 ? 1 : 2;
-    //         int withinPeriod = flatPeriod <= 4 ? flatPeriod : flatPeriod - 4;
-    //
-    //         grid.placeLocked(a, slot.getDay(), session, withinPeriod);
-    //     }
-    //
-    //     return grid;
-    // }
-
     private List<String> deduplicateErrors(List<String> errors) {
         Map<String, Long> counts = errors.stream()
                 .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
@@ -275,22 +227,6 @@ public class ScheduleGeneratorService {
                 .map(e -> e.getValue() > 1 ? e.getKey() + " (" + e.getValue() + " tiết)" : e.getKey())
                 .sorted()
                 .collect(Collectors.toList());
-    }
-
-    private AutoScheduleSlot toAutoSlot(SlotEntry e) {
-        Assignment a = e.assignment();
-        int flatPeriod = e.session() == 1 ? e.period() : e.period() + 4;
-        return new AutoScheduleSlot(
-                e.day(),
-                flatPeriod,
-                a.getSchoolClass().getName(),
-                a.getSchoolClass().getId(),
-                a.getSubject().getId(),
-                a.getSubject().getName(),
-                a.getTeacher() != null ? a.getTeacher().getId() : null,
-                a.getTeacher() != null ? a.getTeacher().getFullName() : null,
-                a.getId()
-        );
     }
 
     private AutoScheduleSlot toAutoSlot(Lesson lesson) {

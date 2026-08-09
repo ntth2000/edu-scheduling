@@ -1,0 +1,56 @@
+@startuml overall_system
+skinparam dpi 150
+skinparam defaultFontSize 20
+skinparam packageFontSize 22
+skinparam arrowFontSize 16
+skinparam nodesep 45
+skinparam ranksep 70
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #FFFFFF
+skinparam componentBackgroundColor #FFFFFF
+skinparam databaseBackgroundColor #FFFFFF
+hide circle
+
+package "Client (Next.js)" {
+  package "Pages" as PAGES
+  package "Components" as COMPS
+  package "API Services" as APISVC
+}
+
+package "Server (Spring Boot)" {
+  package "Controllers" as CTRL
+  package "Services" as SVC
+  package "Scheduler" as SCHED
+  package "Repositories" as REPO
+  package "Entities" as ENT
+}
+
+database "PostgreSQL" as DB
+component "Timefold Solver" as TF <<thư viện ngoài>>
+
+PAGES  --> COMPS
+COMPS  --> APISVC
+APISVC --> CTRL
+
+CTRL --> SVC
+CTRL --> SCHED : xếp tự động
+
+SVC   --> SCHED : kiểm tra điều kiện công bố
+SVC   --> REPO
+SCHED --> REPO
+
+REPO --> ENT
+REPO --> DB
+
+SCHED ..> TF : gọi bộ giải
+
+' Giữ bố cục theo chiều dọc: Client trên, Server giữa, tài nguyên ngoài dưới cùng.
+PAGES -[hidden]right-> COMPS
+COMPS -[hidden]right-> APISVC
+CTRL  -[hidden]right-> SVC
+SVC   -[hidden]right-> SCHED
+REPO  -[hidden]right-> ENT
+DB    -[hidden]right-> TF
+
+@enduml

@@ -8,8 +8,9 @@ import {
   PERIODS,
   SESSIONS,
   mapSlot,
-  computeConflicts,
 } from "@/lib/timetable-data";
+import { findHardViolations, violationsBySlotId } from "@/lib/timetable-constraints";
+import { onSpecialRoomsChanged } from "@/lib/special-room-events";
 import { TimetableGrid } from "./TimetableGrid";
 import { GradeView } from "./GradeView";
 import { CellPopover } from "./CellPopover";
@@ -19,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   FileSpreadsheet, AlertTriangle, Users, ArrowLeft, BarChart2,
   Check, ChevronDown, Save, X, Pencil, Sparkles, Globe, Lock,
+  // Trash2, // dùng cho nút "Xoá tất cả sắp xếp" — xem ghi chú ở handleClearAll
 } from "lucide-react";
 import { PublishTimetableDialog } from "./PublishTimetableDialog";
 import {
@@ -85,7 +87,6 @@ export function TimetablePage({
 }) {
   const router = useRouter();
 
-  // ── Main view state ───────────────────────────────────
   const [selectedGrade, setSelectedGrade] = useState(1);
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [inTeacherView, setInTeacherView] = useState(false);
@@ -95,7 +96,6 @@ export function TimetablePage({
   const [progressGrade, setProgressGrade] = useState(1);
   const [highlightedSlotIds, setHighlightedSlotIds] = useState<Set<string>>(new Set());
 
-  // ── Edit overlay state ────────────────────────────────
   const [isEditOverlayOpen, setIsEditOverlayOpen] = useState(false);
   const [overlayGrade, setOverlayGrade] = useState(1);
   const [overlayClassId, setOverlayClassId] = useState<string>("all");
@@ -103,7 +103,6 @@ export function TimetablePage({
   const [applyForwardConfirmOpen, setApplyForwardConfirmOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 
-  // ── Data state ────────────────────────────────────────
   const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<ClassResponse[]>([]);
@@ -124,10 +123,11 @@ export function TimetablePage({
   const [autoScheduleDialogOpen, setAutoScheduleDialogOpen] = useState(false);
   const [autoScheduleErrors, setAutoScheduleErrors] = useState<{ className: string; subjects: string[] }[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [saveBeforeAutoOpen, setSaveBeforeAutoOpen] = useState(false);
+  // const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
 
   const hasDirtyChanges = pendingAdds.size > 0 || pendingDeletes.size > 0;
 
-  // ── Unsaved changes guards ────────────────────────────
   useEffect(() => {
     if (!hasDirtyChanges) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
@@ -146,9 +146,8 @@ export function TimetablePage({
     return () => window.removeEventListener("popstate", onPopState);
   }, [hasDirtyChanges]);
 
-  // ── Data loading ──────────────────────────────────────
   useEffect(() => {
-    Promise.all([teacherApi.getAll(), subjectApi.getAll(), classApi.getAll(yearParam), assignmentApi.getAll(yearParam), specialRoomApi.getAll()])
+    Promise.all([teacherApi.getAll(yearParam), subjectApi.getAll(), classApi.getAll(yearParam), assignmentApi.getAll(yearParam), specialRoomApi.getAll()])
       .then(([t, s, c, a, r]) => {
         setTeachers(t);
         setSubjects(
@@ -168,6 +167,16 @@ export function TimetablePage({
       })
       .catch(() => toast.error("Không thể tải dữ liệu"));
   }, [yearParam]);
+
+  useEffect(
+    () =>
+      onSpecialRoomsChanged(() => {
+        specialRoomApi.getAll()
+          .then(setSpecialRooms)
+          .catch(() => toast.error("Không thể tải phòng chức năng"));
+      }),
+    []
+  );
 
   useEffect(() => {
     const load = timetableId
@@ -210,8 +219,6 @@ export function TimetablePage({
   }, [currentTimetable, selectedWeekId, refreshWeeks]);
 
   // ── Derived ───────────────────────────────────────────
-  const slotsWithConflicts = useMemo(() => computeConflicts(slots), [slots]);
-  const savedSlotsWithConflicts = useMemo(() => slotsWithConflicts.filter((s) => !s.isDirty), [slotsWithConflicts]);
   const grades = useMemo(() => [...new Set(classes.map((c) => c.grade))].sort(), [classes]);
 
   const gradeClasses = useMemo(
@@ -236,86 +243,40 @@ export function TimetablePage({
   const overlayClassObj = useMemo(() => classes.find((c) => c.name === overlayClassId), [classes, overlayClassId]);
   const overlayClassAssignments = useMemo(() => assignments.filter((a) => a.className === overlayClassId), [assignments, overlayClassId]);
 
-  const teacherSlots = useMemo(() => savedSlotsWithConflicts.filter((s) => s.teacherId === selectedTeacherId), [savedSlotsWithConflicts, selectedTeacherId]);
   const selectedWeek = useMemo(() => weeks.find((w) => w.id === selectedWeekId) ?? null, [weeks, selectedWeekId]);
 
-  const conflictGroups = useMemo(() => {
-    const map = new Map<string, Slot[]>();
-    slotsWithConflicts.filter((s) => s.isConflict).forEach((s) => {
-      const key = `${s.day}-${s.period}-${s.teacherId}`;
-      const list = map.get(key) ?? [];
-      list.push(s);
-      map.set(key, list);
-    });
-    return [...map.entries()].map(([key, group]) => ({
-      key, teacherName: group[0].teacherName ?? "GV",
-      day: group[0].day, period: group[0].period,
-      slotIds: group.map((s) => s.id), classNames: group.map((s) => s.classId),
-    }));
-  }, [slotsWithConflicts]);
+  // Mọi vi phạm ràng buộc bắt buộc của lưới hiện tại, tính cả các tiết chưa lưu. Luật nằm trong
+  // lib/timetable-constraints.ts, viết song song với TimetableConstraintProvider.java phía backend.
+  //
+  // Tuần đã công bố thì không kiểm tra gì nữa: lưới đã bị khoá không sửa được, và dữ liệu nền
+  // (phòng chức năng, phân công...) có thể đã đổi sau lúc công bố nên báo lỗi chỉ gây nhiễu.
+  const hardViolations = useMemo(
+    () => (selectedWeek?.isPublished ? [] : findHardViolations(slots, specialRooms)),
+    [slots, specialRooms, selectedWeek]
+  );
+  const violationsBySlot = useMemo(() => violationsBySlotId(hardViolations), [hardViolations]);
 
-  const roomConflictGroups = useMemo(() => {
-    if (specialRooms.length === 0) return [];
-    const subjectToRoom = new Map<string, SpecialRoomResponse>();
-    for (const room of specialRooms) { if (room.subjectId != null) subjectToRoom.set(room.subjectId.toString(), room); }
-    const grouped = new Map<string, { room: SpecialRoomResponse; slots: Slot[] }>();
-    for (const slot of slotsWithConflicts) {
-      const room = subjectToRoom.get(slot.subjectId);
-      if (!room) continue;
-      const key = `${slot.day}-${slot.period}-${room.id}`;
-      const entry = grouped.get(key) ?? { room, slots: [] };
-      entry.slots.push(slot);
-      grouped.set(key, entry);
-    }
-    return [...grouped.values()]
-      .filter(({ room, slots }) => slots.length > room.quantity)
-      .map(({ room, slots }) => ({
-        key: `room-${slots[0].day}-${slots[0].period}-${room.id}`,
-        roomName: room.name, day: slots[0].day, period: slots[0].period,
-        classNames: slots.map((s) => s.classId),
-      }));
-  }, [slotsWithConflicts, specialRooms]);
+  const slotsWithConflicts = useMemo(
+    () =>
+      slots.map((s) => {
+        const kinds = violationsBySlot.get(s.id) ?? [];
+        return {
+          ...s,
+          isConflict: kinds.includes("teacher") || kinds.includes("class"),
+          isRoomConflict: kinds.includes("room"),
+          isRuleViolation: kinds.includes("gap") || kinds.includes("afternoon"),
+        };
+      }),
+    [slots, violationsBySlot]
+  );
+  const savedSlotsWithConflicts = useMemo(() => slotsWithConflicts.filter((s) => !s.isDirty), [slotsWithConflicts]);
+  const teacherSlots = useMemo(() => savedSlotsWithConflicts.filter((s) => s.teacherId === selectedTeacherId), [savedSlotsWithConflicts, selectedTeacherId]);
 
-  const gapWarnings = useMemo(() => {
-    const result: { key: string; className: string; day: number; period: number }[] = [];
-    const classNames = [...new Set(slotsWithConflicts.map((s) => s.classId))];
-    for (const className of classNames) {
-      const classSlots = slotsWithConflicts.filter((s) => s.classId === className);
-      for (const dayObj of DAYS) {
-        const daySlots = classSlots.filter((s) => s.day === dayObj.value);
-        for (const session of SESSIONS) {
-          const sessionPeriods = [...session.periods] as number[];
-          const occupied = sessionPeriods.filter((p) => daySlots.some((s) => s.period === p));
-          if (occupied.length < 2) continue;
-          const minP = Math.min(...occupied);
-          const maxP = Math.max(...occupied);
-          for (let p = minP + 1; p < maxP; p++) {
-            if (!occupied.includes(p))
-              result.push({ key: `gap-${className}-${dayObj.value}-${p}`, className, day: dayObj.value, period: p });
-          }
-        }
-      }
-    }
-    return result;
-  }, [slotsWithConflicts]);
-
-  const allIssues = useMemo(() => {
-    const label = (day: number, period: number) => {
-      const d = DAYS.find((x) => x.value === day)?.label ?? "";
-      const session = SESSIONS.find((s) => (s.periods as readonly number[]).includes(period));
-      const p = session ? `${session.label} T${period - session.periods[0] + 1}` : `Tiết ${period}`;
-      return { d, p };
-    };
-    const errors = conflictGroups.map((cg) => {
-      const { d, p } = label(cg.day, cg.period);
-      return { key: cg.key, label: `GV ${cg.teacherName} trùng lịch — ${d}, ${p} (${cg.classNames.join(", ")})`, severity: "error" as const };
-    });
-    const warnings = gapWarnings.map((gw) => {
-      const { d, p } = label(gw.day, gw.period);
-      return { key: gw.key, label: `Tiết trống giữa buổi — ${gw.className}, ${d} ${p}`, severity: "warning" as const };
-    });
-    return [...errors, ...warnings];
-  }, [conflictGroups, gapWarnings]);
+  // Cả 5 ràng buộc đều là điều kiện bắt buộc để công khai tuần, nên không có mức "cảnh báo".
+  const allIssues = useMemo(
+    () => hardViolations.map((v) => ({ key: v.key, label: v.label, slotIds: v.slotIds })),
+    [hardViolations]
+  );
 
   const progressGradeClasses = useMemo(
     () => classes.filter((c) => c.grade === progressGrade).sort((a, b) => a.name.localeCompare(b.name, "vi")),
@@ -455,8 +416,32 @@ export function TimetablePage({
     [slots, selectedWeek]
   );
 
-  const handleSave = useCallback(async () => {
-    if (!selectedWeekId || saving || !hasDirtyChanges) return;
+  // ── "Xoá tất cả sắp xếp" — TẠM TẮT ────────────────────────────────────────
+  // Chức năng đã hiện thực và chạy được, nhưng không nằm trong đặc tả use case của báo cáo
+  // (UC04 chỉ mô tả xếp/đổi/xoá từng tiết). Tạm comment lại để phạm vi sản phẩm khớp với phần
+  // đặc tả; bỏ comment bốn khối bên dưới cùng import Trash2 và state clearAllConfirmOpen là
+  // dùng lại được.
+  //
+  // Xoá toàn bộ tiết của tuần đang chọn, ở mọi khối — `slots` được tải theo tuần nên đã chứa
+  // tất cả các lớp, không riêng khối đang xem. Chỉ dọn ở phía giao diện: các tiết đã lưu được
+  // đưa vào pendingDeletes để lần bấm "Lưu" tiếp theo mới thực sự gọi API xoá.
+  //
+  // const handleClearAll = useCallback(() => {
+  //   if (selectedWeek?.isPublished) {
+  //     toast.error("Tuần đã công bố, cần hủy công bố trước khi chỉnh sửa");
+  //     return;
+  //   }
+  //   const savedApiIds = slots.filter((s) => !s.isDirty && s.apiId).map((s) => s.apiId!);
+  //   setPendingDeletes((prev) => new Set([...prev, ...savedApiIds]));
+  //   setPendingAdds(new Map());
+  //   setSlots([]);
+  //   setClearAllConfirmOpen(false);
+  //   toast.success(`Đã xoá ${slots.length} tiết — bấm "Lưu" để áp dụng`, { duration: 3000 });
+  // }, [slots, selectedWeek]);
+
+  // Trả về true nếu đã ghi xong xuống DB — luồng "lưu rồi xếp tự động" cần biết có được đi tiếp không.
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!selectedWeekId || saving || !hasDirtyChanges) return false;
     const adds = pendingAdds;
     const deletes = pendingDeletes;
     const totalOps = adds.size + deletes.size;
@@ -483,8 +468,10 @@ export function TimetablePage({
       setPendingAdds(new Map());
       setPendingDeletes(new Set());
       toast.success(`Đã lưu ${totalOps} thay đổi`);
+      return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không thể lưu thay đổi");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -549,7 +536,10 @@ export function TimetablePage({
     setIsEditOverlayOpen(true);
   }, [selectedGrade, selectedClassId]);
 
-  const handleAutoSchedule = useCallback(async () => {
+  // Chạy thuật toán. Chỉ được gọi khi tuần không còn thay đổi chưa lưu: backend đọc tiết đã xếp
+  // từ DB (ScheduleGeneratorService.generate) nên tiết còn nằm trong pendingAdds sẽ vô hình với
+  // solver — không được ghim, không được trừ vào số tiết còn thiếu, và bị kết quả trả về ghi đè.
+  const runAutoSchedule = useCallback(async () => {
     if (selectedWeek?.isPublished) {
       toast.error("Tuần đã công bố, cần hủy công bố trước khi xếp lại");
       return;
@@ -645,6 +635,19 @@ export function TimetablePage({
     }
   }, [classes, subjects, assignments, selectedWeekId, selectedWeek, noSubjectsToSchedule]);
 
+  const handleAutoSchedule = useCallback(() => {
+    if (hasDirtyChanges) {
+      setSaveBeforeAutoOpen(true);
+      return;
+    }
+    void runAutoSchedule();
+  }, [hasDirtyChanges, runAutoSchedule]);
+
+  const confirmSaveThenAutoSchedule = useCallback(async () => {
+    setSaveBeforeAutoOpen(false);
+    if (await handleSave()) await runAutoSchedule();
+  }, [handleSave, runAutoSchedule]);
+
   const reloadSlots = useCallback(async () => {
     if (!selectedWeekId) return;
     try {
@@ -728,22 +731,22 @@ export function TimetablePage({
     </select>
   );
 
-  // ── Conflict panel render ─────────────────────────────
   const conflictPanel = allIssues.length > 0 ? (() => {
-    const errors = allIssues.filter((i) => i.severity === "error");
-    const warnings = allIssues.filter((i) => i.severity === "warning");
     const badge = (
       <span className="flex items-center gap-2 text-sm font-semibold">
-        {errors.length > 0 && <span className="text-red-600">🔴 {errors.length} lỗi</span>}
-        {errors.length > 0 && warnings.length > 0 && <span className="text-slate-300">·</span>}
-        {warnings.length > 0 && <span className="text-amber-500">🟠 {warnings.length} cảnh báo</span>}
+        <span className="text-red-600">🔴 {allIssues.length} lỗi</span>
       </span>
     );
+    // Bảng lỗi được đặt absolute phía trên nút, nên khung ngoài chỉ rộng đúng bằng nút bấm. Nếu để
+    // bảng nằm trong luồng flex, khung ngoài sẽ chiếm nguyên vùng w-96 ở góc dưới phải kể cả lúc
+    // bảng đang thu gọn và nuốt click vào các ô thời khoá biểu nằm dưới.
     return (
-      <div className="fixed bottom-6 right-6 z-10000 flex flex-col items-end gap-2">
+      <div className="fixed bottom-6 right-6 z-10000 flex flex-col items-end">
         <div
-          className={`bg-white border border-slate-200 rounded-2xl shadow-xl w-96 overflow-hidden transition-all duration-200 origin-bottom ${
-            floatingPanelOpen ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
+          className={`absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl w-96 overflow-hidden transition-all duration-200 origin-bottom ${
+            floatingPanelOpen
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 translate-y-2 scale-95 pointer-events-none"
           }`}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
@@ -757,14 +760,14 @@ export function TimetablePage({
           </div>
           <div className="max-h-64 overflow-y-auto">
             {allIssues.map((issue) => (
-              <div
+              <button
                 key={issue.key}
-                className={`px-4 py-2.5 text-sm border-b border-slate-50 last:border-0 ${
-                  issue.severity === "error" ? "text-red-700" : "text-amber-700"
-                }`}
+                onClick={() => handleViewConflict(issue.slotIds)}
+                title="Xem vị trí trên lưới"
+                className="block w-full text-left px-4 py-2.5 text-sm border-b border-slate-50 last:border-0 text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
               >
-                {issue.severity === "error" ? "🔴" : "🟠"} {issue.label}
-              </div>
+                🔴 {issue.label}
+              </button>
             ))}
           </div>
         </div>
@@ -784,7 +787,6 @@ export function TimetablePage({
 
   return (
     <div className="p-8 flex flex-col gap-6 flex-1 min-h-0">
-      {/* ── Header ── */}
       <div className="flex items-start justify-between shrink-0">
         <div>
           {timetableId && (
@@ -830,7 +832,6 @@ export function TimetablePage({
         </div>
       </div>
 
-      {/* ── Selector bar (view only) ── */}
       <div className="flex items-center gap-4 flex-wrap shrink-0">
         {!inTeacherView ? (
           <>
@@ -886,7 +887,6 @@ export function TimetablePage({
         </div>
       </div>
 
-      {/* ── Main read-only grid ── */}
       <div className="flex gap-6 flex-1 min-h-0 overflow-hidden">
         <div className="flex-1 overflow-auto">
           {inTeacherView ? (
@@ -940,12 +940,9 @@ export function TimetablePage({
         </div>
       </div>
 
-      {/* ── Edit overlay ── */}
       {isEditOverlayOpen && (
         <div className="fixed inset-0 z-9999 bg-white flex flex-col">
-          {/* Overlay header */}
           <div className="shrink-0 px-6 py-3 bg-white border-b border-slate-200 flex flex-col gap-3">
-            {/* Row 1: title + close */}
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800 font-heading">Cập nhật thời khoá biểu</span>
               <button
@@ -956,9 +953,7 @@ export function TimetablePage({
               </button>
             </div>
 
-            {/* Row 2: selectors + actions */}
             <div className="flex items-center gap-3 flex-wrap">
-              {/* Khối */}
               <select
                 value={overlayGrade}
                 onChange={(e) => { setOverlayGrade(Number(e.target.value)); setOverlayClassId("all"); }}
@@ -967,7 +962,6 @@ export function TimetablePage({
                 {grades.map((g) => <option key={g} value={g}>Khối {g}</option>)}
               </select>
 
-              {/* Lớp */}
               <select
                 value={overlayClassId}
                 onChange={(e) => setOverlayClassId(e.target.value)}
@@ -979,7 +973,6 @@ export function TimetablePage({
                 ))}
               </select>
 
-              {/* Tuần */}
               {weeks.length > 0 && weekDropdown}
 
               <div className="ml-auto flex items-center gap-3">
@@ -1008,6 +1001,19 @@ export function TimetablePage({
                       <Sparkles className="h-3.5 w-3.5" />
                       {generating ? "Đang xếp..." : noSubjectsToSchedule ? "Đã xếp đủ tiết" : "Tự động xếp TKB"}
                     </Button>
+                    {/* "Xoá tất cả sắp xếp" — tạm tắt, xem ghi chú ở handleClearAll
+                    <Button
+                      onClick={() => setClearAllConfirmOpen(true)}
+                      disabled={saving || generating || slots.length === 0}
+                      size="sm"
+                      variant="outline"
+                      title={slots.length === 0 ? "Tuần này chưa có tiết nào" : "Xoá toàn bộ tiết đã xếp của tuần này, ở tất cả các khối"}
+                      className="flex items-center gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Xoá tất cả sắp xếp
+                    </Button>
+                    */}
                     <Button
                       onClick={handleSave}
                       disabled={saving || !hasDirtyChanges}
@@ -1032,7 +1038,6 @@ export function TimetablePage({
             </div>
           </div>
 
-          {/* Tuần đã công bố: banner khoá + lối tắt hủy công bố */}
           {selectedWeek?.isPublished && (
             <div className="shrink-0 px-6 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2 text-sm text-amber-800">
               <Lock className="h-4 w-4 shrink-0" />
@@ -1050,7 +1055,6 @@ export function TimetablePage({
             </div>
           )}
 
-          {/* Overlay body */}
           <div className="flex-1 overflow-auto p-6">
             <TimetableDragProvider>
               {overlayClassId === "all" ? (
@@ -1088,12 +1092,10 @@ export function TimetablePage({
             </TimetableDragProvider>
           </div>
 
-          {/* Conflict panel inside overlay */}
           {conflictPanel}
         </div>
       )}
 
-      {/* ── Dialogs ── */}
       <AlertDialog open={!!navTarget} onOpenChange={(open) => { if (!open) setNavTarget(null); }}>
         <AlertDialogContent className="z-10001">
           <AlertDialogHeader>
@@ -1119,6 +1121,49 @@ export function TimetablePage({
             >
               {navTarget === "__close_overlay__" ? "Đóng" : "Rời khỏi trang"}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Hộp thoại xác nhận của "Xoá tất cả sắp xếp" — tạm tắt, xem ghi chú ở handleClearAll
+      <AlertDialog open={clearAllConfirmOpen} onOpenChange={setClearAllConfirmOpen}>
+        <AlertDialogContent className="z-10001">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá tất cả sắp xếp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toàn bộ {slots.length} tiết đã xếp của tuần {selectedWeek?.weekNumber ?? ""}
+              {selectedWeek?.startDate ? ` (${selectedWeek.startDate})` : ""} sẽ bị xoá khỏi lưới,
+              ở <span className="font-semibold">tất cả các khối</span> chứ không riêng khối đang xem.
+              Thay đổi chỉ được ghi lại khi bạn bấm &ldquo;Lưu&rdquo;; đóng màn hình mà không lưu thì
+              thời khoá biểu giữ nguyên như cũ.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Xoá tất cả
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      */}
+
+      <AlertDialog open={saveBeforeAutoOpen} onOpenChange={setSaveBeforeAutoOpen}>
+        <AlertDialogContent className="z-10001">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Lưu thay đổi trước khi xếp tự động?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn đang có {pendingAdds.size + pendingDeletes.size} thay đổi chưa lưu. Thuật toán chỉ
+              giữ cố định những tiết đã lưu, nên các tiết vừa xếp tay sẽ bị bỏ qua và có thể bị kết
+              quả tự động ghi đè. Hệ thống sẽ lưu các thay đổi này rồi mới chạy xếp tự động.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSaveThenAutoSchedule}>Lưu và xếp tự động</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1345,7 +1390,10 @@ export function TeacherTimetableGrid({
   subjects: Subject[];
   assignments: AssignmentResponse[];
 }) {
-  const getSlot = (day: number, period: number) => teacherSlots.find((s) => s.day === day && s.period === period);
+  // Một khung giờ có thể chứa nhiều tiết của cùng giáo viên (GV bị xếp trùng ở nhiều lớp). Lấy cả
+  // nhóm chứ không chỉ tiết đầu tiên, để ô hiển thị đủ tên các lớp thay vì giấu bớt lớp bị trùng.
+  const getSlots = (day: number, period: number) =>
+    teacherSlots.filter((s) => s.day === day && s.period === period);
 
   return (
     <div className="bg-md-surface-container rounded-2xl overflow-hidden p-0.5">
@@ -1359,19 +1407,25 @@ export function TeacherTimetableGrid({
           <div key={period} className="grid gap-0.5" style={{ gridTemplateColumns: "80px repeat(5, 1fr)" }}>
             <div className="bg-md-surface-container-lowest flex items-center justify-center font-bold text-slate-500 min-h-20">{period}</div>
             {DAYS.map((day) => {
-              const slot = getSlot(day.value, period);
+              const cellSlots = getSlots(day.value, period);
+              const slot = cellSlots[0];
               if (slot) {
+                const subjectNames = [...new Set(cellSlots.map((s) => s.subjectName))].join(" / ");
+                const classNames = cellSlots.map((s) => s.classId).join(", ");
+                const hasConflict = cellSlots.some((s) => s.isConflict);
+                const hasRoomConflict = cellSlots.some((s) => s.isRoomConflict);
                 return (
                   <CellPopover key={`${day.value}-${period}`} slot={slot} day={day.value} period={period}
                     classId={slot.classId} allSlots={slots} onAddSlot={onAddSlot} onDeleteSlot={onDeleteSlot}
                     readOnly={readOnly} subjects={subjects} assignments={assignments}>
                     <div className={`min-h-20 p-3 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow rounded-sm border-l-[3px] ${
-                      slot.isConflict ? "bg-red-100 border-red-500" : "bg-white border-md-primary"
+                      hasConflict || hasRoomConflict ? "bg-red-100 border-red-500" : "bg-white border-md-primary"
                     }`}>
-                      <span className={`text-xs font-bold ${slot.isConflict ? "text-red-700" : "text-md-on-surface"}`}>{slot.subjectName}</span>
+                      <span className={`text-xs font-bold ${hasConflict || hasRoomConflict ? "text-red-700" : "text-md-on-surface"}`}>{subjectNames}</span>
                       <div>
-                        <span className="text-[10px] text-md-primary font-medium">Lớp {slot.classId}</span>
-                        {slot.isConflict && <p className="text-[10px] text-red-500 font-medium">⚠ Trùng lịch</p>}
+                        <span className="text-[10px] text-md-primary font-medium">Lớp {classNames}</span>
+                        {hasConflict && <p className="text-[10px] text-red-500 font-medium">⚠ Trùng lịch</p>}
+                        {hasRoomConflict && <p className="text-[10px] text-red-500 font-medium">⚠ Trùng phòng</p>}
                       </div>
                     </div>
                   </CellPopover>

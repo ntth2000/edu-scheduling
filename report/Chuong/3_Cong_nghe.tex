@@ -165,9 +165,7 @@ hoạch, tập giá trị có thể lựa chọn và tập hợp các ràng bu�
 
 Chất lượng của một phương án được Timefold đánh giá thông qua điểm số. Các
 ràng buộc cứng thể hiện những điều kiện bắt buộc; phương án vi phạm các điều
-kiện này không được xem là hợp lệ. Các ràng buộc mềm được sử dụng để so sánh
-những phương án hợp lệ và lựa chọn phương án có cách bố trí phù hợp hơn. Thư
-viện cung cấp Constraint Streams để khai báo ràng buộc bằng mã Java, nhờ đó
+kiện này không được xem là hợp lệ. Thư viện cung cấp Constraint Streams để khai báo ràng buộc bằng mã Java, nhờ đó
 các quy tắc có thể được tổ chức riêng, kiểm thử và điều chỉnh mà không làm
 thay đổi toàn bộ quy trình xếp lịch.
 
@@ -186,8 +184,6 @@ Các ràng buộc cứng của hệ thống bao gồm:
 \item Không tạo khoảng trống giữa các tiết học trong cùng một buổi.
 \item Chỉ bố trí tiết học vào buổi chiều khi số tiết buổi sáng của lớp đã được xếp đủ.
 \end{itemize}
-
-Ràng buộc mềm được sử dụng để hạn chế việc bố trí ba tiết liên tiếp của cùng một môn học trong một buổi. Khác với ràng buộc cứng, việc vi phạm ràng buộc mềm không làm cho thời khóa biểu mất tính hợp lệ nhưng làm giảm chất lượng của phương án.
 
 Bên cạnh tập ràng buộc, thứ tự xem xét các tiết học trong giai đoạn khởi tạo phương án cũng được cấu hình. Timefold cho phép khai báo bộ so sánh độ khó cho thực thể lập kế hoạch. Giai đoạn khởi tạo sử dụng bộ so sánh này để ưu tiên bố trí những tiết khó xếp khi thời khóa biểu còn nhiều khung thời gian trống.
 

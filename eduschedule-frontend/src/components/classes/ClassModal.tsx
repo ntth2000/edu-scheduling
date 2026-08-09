@@ -19,14 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { SchoolClass } from "@/lib/types";
-import { teacherApi, type TeacherResponse } from "@/lib/api";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface ClassModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   schoolClass: SchoolClass | null;
   defaultGrade?: number;
+  /** Các lớp đã có của năm học đang chọn — dùng để chặn trùng tên ngay tại form. */
+  existingClasses: SchoolClass[];
   onSave: (data: (Partial<SchoolClass> & { homeroomTeacherId?: number | null })[]) => void;
 }
 
@@ -35,12 +37,21 @@ const makeEmptyByGrade = (): Record<number, string> => ({ 1: "", 2: "", 3: "", 4
 const parseNames = (raw: string): string[] =>
   raw.split(",").map((s) => s.trim()).filter(Boolean);
 
-export function ClassModal({ open, onOpenChange, schoolClass, defaultGrade, onSave }: ClassModalProps) {
+// Backend ràng buộc UNIQUE(name, school_year_id) — trùng tên tính trên toàn năm học, không phân biệt
+// khối. So sánh không phân biệt hoa/thường vì "1A" và "1a" với người dùng là cùng một lớp.
+const normalizeName = (name: string): string => name.trim().toLowerCase();
+
+export function ClassModal({
+  open,
+  onOpenChange,
+  schoolClass,
+  defaultGrade,
+  existingClasses,
+  onSave,
+}: ClassModalProps) {
   // Edit mode
   const [grade, setGrade] = useState(1);
   const [name, setName] = useState("");
-  const [homeroomTeacherId, setHomeroomTeacherId] = useState<number | null>(null);
-  const [teachers, setTeachers] = useState<TeacherResponse[]>([]);
 
   // Add mode: one comma-separated string per grade
   const [addGrade, setAddGrade] = useState(1);
@@ -49,47 +60,68 @@ export function ClassModal({ open, onOpenChange, schoolClass, defaultGrade, onSa
   const isEditMode = !!schoolClass;
 
   useEffect(() => {
-    if (open && schoolClass) {
-      teacherApi.getAll().then(setTeachers).catch(() => {});
-    }
-  }, [open, schoolClass]);
-
-  useEffect(() => {
     if (schoolClass) {
       setGrade(schoolClass.grade);
       setName(schoolClass.name);
-      setHomeroomTeacherId(schoolClass.homeroomTeacherId ?? null);
     } else {
       setGrade(1);
       setName("");
-      setHomeroomTeacherId(null);
       setAddGrade(defaultGrade ?? 1);
       setClassesByGrade(makeEmptyByGrade());
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolClass, open]);
 
-  const handleSubmitEdit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    onSave([{ grade, name, homeroomTeacherId }]);
-  };
-
-  const handleSubmitAdd = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const all: (Partial<SchoolClass> & { homeroomTeacherId?: number | null })[] = [];
-    [1, 2, 3, 4, 5].forEach((g) => {
-      parseNames(classesByGrade[g] ?? "").forEach((n) => {
-        all.push({ grade: g, name: n, homeroomTeacherId: null });
-      });
-    });
-    if (all.length === 0) return;
-    onSave(all);
-  };
-
   // Summary across ALL grades
   const allValid = [1, 2, 3, 4, 5].flatMap((g) =>
     parseNames(classesByGrade[g] ?? "").map((n) => ({ grade: g, name: n }))
   );
+
+  // Tên bị trùng: trùng với lớp đã có trong năm học, hoặc bị nhập lặp lại giữa các ô (kể cả khác
+  // khối). Chỉ chạy lúc bấm nút lưu, không kiểm tra trong lúc người dùng đang gõ.
+  const findDuplicates = (entries: { grade: number; name: string }[]) => {
+    const taken = new Set(
+      existingClasses.filter((c) => c.id !== schoolClass?.id).map((c) => normalizeName(c.name))
+    );
+    const found: { grade: number; name: string }[] = [];
+    const seen = new Set<string>();
+    for (const entry of entries) {
+      const key = normalizeName(entry.name);
+      if ((taken.has(key) || seen.has(key)) && !found.some((d) => normalizeName(d.name) === key)) {
+        found.push(entry);
+      }
+      seen.add(key);
+    }
+    return found;
+  };
+
+  const handleSubmitEdit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (findDuplicates([{ grade, name: trimmed }]).length > 0) {
+      toast.error(`Lớp ${trimmed} đã tồn tại trong năm học này, không thể đặt trùng tên`);
+      return;
+    }
+    // Popup sửa lớp không còn ô chọn GVCN — giữ nguyên GVCN hiện tại để lần lưu này không gỡ phân công.
+    onSave([{ grade, name: trimmed, homeroomTeacherId: schoolClass?.homeroomTeacherId ?? null }]);
+  };
+
+  const handleSubmitAdd = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (allValid.length === 0) return;
+
+    const duplicates = findDuplicates(allValid);
+    if (duplicates.length > 0) {
+      toast.error(
+        `Tên lớp bị trùng, không thể tạo: ${duplicates
+          .map((d) => `${d.name} (khối ${d.grade})`)
+          .join(", ")}`
+      );
+      return;
+    }
+
+    onSave(allValid.map(({ grade: g, name: n }) => ({ grade: g, name: n, homeroomTeacherId: null })));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,8 +140,9 @@ export function ClassModal({ open, onOpenChange, schoolClass, defaultGrade, onSa
         {isEditMode ? (
           <form onSubmit={handleSubmitEdit} className="space-y-5">
             <Field>
-              <FieldLabel>Khối <span className="text-red-600">*</span></FieldLabel>
-              <Select value={String(grade)} onValueChange={(val) => setGrade(Number(val))}>
+              <FieldLabel>Khối</FieldLabel>
+              {/* Đổi khối của lớp đã tồn tại sẽ làm lệch phân công và số tiết theo khối, nên chỉ cho xem. */}
+              <Select value={String(grade)} disabled>
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn khối" />
                 </SelectTrigger>
@@ -129,24 +162,6 @@ export function ClassModal({ open, onOpenChange, schoolClass, defaultGrade, onSa
                 required
                 placeholder="Ví dụ: 4D"
               />
-            </Field>
-
-            <Field>
-              <FieldLabel>Giáo viên chủ nhiệm</FieldLabel>
-              <Select
-                value={homeroomTeacherId != null ? String(homeroomTeacherId) : "none"}
-                onValueChange={(val) => setHomeroomTeacherId(val === "none" ? null : Number(val))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn giáo viên chủ nhiệm" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Chưa phân công</SelectItem>
-                  {teachers.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>{t.fullName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </Field>
 
             <DialogFooter className="gap-2 pt-4">

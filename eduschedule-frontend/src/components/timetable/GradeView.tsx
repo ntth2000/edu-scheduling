@@ -170,7 +170,7 @@ export function GradeView({
                             {slot ? (
                               <div
                                 className={`rounded-lg px-2 py-1.5 cursor-pointer hover:brightness-95 transition-all ${
-                                  slot.isConflict
+                                  slot.isConflict || slot.isRoomConflict
                                     ? "bg-red-100 border border-red-300"
                                     : slot.isDirty
                                     ? "bg-amber-50 border border-dashed border-amber-300"
@@ -183,7 +183,7 @@ export function GradeView({
                               >
                                 <p
                                   className={`text-xs font-semibold leading-tight ${
-                                    slot.isConflict ? "text-red-700" : "text-slate-800"
+                                    slot.isConflict || slot.isRoomConflict ? "text-red-700" : "text-slate-800"
                                   }`}
                                 >
                                   {slot.subjectName}
@@ -191,7 +191,7 @@ export function GradeView({
                                 {slot.teacherName && (
                                   <p
                                     className={`text-[10px] mt-0.5 leading-tight ${
-                                      slot.isConflict
+                                      slot.isConflict || slot.isRoomConflict
                                         ? "text-red-500"
                                         : slot.teacherId &&
                                           slot.teacherId !==
@@ -206,6 +206,11 @@ export function GradeView({
                                 {slot.isConflict && (
                                   <p className="text-[10px] text-red-500 font-medium mt-0.5">
                                     ⚠ Trùng lịch GV
+                                  </p>
+                                )}
+                                {slot.isRoomConflict && (
+                                  <p className="text-[10px] text-red-500 font-medium mt-0.5">
+                                    ⚠ Trùng phòng
                                   </p>
                                 )}
                                 {slot.isDirty && (

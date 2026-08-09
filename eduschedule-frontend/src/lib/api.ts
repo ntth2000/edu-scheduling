@@ -147,7 +147,10 @@ export interface ClassRequest {
 // API clients
 
 export const teacherApi = {
-  getAll: () => apiFetch<TeacherResponse[]>("/api/teachers"),
+  // year (tuỳ chọn): giới hạn homeroomClassName về đúng năm học đang xem. Bỏ trống thì trả
+  // thông tin chủ nhiệm gộp của mọi năm học (dùng cho trang quản lý giáo viên).
+  getAll: (year?: string | null) =>
+    apiFetch<TeacherResponse[]>(year ? `/api/teachers?year=${encodeURIComponent(year)}` : "/api/teachers"),
 
   create: (body: TeacherRequest) =>
     apiFetch<TeacherResponse>("/api/teachers", {

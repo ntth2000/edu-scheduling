@@ -14,6 +14,8 @@ export interface Slot {
   teacherId: string | null; // stringified teacher id, null = GVCN tự dạy
   teacherName: string | null;
   isConflict: boolean;
+  isRoomConflict?: boolean; // true = subject's special room over capacity at this day/period
+  isRuleViolation?: boolean; // true = vi phạm cấu trúc buổi học (hở tiết / chiều khi sáng chưa đủ)
   isDirty?: boolean;    // true = pending add not yet sent to server
 }
 

@@ -128,7 +128,9 @@ export function ClassTable({ year }: { year: string | null }) {
       }
     } else {
       let successCount = 0;
-      let failCount = 0;
+      // Trùng tên đã bị ClassModal chặn từ trước; đây là lưới an toàn cho các lỗi còn lại
+      // (mất mạng, năm học bị xoá ở tab khác...) nên giữ nguyên nguyên văn thông báo của backend.
+      const failures: string[] = [];
       for (const data of dataList) {
         const body = {
           name: data.name ?? "",
@@ -142,12 +144,17 @@ export function ClassTable({ year }: { year: string | null }) {
             [...prev, mapClass(created)].sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "vi"))
           );
           successCount++;
-        } catch {
-          failCount++;
+        } catch (e) {
+          failures.push(e instanceof Error ? e.message : `Không thể tạo lớp ${body.name}`);
         }
       }
       if (successCount > 0) toast.success(`Đã thêm ${successCount} lớp học mới`);
-      if (failCount > 0) toast.error(`${failCount} lớp không thể tạo`);
+      if (failures.length > 0) {
+        toast.error(`${failures.length} lớp không thể tạo`, {
+          description: [...new Set(failures)].join("\n"),
+          duration: 6000,
+        });
+      }
     }
     setIsModalOpen(false);
     setEditingClass(null);
@@ -295,6 +302,7 @@ export function ClassTable({ year }: { year: string | null }) {
         }}
         schoolClass={editingClass}
         defaultGrade={defaultGrade}
+        existingClasses={classes}
         onSave={handleSave}
       />
 

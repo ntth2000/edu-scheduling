@@ -54,11 +54,21 @@ run(async (page, context) => {
 
   const dialog = page.getByRole("dialog");
   await dialog.waitFor();
-  await dialog.getByRole("combobox").first().click(); // Khối select
-  const options = page.getByRole("option");
-  const optionTexts = await options.allTextContents();
+  // Form sửa: ô Khối bị khoá hẳn, không chọn được khối nào — kể cả khối hợp lệ.
   assert(
-    optionTexts.length === 5 && optionTexts.every((t) => /^Khối [1-5]$/.test(t.trim())),
-    `expected exactly the 5 valid grade options, got ${JSON.stringify(optionTexts)}`
+    await dialog.getByRole("combobox").first().isDisabled(),
+    "expected the Khối select to be disabled in the edit form"
+  );
+  await dialog.getByRole("button", { name: "Hủy", exact: true }).click();
+
+  // Form thêm: 5 nút khối cố định 1..5, không có ô nhập khối tự do.
+  await page.getByRole("button", { name: "Thêm vào Khối 1" }).click();
+  const addDialog = page.getByRole("dialog");
+  await addDialog.waitFor();
+  const gradeButtons = addDialog.locator("div.flex.gap-2 > button[type=button]").filter({ hasText: /^\d+$/ });
+  const gradeTexts = (await gradeButtons.allTextContents()).map((t) => t.trim());
+  assert(
+    gradeTexts.length === 5 && gradeTexts.every((t, i) => t === String(i + 1)),
+    `expected exactly the 5 valid grade buttons, got ${JSON.stringify(gradeTexts)}`
   );
 });

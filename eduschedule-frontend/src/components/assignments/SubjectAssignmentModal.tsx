@@ -120,6 +120,7 @@ export function SubjectAssignmentModal({
         <DialogHeader className="px-6 pt-6 pb-0 shrink-0">
           <DialogTitle className="text-xl font-bold text-md-on-surface">
             Phân công chuyên môn chi tiết cho giáo viên {defaultTeacher.fullName}
+            {defaultTeacher.homeroomClassName && ` (Chủ nhiệm lớp ${defaultTeacher.homeroomClassName})`}
           </DialogTitle>
         </DialogHeader>
 
@@ -183,9 +184,9 @@ export function SubjectAssignmentModal({
                         sub.periodsGrade1, sub.periodsGrade2, sub.periodsGrade3,
                         sub.periodsGrade4, sub.periodsGrade5,
                       ][cls.grade - 1] ?? 0;
-                      const isHomeroomTeacher = defaultTeacher.homeroomClassName != null;
-                      const isTheirClass = cls.homeroomTeacherId === defaultTeacher.id;
-                      const disabled = periods === 0 || (isHomeroomTeacher && !isTheirClass);
+                      // Giáo viên chủ nhiệm vẫn được phân công dạy ở lớp khác; ô chỉ bị khoá khi
+                      // môn học không có tiết nào ở khối của lớp đó.
+                      const disabled = periods === 0;
                       const existingAssignment = assignments.find(
                         (a) => a.classId === cls.id && a.subjectId === sub.id
                       );
