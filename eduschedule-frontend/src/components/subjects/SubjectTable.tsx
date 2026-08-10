@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type Subject } from "@/lib/types";
 import { SubjectModal } from "./SubjectModal";
 import { Pencil, Trash2, Download, Plus, FileUp } from "lucide-react";
@@ -36,7 +36,11 @@ export function SubjectTable() {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
-  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(subjects, 20);
+  const sortedSubjects = useMemo(
+    () => [...subjects].sort((a, b) => a.name.localeCompare(b.name, "vi")),
+    [subjects]
+  );
+  const { currentData, currentPage, setCurrentPage, itemsPerPage } = usePagination(sortedSubjects, 20);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Import progress state

@@ -146,8 +146,11 @@ export function TimetablePage({
     return () => window.removeEventListener("popstate", onPopState);
   }, [hasDirtyChanges]);
 
+  const effectiveYear = timetableId ? currentTimetable?.schoolYearName ?? null : yearParam;
+
   useEffect(() => {
-    Promise.all([teacherApi.getAll(yearParam), subjectApi.getAll(), classApi.getAll(yearParam), assignmentApi.getAll(yearParam), specialRoomApi.getAll()])
+    if (timetableId && !currentTimetable) return;
+    Promise.all([teacherApi.getAll(effectiveYear), subjectApi.getAll(), classApi.getAll(effectiveYear), assignmentApi.getAll(effectiveYear), specialRoomApi.getAll()])
       .then(([t, s, c, a, r]) => {
         setTeachers(t);
         setSubjects(
@@ -166,7 +169,7 @@ export function TimetablePage({
         if (firstBm) setSelectedTeacherId(firstBm.id.toString());
       })
       .catch(() => toast.error("Không thể tải dữ liệu"));
-  }, [yearParam]);
+  }, [effectiveYear, timetableId, currentTimetable]);
 
   useEffect(
     () =>
@@ -193,6 +196,14 @@ export function TimetablePage({
       .catch(() => toast.error("Không thể tải thời khoá biểu"))
       .finally(() => setLoading(false));
   }, [timetableId]);
+
+  useEffect(() => {
+    if (!timetableId || !currentTimetable) return;
+    if (yearParam === currentTimetable.schoolYearName) return;
+    router.replace(
+      `/timetable/${currentTimetable.id}?year=${encodeURIComponent(currentTimetable.schoolYearName)}`
+    );
+  }, [timetableId, currentTimetable, yearParam, router]);
 
   useEffect(() => {
     if (!selectedWeekId) { setSlots([]); return; }

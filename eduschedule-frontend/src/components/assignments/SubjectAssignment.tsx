@@ -87,6 +87,11 @@ export function SubjectAssignment({
     [subjects, selectedGrade]
   );
 
+  const sortedTeachers = useMemo(
+    () => [...teachers].sort((a, b) => a.fullName.localeCompare(b.fullName, "vi")),
+    [teachers]
+  );
+
   const gradeClasses = useMemo(
     () =>
       classes
@@ -275,6 +280,10 @@ export function SubjectAssignment({
                 const clsUnassigned = gradeSubjects.filter(
                   (sub) => !assignments.some((a) => a.classId === cls.id && a.subjectId === sub.id)
                 ).length;
+                const teacherOptions = [
+                  ...sortedTeachers.filter((t) => t.id === cls.homeroomTeacherId),
+                  ...sortedTeachers.filter((t) => t.id !== cls.homeroomTeacherId),
+                ];
                 return (
                   <div key={cls.id} className="px-6 py-4">
                     {/* Class name row */}
@@ -295,12 +304,6 @@ export function SubjectAssignment({
                       {gradeSubjects.map((sub) => {
                         const assignment = assignments.find(
                           (a) => a.classId === cls.id && a.subjectId === sub.id
-                        );
-                        const homeroomTeacher = teachers.find(
-                          (t) => t.id === cls.homeroomTeacherId
-                        );
-                        const nonHomeroomTeachers = teachers.filter(
-                          (t) => t.homeroomClassName == null
                         );
                         return (
                           <div
@@ -325,14 +328,14 @@ export function SubjectAssignment({
                               }`}
                             >
                               <option value="">— Chưa phân công —</option>
-                              {homeroomTeacher && (
-                                <option value={homeroomTeacher.id}>
-                                  {homeroomTeacher.fullName} (GVCN)
-                                </option>
-                              )}
-                              {nonHomeroomTeachers.map((t) => (
+                              {teacherOptions.map((t) => (
                                 <option key={t.id} value={t.id}>
                                   {t.fullName}
+                                  {t.id === cls.homeroomTeacherId
+                                    ? " (GVCN)"
+                                    : t.homeroomClassName
+                                      ? ` (GVCN ${t.homeroomClassName})`
+                                      : ""}
                                 </option>
                               ))}
                             </select>

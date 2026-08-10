@@ -19,6 +19,7 @@ spring.jpa.properties.hibernate.format_sql=true
 # JWT
 jwt.secret=${JWT_SECRET:<YOUR JWT SECRET KEY>}
 jwt.expiration=${JWT_EXPIRATION:86400000}
+jwt.refresh-expiration=${JWT_REFRESH_EXPIRATION:604800000}
 
 # CORS (comma-separated list of origins)
 cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:3000}

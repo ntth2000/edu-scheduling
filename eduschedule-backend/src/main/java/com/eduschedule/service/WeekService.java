@@ -5,11 +5,16 @@ import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.eduschedule.dto.response.WeekResponse;
 import com.eduschedule.entity.Assignment;
+import com.eduschedule.entity.SchoolClass;
 import com.eduschedule.entity.Slot;
+import com.eduschedule.entity.SpecialRoom;
 import com.eduschedule.entity.Subject;
 import com.eduschedule.entity.Week;
 import com.eduschedule.repository.AssignmentRepository;
+import com.eduschedule.repository.SchoolClassRepository;
 import com.eduschedule.repository.SlotRepository;
+import com.eduschedule.repository.SpecialRoomRepository;
+import com.eduschedule.repository.SubjectRepository;
 import com.eduschedule.repository.WeekRepository;
 import com.eduschedule.scheduler.solver.Lesson;
 import com.eduschedule.scheduler.solver.Timeslot;
@@ -34,6 +39,9 @@ public class WeekService {
     private final WeekRepository weekRepository;
     private final SlotRepository slotRepository;
     private final AssignmentRepository assignmentRepository;
+    private final SpecialRoomRepository specialRoomRepository;
+    private final SchoolClassRepository schoolClassRepository;
+    private final SubjectRepository subjectRepository;
     private final SolverFactory<Timetable> solverFactory;
 
     public record WeekEligibility(boolean eligible, String reason) {
@@ -139,8 +147,9 @@ public class WeekService {
         return String.join(", ", parts) + " và " + last;
     }
 
-    // Publish eligibility = (a) every assignment's required weekly periods are fully placed in
-    // this week, and (b) the existing slots violate none of TimetableConstraintProvider's hard
+    // Publish eligibility = (a) for every class×subject in the school year, the number of slots
+    // placed in this week equals the subject's current per-grade quota exactly (too few and too
+    // many both fail), and (b) the existing slots violate none of TimetableConstraintProvider's hard
     // constraints. Reuses the same solver machinery as ScheduleGeneratorService/TimefoldPhase
     // instead of re-implementing conflict detection, so this never drifts from what "generate"
     // considers valid.
@@ -150,46 +159,45 @@ public class WeekService {
                         "Không tìm thấy tuần với id: " + weekId));
 
         Long schoolYearId = week.getTimetable().getSchoolYear().getId();
+        Long userId = week.getTimetable().getSchoolYear().getUser().getId();
         List<Assignment> allAssignments = assignmentRepository.findBySchoolClassSchoolYearId(schoolYearId);
         List<Slot> existingSlots = slotRepository.findByWeekId(weekId);
+        Map<Long, SpecialRoom> subjectToRoom = specialRoomRepository.findAllByUserId(userId).stream()
+                .filter(r -> r.getSubject() != null)
+                .collect(Collectors.toMap(r -> r.getSubject().getId(), r -> r, (a, b) -> a));
 
-        Map<Long, Integer> totalPeriodsMap = new HashMap<>();
-        for (Assignment a : allAssignments) {
-            int grade = a.getSchoolClass().getGrade();
-            Subject s = a.getSubject();
-            int periods = switch (grade) {
-                case 1 -> s.getPeriodsGrade1() != null ? s.getPeriodsGrade1() : 0;
-                case 2 -> s.getPeriodsGrade2() != null ? s.getPeriodsGrade2() : 0;
-                case 3 -> s.getPeriodsGrade3() != null ? s.getPeriodsGrade3() : 0;
-                case 4 -> s.getPeriodsGrade4() != null ? s.getPeriodsGrade4() : 0;
-                case 5 -> s.getPeriodsGrade5() != null ? s.getPeriodsGrade5() : 0;
-                default -> 0;
-            };
-            if (periods > 0) totalPeriodsMap.put(a.getId(), periods);
-        }
-
-        Map<Long, Long> scheduledCount = existingSlots.stream()
+        Map<String, Long> scheduledByClassSubject = existingSlots.stream()
                 .filter(s -> s.getAssignment() != null)
-                .collect(Collectors.groupingBy(s -> s.getAssignment().getId(), Collectors.counting()));
+                .collect(Collectors.groupingBy(
+                        s -> classSubjectKey(s.getAssignment().getSchoolClass().getId(),
+                                s.getAssignment().getSubject().getId()),
+                        Collectors.counting()));
 
-        int missingPeriods = 0;
-        for (Map.Entry<Long, Integer> e : totalPeriodsMap.entrySet()) {
-            int remaining = e.getValue() - scheduledCount.getOrDefault(e.getKey(), 0L).intValue();
-            if (remaining > 0) missingPeriods += remaining;
+        List<SchoolClass> classes = schoolClassRepository.findAllBySchoolYearId(schoolYearId);
+        List<Subject> subjects = subjectRepository.findAllByUserId(userId);
+
+        for (SchoolClass cls : classes) {
+            for (Subject subject : subjects) {
+                int required = periodsForGrade(subject, cls.getGrade());
+                if (required == 0) continue;
+                int scheduled = scheduledByClassSubject
+                        .getOrDefault(classSubjectKey(cls.getId(), subject.getId()), 0L)
+                        .intValue();
+                if (scheduled != required) {
+                    return new WeekEligibility(false, "Số tiết chưa đúng định mức");
+                }
+            }
         }
 
-        if (missingPeriods > 0) {
-            return new WeekEligibility(false, "Còn " + missingPeriods + " tiết chưa xếp");
-        }
-
-        if (!isHardConstraintClean(existingSlots, allAssignments)) {
+        if (!isHardConstraintClean(existingSlots, allAssignments, subjectToRoom)) {
             return new WeekEligibility(false, "Còn vi phạm ràng buộc bắt buộc");
         }
 
         return new WeekEligibility(true, null);
     }
 
-    private boolean isHardConstraintClean(List<Slot> existingSlots, List<Assignment> allAssignments) {
+    private boolean isHardConstraintClean(List<Slot> existingSlots, List<Assignment> allAssignments,
+                                          Map<Long, SpecialRoom> subjectToRoom) {
         if (existingSlots.isEmpty()) {
             return true;
         }
@@ -216,6 +224,7 @@ public class WeekService {
             int withinPeriod = flatPeriod <= 4 ? flatPeriod : flatPeriod - 4;
 
             int idx = occurrence.merge(a.getId(), 1, Integer::sum) - 1;
+            SpecialRoom room = subjectToRoom.get(a.getSubject().getId());
             lessonList.add(Lesson.builder()
                     .id(a.getId() + "-" + idx)
                     .assignmentId(a.getId())
@@ -225,8 +234,8 @@ public class WeekService {
                     .teacherFullName(a.getTeacher() != null ? a.getTeacher().getFullName() : null)
                     .subjectId(a.getSubject().getId())
                     .subjectName(a.getSubject().getName())
-                    .specialRoomId(slot.getSpecialRoom() != null ? slot.getSpecialRoom().getId() : null)
-                    .specialRoomCapacity(slot.getSpecialRoom() != null ? slot.getSpecialRoom().getQuantity() : null)
+                    .specialRoomId(room != null ? room.getId() : null)
+                    .specialRoomCapacity(room != null ? room.getQuantity() : null)
                     .pinned(true)
                     .timeslot(timeslotIndex.get(timeslotKey(slot.getDay(), session, withinPeriod)))
                     .build());
@@ -240,6 +249,23 @@ public class WeekService {
 
     private String timeslotKey(int day, int session, int period) {
         return day + "_" + session + "_" + period;
+    }
+
+    private String classSubjectKey(Long classId, Long subjectId) {
+        return classId + "_" + subjectId;
+    }
+
+    private int periodsForGrade(Subject s, Integer grade) {
+        if (grade == null) return 0;
+        Integer periods = switch (grade) {
+            case 1 -> s.getPeriodsGrade1();
+            case 2 -> s.getPeriodsGrade2();
+            case 3 -> s.getPeriodsGrade3();
+            case 4 -> s.getPeriodsGrade4();
+            case 5 -> s.getPeriodsGrade5();
+            default -> 0;
+        };
+        return periods != null ? periods : 0;
     }
 
     private WeekResponse toResponse(Week w) {
