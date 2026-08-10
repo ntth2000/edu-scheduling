@@ -94,8 +94,6 @@ export function PublishTimetableDialog({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const confirmLabel =
-    selected.size > 0 ? `${isPublic ? "Cập nhật" : "Công khai"} (${selected.size})` : "Thu hồi công khai";
   const confirmDisabled = submitting || loading || (selected.size === 0 && !isPublic);
 
   return (
@@ -153,12 +151,8 @@ export function PublishTimetableDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Đóng
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={confirmDisabled}
-            variant={selected.size === 0 ? "destructive" : "default"}
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : confirmLabel}
+          <Button onClick={handleConfirm} disabled={confirmDisabled}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cập nhật"}
           </Button>
         </DialogFooter>
       </DialogContent>
