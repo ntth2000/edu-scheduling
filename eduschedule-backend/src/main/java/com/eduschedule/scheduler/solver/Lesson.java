@@ -13,7 +13,7 @@ import lombok.Setter;
 // TẠM TẮT để thử nghiệm: bỏ khai báo comparatorClass thì Construction Heuristic không còn xếp
 // theo 4 tầng độ khó (ghim > GVBM+phòng > GVBM > GVCN) mà duyệt Lesson theo đúng thứ tự trong
 // lessonList. Khôi phục bằng cách bỏ comment dòng dưới và xoá dòng @PlanningEntity trống.
-// @PlanningEntity(comparatorClass = LessonDifficultyComparator.class)
+@PlanningEntity(comparatorClass = LessonDifficultyComparator.class)
 @PlanningEntity
 @Getter
 @Setter
